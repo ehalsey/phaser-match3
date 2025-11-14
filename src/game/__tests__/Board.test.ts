@@ -3,12 +3,12 @@ import { Board, GemType } from '../Board';
 describe('Board', () => {
   describe('Phase 1: Board Creation & Match Detection', () => {
 
-    describe('Test 1: Board created with correct dimensions (3x4)', () => {
-      it('should create a board with 3 rows and 4 columns', () => {
-        const board = new Board(3, 4);
+    describe('Test 1: Board created with correct dimensions (4x3)', () => {
+      it('should create a board with 4 rows and 3 columns', () => {
+        const board = new Board(4, 3);
 
-        expect(board.getRows()).toBe(3);
-        expect(board.getCols()).toBe(4);
+        expect(board.getRows()).toBe(4);
+        expect(board.getCols()).toBe(3);
       });
 
       it('should create a board with different dimensions', () => {
@@ -21,11 +21,12 @@ describe('Board', () => {
 
     describe('Test 2: Board initialized with predefined configuration', () => {
       it('should initialize board with provided gem configuration', () => {
-        const board = new Board(3, 4);
+        const board = new Board(4, 3);
         const testConfig: (GemType | null)[][] = [
-          ['red', 'blue', 'green', 'yellow'],
-          ['purple', 'red', 'blue', 'green'],
-          ['yellow', 'purple', 'red', 'blue']
+          ['red', 'blue', 'green'],
+          ['purple', 'red', 'blue'],
+          ['yellow', 'purple', 'red'],
+          ['green', 'yellow', 'purple']
         ];
 
         board.initializeWithConfig(testConfig);
@@ -33,7 +34,7 @@ describe('Board', () => {
         expect(board.getGemAt(0, 0)).toBe('red');
         expect(board.getGemAt(0, 1)).toBe('blue');
         expect(board.getGemAt(1, 2)).toBe('blue');
-        expect(board.getGemAt(2, 3)).toBe('blue');
+        expect(board.getGemAt(3, 2)).toBe('purple');
       });
 
       it('should handle null values in configuration', () => {
@@ -51,7 +52,7 @@ describe('Board', () => {
       });
 
       it('should throw error if config dimensions do not match board dimensions', () => {
-        const board = new Board(3, 4);
+        const board = new Board(4, 3);
         const wrongConfig: (GemType | null)[][] = [
           ['red', 'blue'],
           ['green', 'yellow']

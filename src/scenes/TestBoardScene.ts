@@ -23,13 +23,14 @@ export class TestBoardScene extends Phaser.Scene {
 
   create(): void {
     // Create board instance
-    this.board = new Board(3, 4);
+    this.board = new Board(4, 3);
 
     // Initialize with test configuration
     const testConfig: (GemType | null)[][] = [
-      ['red', 'red', 'red', 'yellow'],    // Horizontal match of 3 reds!
-      ['purple', 'blue', 'blue', 'green'],
-      ['yellow', 'purple', 'orange', 'blue']
+      ['red', 'red', 'red'],      // Horizontal match of 3 reds!
+      ['purple', 'blue', 'green'],
+      ['yellow', 'purple', 'orange'],
+      ['blue', 'yellow', 'green']
     ];
 
     this.board.initializeWithConfig(testConfig);
