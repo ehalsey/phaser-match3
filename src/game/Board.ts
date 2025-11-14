@@ -5,6 +5,12 @@ export interface Position {
   col: number;
 }
 
+export interface Match {
+  positions: Position[];
+  type: GemType;
+  direction: 'horizontal' | 'vertical';
+}
+
 export class Board {
   private grid: (GemType | null)[][];
   private rows: number;
@@ -63,5 +69,54 @@ export class Board {
    */
   getGrid(): (GemType | null)[][] {
     return this.grid.map(row => [...row]);
+  }
+
+  /**
+   * Find all matches (3 or more consecutive gems) on the board
+   * @returns Array of matches found
+   */
+  findMatches(): Match[] {
+    const matches: Match[] = [];
+
+    // Check horizontal matches
+    for (let row = 0; row < this.rows; row++) {
+      let col = 0;
+      while (col < this.cols) {
+        const gem = this.grid[row][col];
+
+        // Skip null gems
+        if (gem === null) {
+          col++;
+          continue;
+        }
+
+        // Count consecutive gems of the same type
+        let count = 1;
+        let startCol = col;
+
+        while (col + count < this.cols && this.grid[row][col + count] === gem) {
+          count++;
+        }
+
+        // If we found 3 or more consecutive gems, record the match
+        if (count >= 3) {
+          const positions: Position[] = [];
+          for (let i = 0; i < count; i++) {
+            positions.push({ row, col: startCol + i });
+          }
+
+          matches.push({
+            positions,
+            type: gem,
+            direction: 'horizontal'
+          });
+        }
+
+        // Move to the next unmatched position
+        col += count;
+      }
+    }
+
+    return matches;
   }
 }

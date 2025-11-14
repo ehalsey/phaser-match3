@@ -77,8 +77,74 @@ describe('Board', () => {
 
     describe('Test 3: Detect pre-existing 1x3 horizontal match', () => {
       it('should detect a horizontal match of 3 gems in a row', () => {
-        // TODO: Implement match detection
-        expect(true).toBe(true);
+        const board = new Board(4, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'red', 'red'],      // Row 0: 3 reds - MATCH!
+          ['blue', 'green', 'yellow'],
+          ['purple', 'orange', 'blue'],
+          ['green', 'yellow', 'purple']
+        ];
+
+        board.initializeWithConfig(testConfig);
+        const matches = board.findMatches();
+
+        expect(matches.length).toBe(1);
+        expect(matches[0]).toEqual({
+          positions: [
+            { row: 0, col: 0 },
+            { row: 0, col: 1 },
+            { row: 0, col: 2 }
+          ],
+          type: 'red',
+          direction: 'horizontal'
+        });
+      });
+
+      it('should detect multiple horizontal matches', () => {
+        const board = new Board(4, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'red', 'red'],      // Row 0: 3 reds - MATCH!
+          ['blue', 'green', 'yellow'],
+          ['blue', 'blue', 'blue'],   // Row 2: 3 blues - MATCH!
+          ['green', 'yellow', 'purple']
+        ];
+
+        board.initializeWithConfig(testConfig);
+        const matches = board.findMatches();
+
+        expect(matches.length).toBe(2);
+        expect(matches[0].type).toBe('red');
+        expect(matches[1].type).toBe('blue');
+      });
+
+      it('should not detect a match with only 2 gems in a row', () => {
+        const board = new Board(4, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'red', 'blue'],     // Only 2 reds - NO MATCH
+          ['blue', 'green', 'yellow'],
+          ['purple', 'orange', 'blue'],
+          ['green', 'yellow', 'purple']
+        ];
+
+        board.initializeWithConfig(testConfig);
+        const matches = board.findMatches();
+
+        expect(matches.length).toBe(0);
+      });
+
+      it('should handle boards with no matches', () => {
+        const board = new Board(4, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green'],
+          ['blue', 'green', 'yellow'],
+          ['purple', 'orange', 'blue'],
+          ['green', 'yellow', 'purple']
+        ];
+
+        board.initializeWithConfig(testConfig);
+        const matches = board.findMatches();
+
+        expect(matches.length).toBe(0);
       });
     });
 
