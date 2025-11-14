@@ -5,7 +5,7 @@ export class TestBoardScene extends Phaser.Scene {
   private board!: Board;
   private readonly CELL_SIZE = 80;
   private readonly BOARD_OFFSET_X = 200;
-  private readonly BOARD_OFFSET_Y = 120;
+  private readonly BOARD_OFFSET_Y = 150;
 
   // Color mapping for gems
   private readonly GEM_COLORS: Record<GemType, number> = {
@@ -37,15 +37,15 @@ export class TestBoardScene extends Phaser.Scene {
 
     this.board.initializeWithConfig(testConfig);
 
-    // Add title
+    // Title
     this.add.text(400, 30, 'Board Creation Test', {
       fontSize: '32px',
       color: '#ffffff',
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
-    // Add board info
-    this.add.text(400, 70, `Board: ${this.board.getRows()} rows × ${this.board.getCols()} cols`, {
+    // Board info
+    this.add.text(400, 90, `Board: ${this.board.getRows()} rows × ${this.board.getCols()} cols`, {
       fontSize: '20px',
       color: '#2ecc71'
     }).setOrigin(0.5);
@@ -56,7 +56,7 @@ export class TestBoardScene extends Phaser.Scene {
     // Add legend
     this.drawLegend();
 
-    // Add note about setup
+    // Bottom note about setup
     this.add.text(400, 520, 'Cells 2, 3, 4 are BLUE. Swap cell 2↔5 to create horizontal match!', {
       fontSize: '18px',
       color: '#ffffff',
@@ -94,7 +94,7 @@ export class TestBoardScene extends Phaser.Scene {
           }).setOrigin(0.5);
         }
 
-        // Add coordinates
+        // Add coordinates (small corner labels)
         this.add.text(x - 30, y - 30, `${row},${col}`, {
           fontSize: '10px',
           color: '#95a5a6'
@@ -119,6 +119,7 @@ export class TestBoardScene extends Phaser.Scene {
     const legendX = 520;
     const legendY = 150;
 
+    // Legend title
     this.add.text(legendX, legendY - 30, 'Gem Types:', {
       fontSize: '18px',
       color: '#ffffff',
@@ -132,7 +133,7 @@ export class TestBoardScene extends Phaser.Scene {
       // Draw gem color circle
       this.add.circle(legendX + 15, y, 12, this.GEM_COLORS[gem]);
 
-      // Draw gem name
+      // Draw gem name (legend items)
       this.add.text(legendX + 35, y, gem.charAt(0).toUpperCase() + gem.slice(1), {
         fontSize: '16px',
         color: '#ecf0f1'
