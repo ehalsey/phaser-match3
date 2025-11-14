@@ -146,6 +146,59 @@ describe('Board', () => {
 
         expect(matches.length).toBe(0);
       });
+
+      it('should work on different board dimensions (5x6)', () => {
+        const board = new Board(5, 6);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green', 'yellow', 'purple', 'orange'],
+          ['purple', 'purple', 'purple', 'purple', 'blue', 'red'],  // 4 purples - MATCH!
+          ['green', 'yellow', 'blue', 'red', 'orange', 'green'],
+          ['orange', 'orange', 'orange', 'blue', 'yellow', 'purple'], // 3 oranges - MATCH!
+          ['red', 'blue', 'green', 'yellow', 'purple', 'orange']
+        ];
+
+        board.initializeWithConfig(testConfig);
+        const matches = board.findMatches();
+
+        expect(matches.length).toBe(2);
+        expect(matches[0].type).toBe('purple');
+        expect(matches[0].positions.length).toBe(4); // 4-gem match
+        expect(matches[1].type).toBe('orange');
+        expect(matches[1].positions.length).toBe(3); // 3-gem match
+      });
+
+      it('should work on tall narrow boards (7x2)', () => {
+        const board = new Board(7, 2);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue'],
+          ['red', 'green'],
+          ['yellow', 'purple'],
+          ['orange', 'orange'],  // Only 2 oranges - NO MATCH
+          ['green', 'blue'],
+          ['purple', 'red'],
+          ['yellow', 'orange']
+        ];
+
+        board.initializeWithConfig(testConfig);
+        const matches = board.findMatches();
+
+        expect(matches.length).toBe(0); // No horizontal matches possible with only 2 columns
+      });
+
+      it('should work on wide short boards (2x8)', () => {
+        const board = new Board(2, 8);
+        const testConfig: (GemType | null)[][] = [
+          ['blue', 'blue', 'blue', 'blue', 'blue', 'red', 'green', 'yellow'], // 5 blues - MATCH!
+          ['red', 'green', 'yellow', 'purple', 'orange', 'blue', 'blue', 'blue'] // 3 blues - MATCH!
+        ];
+
+        board.initializeWithConfig(testConfig);
+        const matches = board.findMatches();
+
+        expect(matches.length).toBe(2);
+        expect(matches[0].positions.length).toBe(5); // 5-gem match
+        expect(matches[1].positions.length).toBe(3); // 3-gem match
+      });
     });
 
     describe('Test 4: Detect vertical matches', () => {
