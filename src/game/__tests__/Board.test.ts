@@ -304,4 +304,155 @@ describe('Board', () => {
       });
     });
   });
+
+  describe('Phase 2: Swap Mechanics', () => {
+
+    describe('Test 5: Two adjacent gems can be swapped', () => {
+      it('should swap horizontally adjacent gems when creating a match', () => {
+        const board = new Board(4, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'yellow', 'blue'],
+          ['blue', 'blue', 'green'],     // Row 1 has 2 blues, swapping (0,2) with (1,2) makes 3 blues
+          ['purple', 'orange', 'red'],
+          ['yellow', 'purple', 'orange']
+        ];
+
+        board.initializeWithConfig(testConfig);
+        const result = board.swap({ row: 0, col: 2 }, { row: 1, col: 2 });
+
+        expect(result.valid).toBe(true);
+        expect(board.getGemAt(0, 2)).toBe('green');  // Swapped
+        expect(board.getGemAt(1, 2)).toBe('blue');   // Swapped - creates horizontal match in row 1
+      });
+
+      it('should swap vertically adjacent gems when creating a match', () => {
+        const board = new Board(4, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['yellow', 'blue', 'green'],
+          ['red', 'purple', 'orange'],   // Column 0: yellow, red, yellow, yellow - swap (0,0) with (1,0) makes 3 yellows
+          ['yellow', 'green', 'orange'],
+          ['yellow', 'orange', 'purple']
+        ];
+
+        board.initializeWithConfig(testConfig);
+        const result = board.swap({ row: 0, col: 0 }, { row: 1, col: 0 });
+
+        expect(result.valid).toBe(true);
+        expect(board.getGemAt(0, 0)).toBe('red');     // Swapped
+        expect(board.getGemAt(1, 0)).toBe('yellow');  // Swapped - creates vertical match in column 0 (rows 1,2,3)
+      });
+    });
+
+    describe('Test 6: Non-adjacent gems cannot be swapped', () => {
+      it('should throw error when swapping non-adjacent gems', () => {
+        const board = new Board(4, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green'],
+          ['yellow', 'purple', 'orange'],
+          ['blue', 'green', 'red'],
+          ['purple', 'orange', 'yellow']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        expect(() => {
+          board.swap({ row: 0, col: 0 }, { row: 0, col: 2 }); // Skip one gem
+        }).toThrow('Gems are not adjacent');
+      });
+
+      it('should throw error when swapping diagonal gems', () => {
+        const board = new Board(4, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green'],
+          ['yellow', 'purple', 'orange'],
+          ['blue', 'green', 'red'],
+          ['purple', 'orange', 'yellow']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        expect(() => {
+          board.swap({ row: 0, col: 0 }, { row: 1, col: 1 }); // Diagonal
+        }).toThrow('Gems are not adjacent');
+      });
+
+      it('should throw error when positions are out of bounds', () => {
+        const board = new Board(4, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green'],
+          ['yellow', 'purple', 'orange'],
+          ['blue', 'green', 'red'],
+          ['purple', 'orange', 'yellow']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        expect(() => {
+          board.swap({ row: 0, col: 0 }, { row: 5, col: 0 }); // Out of bounds
+        }).toThrow();
+      });
+    });
+
+    describe('Test 7: Swap resulting in match is valid', () => {
+      it('should return true when swap creates a match', () => {
+        const board = new Board(4, 3);
+        // Setup: cells 2,3,4 are blue, cell 5 is green
+        // Swapping 2 and 5 creates horizontal match in row 1
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'yellow', 'blue'],    // cell 2 is blue
+          ['blue', 'blue', 'green'],    // cells 3,4 are blue, 5 is green
+          ['purple', 'orange', 'red'],
+          ['yellow', 'purple', 'orange']
+        ];
+
+        board.initializeWithConfig(testConfig);
+        const result = board.swap({ row: 0, col: 2 }, { row: 1, col: 2 });
+
+        expect(result.valid).toBe(true);
+        expect(result.matches.length).toBeGreaterThan(0);
+        expect(result.matches[0].type).toBe('blue');
+      });
+    });
+
+    describe('Test 8: Swap resulting in NO match is invalid', () => {
+      it('should return false when swap does not create a match', () => {
+        const board = new Board(4, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green'],
+          ['yellow', 'purple', 'orange'],
+          ['blue', 'green', 'red'],
+          ['purple', 'orange', 'yellow']
+        ];
+
+        board.initializeWithConfig(testConfig);
+        const result = board.swap({ row: 0, col: 0 }, { row: 0, col: 1 });
+
+        expect(result.valid).toBe(false);
+        expect(result.matches.length).toBe(0);
+      });
+
+      it('should revert the swap when no match is created', () => {
+        const board = new Board(4, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green'],
+          ['yellow', 'purple', 'orange'],
+          ['blue', 'green', 'red'],
+          ['purple', 'orange', 'yellow']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Remember original state
+        const originalGem1 = board.getGemAt(0, 0);
+        const originalGem2 = board.getGemAt(0, 1);
+
+        // Attempt invalid swap
+        board.swap({ row: 0, col: 0 }, { row: 0, col: 1 });
+
+        // Verify board reverted to original state
+        expect(board.getGemAt(0, 0)).toBe(originalGem1);
+        expect(board.getGemAt(0, 1)).toBe(originalGem2);
+      });
+    });
+  });
 });

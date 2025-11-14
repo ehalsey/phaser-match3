@@ -11,6 +11,11 @@ export interface Match {
   direction: 'horizontal' | 'vertical';
 }
 
+export interface SwapResult {
+  valid: boolean;
+  matches: Match[];
+}
+
 export class Board {
   private grid: (GemType | null)[][];
   private rows: number;
@@ -157,5 +162,64 @@ export class Board {
     }
 
     return matches;
+  }
+
+  /**
+   * Swap two gems on the board
+   * @param pos1 First gem position
+   * @param pos2 Second gem position
+   * @returns SwapResult indicating if swap was valid and any matches created
+   */
+  swap(pos1: Position, pos2: Position): SwapResult {
+    // Validate positions are within bounds
+    this.validatePosition(pos1);
+    this.validatePosition(pos2);
+
+    // Validate positions are adjacent (not diagonal)
+    const rowDiff = Math.abs(pos1.row - pos2.row);
+    const colDiff = Math.abs(pos1.col - pos2.col);
+
+    // Adjacent means exactly one of row or col differs by 1, and the other is same
+    const isAdjacent = (rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1);
+
+    if (!isAdjacent) {
+      throw new Error('Gems are not adjacent');
+    }
+
+    // Perform the swap
+    const temp = this.grid[pos1.row][pos1.col];
+    this.grid[pos1.row][pos1.col] = this.grid[pos2.row][pos2.col];
+    this.grid[pos2.row][pos2.col] = temp;
+
+    // Check for matches after swap
+    const matches = this.findMatches();
+
+    // If no matches, revert the swap (invalid move)
+    if (matches.length === 0) {
+      // Revert swap
+      const temp = this.grid[pos1.row][pos1.col];
+      this.grid[pos1.row][pos1.col] = this.grid[pos2.row][pos2.col];
+      this.grid[pos2.row][pos2.col] = temp;
+
+      return {
+        valid: false,
+        matches: []
+      };
+    }
+
+    // Valid swap - matches were created
+    return {
+      valid: true,
+      matches
+    };
+  }
+
+  /**
+   * Validate a position is within board bounds
+   */
+  private validatePosition(pos: Position): void {
+    if (pos.row < 0 || pos.row >= this.rows || pos.col < 0 || pos.col >= this.cols) {
+      throw new Error(`Position (${pos.row}, ${pos.col}) is out of bounds`);
+    }
   }
 }
