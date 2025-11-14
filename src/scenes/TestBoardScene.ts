@@ -5,16 +5,16 @@ export class TestBoardScene extends Phaser.Scene {
   private board!: Board;
   private readonly CELL_SIZE = 80;
   private readonly BOARD_OFFSET_X = 200;
-  private readonly BOARD_OFFSET_Y = 100;
+  private readonly BOARD_OFFSET_Y = 120;
 
   // Color mapping for gems
   private readonly GEM_COLORS: Record<GemType, number> = {
-    red: 0xff6b6b,
-    blue: 0x4ecdc4,
-    green: 0x95e1d3,
-    yellow: 0xffd93d,
-    purple: 0xc38fff,
-    orange: 0xff8c42
+    red: 0xe74c3c,      // Bright red
+    blue: 0x3498db,     // True blue
+    green: 0x2ecc71,    // Bright green
+    yellow: 0xf1c40f,   // Golden yellow
+    purple: 0x9b59b6,   // Purple
+    orange: 0xe67e22    // Orange
   };
 
   constructor() {
@@ -26,11 +26,13 @@ export class TestBoardScene extends Phaser.Scene {
     this.board = new Board(4, 3);
 
     // Initialize with test configuration
+    // One swap away from horizontal match: cells 2, 3, 4 are blue
+    // Swapping cell 2 with cell 5 will create horizontal match in row 1
     const testConfig: (GemType | null)[][] = [
-      ['red', 'red', 'red'],      // Horizontal match of 3 reds!
-      ['purple', 'blue', 'green'],
-      ['yellow', 'purple', 'orange'],
-      ['blue', 'yellow', 'green']
+      ['red', 'yellow', 'blue'],    // Row 0: cells 0, 1, 2 (cell 2 is blue)
+      ['blue', 'blue', 'green'],    // Row 1: cells 3, 4, 5 (cells 3, 4 are blue)
+      ['purple', 'orange', 'red'],  // Row 2: cells 6, 7, 8
+      ['yellow', 'purple', 'orange'] // Row 3: cells 9, 10, 11
     ];
 
     this.board.initializeWithConfig(testConfig);
@@ -54,12 +56,12 @@ export class TestBoardScene extends Phaser.Scene {
     // Add legend
     this.drawLegend();
 
-    // Add note about horizontal match
-    this.add.text(400, 500, 'Note: Top row has 3 RED gems in a row (horizontal match!)', {
+    // Add note about setup
+    this.add.text(400, 520, 'Cells 2, 3, 4 are BLUE. Swap cell 2↔5 to create horizontal match!', {
       fontSize: '18px',
-      color: '#e74c3c',
-      backgroundColor: '#2c3e50',
-      padding: { x: 10, y: 5 }
+      color: '#ffffff',
+      backgroundColor: '#34495e',
+      padding: { x: 15, y: 10 }
     }).setOrigin(0.5);
   }
 
