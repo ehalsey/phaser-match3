@@ -47,32 +47,11 @@ export class InteractiveGameScene extends Phaser.Scene {
 
     this.board.initializeWithConfig(testConfig);
 
-    // Title
-    this.add.text(400, 30, 'Interactive Match-3 Game', {
-      fontSize: '32px',
-      color: '#ffffff',
-      fontStyle: 'bold'
-    }).setOrigin(0.5);
-
-    // Instructions
-    this.add.text(400, 90, 'Click gems to swap them! Create matches of 3+', {
-      fontSize: '18px',
-      color: '#2ecc71'
-    }).setOrigin(0.5);
-
     // Draw the board
     this.drawBoard();
 
     // Add legend
     this.drawLegend();
-
-    // Status text
-    this.add.text(400, 520, 'Try swapping cell 2 ↔ 5 to create a match!', {
-      fontSize: '18px',
-      color: '#ffffff',
-      backgroundColor: '#34495e',
-      padding: { x: 15, y: 10 }
-    }).setOrigin(0.5).setName('status-text');
   }
 
   private drawBoard(): void {
@@ -243,9 +222,10 @@ export class InteractiveGameScene extends Phaser.Scene {
   }
 
   private updateStatus(message: string): void {
-    const statusText = this.children.getByName('status-text') as Phaser.GameObjects.Text;
-    if (statusText) {
-      statusText.setText(message);
+    // Update DOM status element (visible to users and testable by E2E)
+    const domStatus = document.getElementById('game-status');
+    if (domStatus) {
+      domStatus.textContent = message;
     }
   }
 
