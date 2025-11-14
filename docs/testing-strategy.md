@@ -32,11 +32,22 @@ This project implements a comprehensive 3-tier testing strategy:
   - Hover effects
 
 **How to Test Manually:**
-1. Run `npm run dev`
-2. Open browser to `http://localhost:3001`
-3. Click on cell #2 (blue gem, top right)
-4. Click on cell #5 (green gem, middle right)
-5. See match detected and status update!
+
+The board is configured with TWO test scenarios:
+
+**Test 1: Horizontal Match**
+1. Run `npm run dev` and open `http://localhost:3001`
+2. Click **cell 2** (blue gem, top right)
+3. Click **cell 5** (green gem, middle right)
+4. **Result**: Creates 3 blues horizontally in row 1
+5. Status: "✓ Valid swap! Match found: blue x 3"
+
+**Test 2: Vertical Match**
+1. Refresh the page
+2. Click **cell 7** (orange gem, middle-center)
+3. Click **cell 10** (blue gem, bottom-center)
+4. **Result**: Cells 7 and 10 swap, creating 3 blues vertically in column 1 (cells 1, 4, 7)
+5. Status: "✓ Valid swap! Match found: blue x 3"
 
 ### 3. **End-to-End Tests (Playwright)** ✅ IMPLEMENTED & PASSING
 

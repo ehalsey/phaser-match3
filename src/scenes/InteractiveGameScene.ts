@@ -36,13 +36,21 @@ export class InteractiveGameScene extends Phaser.Scene {
     // Create board instance
     this.board = new Board(4, 3);
 
-    // Initialize with test configuration
-    // One swap away from horizontal match: cells 2, 3, 4 are blue
+    // Initialize with test configuration - TWO manual test scenarios:
+    //
+    // SCENARIO 1 - HORIZONTAL MATCH:
+    //   Swap cell 2 (blue) ↔ cell 5 (green)
+    //   Result: 3 blues horizontally in row 1 (cells 2, 3, 4)
+    //
+    // SCENARIO 2 - VERTICAL MATCH:
+    //   Swap cell 7 (orange) ↔ cell 10 (blue)
+    //   Result: 3 blues vertically in column 1 (cells 1, 4, 7)
+    //
     const testConfig: (GemType | null)[][] = [
-      ['red', 'yellow', 'blue'],
-      ['blue', 'blue', 'green'],
-      ['purple', 'orange', 'red'],
-      ['yellow', 'purple', 'orange']
+      ['red', 'blue', 'blue'],      // Row 0: cells 0, 1, 2
+      ['blue', 'blue', 'green'],    // Row 1: cells 3, 4, 5
+      ['purple', 'orange', 'red'],  // Row 2: cells 6, 7, 8
+      ['yellow', 'blue', 'orange']  // Row 3: cells 9, 10, 11
     ];
 
     this.board.initializeWithConfig(testConfig);
