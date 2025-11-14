@@ -117,6 +117,45 @@ export class Board {
       }
     }
 
+    // Check vertical matches
+    for (let col = 0; col < this.cols; col++) {
+      let row = 0;
+      while (row < this.rows) {
+        const gem = this.grid[row][col];
+
+        // Skip null gems
+        if (gem === null) {
+          row++;
+          continue;
+        }
+
+        // Count consecutive gems of the same type
+        let count = 1;
+        let startRow = row;
+
+        while (row + count < this.rows && this.grid[row + count][col] === gem) {
+          count++;
+        }
+
+        // If we found 3 or more consecutive gems, record the match
+        if (count >= 3) {
+          const positions: Position[] = [];
+          for (let i = 0; i < count; i++) {
+            positions.push({ row: startRow + i, col });
+          }
+
+          matches.push({
+            positions,
+            type: gem,
+            direction: 'vertical'
+          });
+        }
+
+        // Move to the next unmatched position
+        row += count;
+      }
+    }
+
     return matches;
   }
 }

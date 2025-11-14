@@ -203,8 +203,104 @@ describe('Board', () => {
 
     describe('Test 4: Detect vertical matches', () => {
       it('should detect a vertical match of 3 gems in a column', () => {
-        // TODO: Implement match detection
-        expect(true).toBe(true);
+        const board = new Board(4, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green'],
+          ['red', 'yellow', 'purple'],    // Column 0: 3 reds (rows 0,1,2) - MATCH!
+          ['red', 'orange', 'blue'],
+          ['yellow', 'green', 'purple']
+        ];
+
+        board.initializeWithConfig(testConfig);
+        const matches = board.findMatches();
+
+        expect(matches.length).toBe(1);
+        expect(matches[0]).toEqual({
+          positions: [
+            { row: 0, col: 0 },
+            { row: 1, col: 0 },
+            { row: 2, col: 0 }
+          ],
+          type: 'red',
+          direction: 'vertical'
+        });
+      });
+
+      it('should detect multiple vertical matches', () => {
+        const board = new Board(4, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green'],
+          ['red', 'blue', 'purple'],    // Column 0: 3 reds, Column 1: 3 blues - 2 MATCHES!
+          ['red', 'blue', 'orange'],
+          ['yellow', 'green', 'purple']
+        ];
+
+        board.initializeWithConfig(testConfig);
+        const matches = board.findMatches();
+
+        expect(matches.length).toBe(2);
+        expect(matches[0].type).toBe('red');
+        expect(matches[0].direction).toBe('vertical');
+        expect(matches[1].type).toBe('blue');
+        expect(matches[1].direction).toBe('vertical');
+      });
+
+      it('should not detect a match with only 2 gems in a column', () => {
+        const board = new Board(4, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green'],
+          ['red', 'yellow', 'purple'],    // Column 0: only 2 reds - NO MATCH
+          ['yellow', 'orange', 'blue'],
+          ['green', 'purple', 'orange']
+        ];
+
+        board.initializeWithConfig(testConfig);
+        const matches = board.findMatches();
+
+        expect(matches.length).toBe(0);
+      });
+
+      it('should detect both horizontal and vertical matches on same board', () => {
+        const board = new Board(4, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['blue', 'blue', 'blue'],      // Row 0: 3 blues horizontal - MATCH!
+          ['red', 'yellow', 'purple'],
+          ['red', 'orange', 'green'],    // Column 0: 4 reds vertical (rows 0,1,2,3) - MATCH!
+          ['red', 'green', 'yellow']
+        ];
+
+        board.initializeWithConfig(testConfig);
+        const matches = board.findMatches();
+
+        expect(matches.length).toBe(2);
+        const horizontalMatch = matches.find(m => m.direction === 'horizontal');
+        const verticalMatch = matches.find(m => m.direction === 'vertical');
+
+        expect(horizontalMatch).toBeDefined();
+        expect(horizontalMatch?.type).toBe('blue');
+        expect(verticalMatch).toBeDefined();
+        expect(verticalMatch?.type).toBe('red');
+        expect(verticalMatch?.positions.length).toBe(3);
+      });
+
+      it('should work on tall boards (6x3)', () => {
+        const board = new Board(6, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['purple', 'blue', 'green'],
+          ['purple', 'yellow', 'red'],
+          ['purple', 'orange', 'yellow'],   // Column 0: 5 purples - MATCH!
+          ['purple', 'green', 'blue'],
+          ['purple', 'red', 'orange'],
+          ['yellow', 'green', 'purple']
+        ];
+
+        board.initializeWithConfig(testConfig);
+        const matches = board.findMatches();
+
+        expect(matches.length).toBe(1);
+        expect(matches[0].type).toBe('purple');
+        expect(matches[0].positions.length).toBe(5); // 5-gem vertical match
+        expect(matches[0].direction).toBe('vertical');
       });
     });
   });
