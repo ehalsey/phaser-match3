@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { TestBoardScene } from './scenes/TestBoardScene';
+import { InteractiveGameScene } from './scenes/InteractiveGameScene';
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -7,7 +7,7 @@ const config: Phaser.Types.Core.GameConfig = {
   height: 600,
   parent: 'game-container',
   backgroundColor: '#2c3e50',
-  scene: [TestBoardScene]
+  scene: [InteractiveGameScene]
 };
 
 new Phaser.Game(config);

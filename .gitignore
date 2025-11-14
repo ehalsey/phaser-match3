@@ -38,3 +38,8 @@ lerna-debug.log*
 
 # Screenshots
 screenshots/
+
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
