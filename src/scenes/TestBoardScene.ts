@@ -83,8 +83,9 @@ export class TestBoardScene extends Phaser.Scene {
           const gemCircle = this.add.circle(x, y, 30, this.GEM_COLORS[gem]);
           gemCircle.setStrokeStyle(3, 0xffffff, 0.5);
 
-          // Add gem label
-          this.add.text(x, y, gem.charAt(0).toUpperCase(), {
+          // Add unique cell ID (row * cols + col)
+          const cellId = row * cols + col;
+          this.add.text(x, y, cellId.toString(), {
             fontSize: '24px',
             color: '#ffffff',
             fontStyle: 'bold'
