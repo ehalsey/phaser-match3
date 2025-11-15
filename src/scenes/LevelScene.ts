@@ -87,9 +87,9 @@ export class LevelScene extends Phaser.Scene {
     // Setup console API for runtime configuration
     BoardConfig.setupConsoleAPI();
 
-    // Initialize level objectives only if enabled (20 moves, 1000 target score for Level 1)
+    // Initialize level objectives only if enabled (20 moves, 5000 target score for Level 1)
     if (this.objectivesEnabled) {
-      this.objectives = new LevelObjectives(20, 1000);
+      this.objectives = new LevelObjectives(20, 5000);
       this.updateObjectivesDisplay();
     }
 

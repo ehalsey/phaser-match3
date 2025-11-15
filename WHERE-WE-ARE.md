@@ -77,7 +77,7 @@
      - Color-coded display (red when low, orange when medium, white when plenty)
      - Real-time updates in DOM
    - **Target Score:**
-     - Set target score to pass level (default: 1000 points)
+     - Set target score to pass level (default: 5000 points)
      - Display current progress
      - Visual feedback when approaching target
    - **Progress Bar:**
