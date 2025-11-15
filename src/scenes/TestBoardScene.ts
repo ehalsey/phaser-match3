@@ -82,7 +82,7 @@ export class TestBoardScene extends Phaser.Scene {
         // Draw gem
         const gem = this.board.getGemAt(row, col);
         if (gem) {
-          const gemCircle = this.add.circle(x, y, 30, this.GEM_COLORS[gem]);
+          const gemCircle = this.add.circle(x, y, 30, this.GEM_COLORS[gem.color]);
           gemCircle.setStrokeStyle(3, 0xffffff, 0.5);
 
           // Add unique cell ID (row * cols + col)

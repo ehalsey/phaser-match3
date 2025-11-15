@@ -130,7 +130,7 @@ export class JourneyMapScene extends Phaser.Scene {
     }
 
     // Level number
-    const levelText = this.add.text(x, y - 8, level.toString(), {
+    this.add.text(x, y - 8, level.toString(), {
       fontSize: '28px',
       color: '#ffffff',
       fontStyle: 'bold'
