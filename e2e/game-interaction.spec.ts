@@ -3,6 +3,15 @@ import { test, expect } from '@playwright/test';
 test.describe('Match-3 Game Interactions', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
+
+    // Clear localStorage to reset lives/coins for each test
+    await page.evaluate(() => {
+      localStorage.clear();
+    });
+
+    // Reload to apply fresh state
+    await page.reload();
+
     // Wait for Phaser to load
     await page.waitForTimeout(1000);
 
@@ -11,7 +20,9 @@ test.describe('Match-3 Game Interactions', () => {
     // Button position: centerX=170, centerY+50=350
     const canvas = page.locator('canvas');
     await canvas.click({ position: { x: 170, y: 350 } });
-    await page.waitForTimeout(1000);
+
+    // Wait longer for LevelScene to fully initialize
+    await page.waitForTimeout(2000);
   });
 
   test('should display the game board with all gems', async ({ page }) => {

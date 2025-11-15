@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { Board, GemType, Position } from '../game/Board';
 import { BoardConfig } from '../game/BoardConfig';
+import { MetaProgressionManager } from '../game/MetaProgressionManager';
 
 interface GemSprite {
   circle: any; // Phaser.GameObjects.Circle type not exported correctly
@@ -15,6 +16,7 @@ export class LevelScene extends Phaser.Scene {
   private selectedGem: Position | null = null;
   private selectionIndicator: Phaser.GameObjects.Rectangle | null = null;
   private score: number = 0;
+  private metaManager!: MetaProgressionManager;
 
   private readonly CELL_SIZE = 80;
   private readonly BOARD_OFFSET_X = 50;  // Match main.ts
@@ -35,6 +37,10 @@ export class LevelScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Get meta progression manager and consume a life
+    this.metaManager = MetaProgressionManager.getInstance();
+    this.metaManager.consumeLife();
+
     // Get board configuration from URL params or use default
     const config = BoardConfig.fromURL();
 

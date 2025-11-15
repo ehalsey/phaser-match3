@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { MainMenuScene } from './scenes/MainMenuScene';
 import { LevelScene } from './scenes/LevelScene';
 import { EndLevelScene } from './scenes/EndLevelScene';
+import { ShopScene } from './scenes/ShopScene';
 import { BoardConfig } from './game/BoardConfig';
 
 // Calculate required canvas size based on board dimensions
@@ -23,7 +24,7 @@ const config: Phaser.Types.Core.GameConfig = {
   height: canvasHeight,
   parent: 'game-container',
   backgroundColor: '#2c3e50',
-  scene: [MainMenuScene, LevelScene, EndLevelScene]
+  scene: [MainMenuScene, LevelScene, EndLevelScene, ShopScene]
 };
 
 console.log(`[Game] Canvas size: ${canvasWidth}×${canvasHeight} for ${boardConfig.rows}×${boardConfig.cols} board`);

@@ -326,21 +326,39 @@ Test Scenario 2 - Vertical Match:
 
 ### Immediate Next Steps (in priority order)
 
-1. **Move Counter & Level Objectives** 🎯 NEXT
+1. **Meta Progression System (Lives & Currency)** 🎯 IN PROGRESS
+   - **Lives System:**
+     - Start with 5 lives (max capacity)
+     - Lose 1 life when failing a level
+     - Regenerate 1 life every 30 minutes when below max
+     - Persist between sessions (localStorage)
+   - **Currency System:**
+     - Earn coins from completing levels (base: 100 coins)
+     - Bonus coins for higher scores
+     - Display coins in UI
+   - **Shop System:**
+     - Purchase lives with coins (50 coins = 1 life)
+     - Shop scene accessible from main menu
+   - **UI Components:**
+     - Lives display with regeneration timer
+     - Coins display
+     - Block level start when out of lives
+
+2. **Move Counter & Level Objectives**
    - Track number of moves remaining (e.g., 20 moves per level)
    - Display moves counter in DOM
    - Game ends when no moves left → transition to EndLevelScene
    - Target score to complete level (pass/fail conditions)
    - Progress bar showing objective completion
 
-2. **Level Progression System**
+3. **Level Progression System**
    - Multiple levels with increasing difficulty
    - Level selection screen
    - Save progress between sessions
    - Unlock new levels after completing previous ones
    - Different board sizes and layouts per level
 
-3. **Polish & Enhancements**
+4. **Polish & Enhancements**
    - Sound effects for matches, swaps, cascades
    - Particle effects for cleared gems
    - Screen shake for large matches
@@ -349,11 +367,12 @@ Test Scenario 2 - Vertical Match:
 
 ### Future Enhancements (spec.md)
 
-- Multiple game scenes (menu, level select, game over)
-- Meta game with coins and shop
-- Move counter and level objectives
-- Special gems (bombs, row/column clearers)
+- Special gems (bombs, row/column clearers, rainbow gems)
+- Power-ups and boosters
+- Daily challenges and events
+- Leaderboards and social features
 - Visual polish (particle effects, screen shake)
+- Multiple difficulty modes
 
 ---
 
