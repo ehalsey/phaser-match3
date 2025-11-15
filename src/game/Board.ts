@@ -1,4 +1,10 @@
 export type GemType = 'red' | 'blue' | 'green' | 'yellow' | 'purple' | 'orange';
+export type SpecialGemType = 'bomb' | 'none';
+
+export interface Gem {
+  color: GemType;
+  special: SpecialGemType;
+}
 
 export interface Position {
   row: number;
@@ -11,9 +17,15 @@ export interface Match {
   direction: 'horizontal' | 'vertical';
 }
 
+export interface BombCreation {
+  position: Position;
+  color: GemType;
+}
+
 export interface SwapResult {
   valid: boolean;
   matches: Match[];
+  bombsToCreate?: BombCreation[];
 }
 
 export interface GemMove {
@@ -28,7 +40,7 @@ export interface GemRefill {
 }
 
 export class Board {
-  private grid: (GemType | null)[][];
+  private grid: (Gem | null)[][];
   private rows: number;
   private cols: number;
 
@@ -36,6 +48,38 @@ export class Board {
     this.rows = rows;
     this.cols = cols;
     this.grid = [];
+  }
+
+  // Helper to create a regular gem
+  private createGem(color: GemType, special: SpecialGemType = 'none'): Gem {
+    return { color, special };
+  }
+
+  // Set a gem at a specific position (used for creating bombs)
+  setGemAt(row: number, col: number, gem: Gem | null): void {
+    this.validatePosition({ row, col });
+    this.grid[row][col] = gem;
+  }
+
+  // Determine where bombs should be created based on matches
+  private determineBombCreations(matches: Match[]): BombCreation[] {
+    const bombsToCreate: BombCreation[] = [];
+
+    for (const match of matches) {
+      // Create a bomb if 4 or more gems matched
+      if (match.positions.length >= 4) {
+        // Place bomb at the center of the match
+        const centerIndex = Math.floor(match.positions.length / 2);
+        const bombPosition = match.positions[centerIndex];
+
+        bombsToCreate.push({
+          position: bombPosition,
+          color: match.type
+        });
+      }
+    }
+
+    return bombsToCreate;
   }
 
   getRows(): number {
@@ -57,23 +101,27 @@ export class Board {
       }
     }
 
-    this.grid = config.map(row => [...row]);
+    // Convert GemType array to Gem array
+    this.grid = config.map(row =>
+      row.map(gemType => gemType ? this.createGem(gemType) : null)
+    );
   }
 
-  getGemAt(row: number, col: number): GemType | null {
+  getGemAt(row: number, col: number): Gem | null {
     if (row < 0 || row >= this.rows || col < 0 || col >= this.cols) {
       throw new Error(`Position (${row}, ${col}) is out of bounds`);
     }
     return this.grid[row][col];
   }
 
-  getGrid(): (GemType | null)[][] {
+  getGrid(): (Gem | null)[][] {
     return this.grid.map(row => [...row]);
   }
 
   findMatches(): Match[] {
     const matches: Match[] = [];
 
+    // Find horizontal matches
     for (let row = 0; row < this.rows; row++) {
       let col = 0;
       while (col < this.cols) {
@@ -86,9 +134,16 @@ export class Board {
 
         let count = 1;
         let startCol = col;
+        const gemColor = gem.color;
 
-        while (col + count < this.cols && this.grid[row][col + count] === gem) {
-          count++;
+        // Compare by color only, not special type
+        while (col + count < this.cols) {
+          const nextGem = this.grid[row][col + count];
+          if (nextGem && nextGem.color === gemColor) {
+            count++;
+          } else {
+            break;
+          }
         }
 
         if (count >= 3) {
@@ -99,7 +154,7 @@ export class Board {
 
           matches.push({
             positions,
-            type: gem,
+            type: gemColor,
             direction: 'horizontal'
           });
         }
@@ -108,6 +163,7 @@ export class Board {
       }
     }
 
+    // Find vertical matches
     for (let col = 0; col < this.cols; col++) {
       let row = 0;
       while (row < this.rows) {
@@ -120,9 +176,16 @@ export class Board {
 
         let count = 1;
         let startRow = row;
+        const gemColor = gem.color;
 
-        while (row + count < this.rows && this.grid[row + count][col] === gem) {
-          count++;
+        // Compare by color only, not special type
+        while (row + count < this.rows) {
+          const nextGem = this.grid[row + count][col];
+          if (nextGem && nextGem.color === gemColor) {
+            count++;
+          } else {
+            break;
+          }
         }
 
         if (count >= 3) {
@@ -133,7 +196,7 @@ export class Board {
 
           matches.push({
             positions,
-            type: gem,
+            type: gemColor,
             direction: 'vertical'
           });
         }
@@ -171,13 +234,18 @@ export class Board {
 
       return {
         valid: false,
-        matches: []
+        matches: [],
+        bombsToCreate: []
       };
     }
 
+    // Determine if any bombs should be created from 4+ matches
+    const bombsToCreate = this.determineBombCreations(matches);
+
     return {
       valid: true,
-      matches
+      matches,
+      bombsToCreate
     };
   }
 
@@ -196,6 +264,42 @@ export class Board {
     return clearedCount;
   }
 
+  // Explode a bomb at the given position, clearing a 3x3 radius
+  explodeBomb(position: Position): Position[] {
+    const clearedPositions: Position[] = [];
+
+    // Clear a 3x3 area around the bomb
+    for (let row = position.row - 1; row <= position.row + 1; row++) {
+      for (let col = position.col - 1; col <= position.col + 1; col++) {
+        // Check if position is within bounds
+        if (row >= 0 && row < this.rows && col >= 0 && col < this.cols) {
+          if (this.grid[row][col] !== null) {
+            this.grid[row][col] = null;
+            clearedPositions.push({ row, col });
+          }
+        }
+      }
+    }
+
+    return clearedPositions;
+  }
+
+  // Check if there are any bombs in the matched positions
+  checkForBombsInMatches(matches: Match[]): Position[] {
+    const bombPositions: Position[] = [];
+
+    for (const match of matches) {
+      for (const pos of match.positions) {
+        const gem = this.grid[pos.row][pos.col];
+        if (gem && gem.special === 'bomb') {
+          bombPositions.push(pos);
+        }
+      }
+    }
+
+    return bombPositions;
+  }
+
   applyGravity(): GemMove[] {
     const moves: GemMove[] = [];
 
@@ -210,7 +314,7 @@ export class Board {
             moves.push({
               from: { row: readRow, col },
               to: { row: writeRow, col },
-              gemType: gem
+              gemType: gem.color
             });
 
             this.grid[writeRow][col] = gem;
@@ -234,9 +338,10 @@ export class Board {
         if (this.grid[row][col] === null) {
           const safeGemTypes = this.getSafeGemTypes(row, col, allGemTypes);
           const gemType = safeGemTypes[Math.floor(Math.random() * safeGemTypes.length)];
-          
-          this.grid[row][col] = gemType;
-          
+
+          // Create a regular gem (no special type)
+          this.grid[row][col] = this.createGem(gemType);
+
           refills.push({
             position: { row, col },
             gemType
@@ -279,51 +384,53 @@ export class Board {
   private getSafeGemTypes(row: number, col: number, allTypes: GemType[]): GemType[] {
     const unsafeTypes = new Set<GemType>();
 
+    // Check horizontal patterns
     if (col >= 2) {
       const left1 = this.grid[row][col - 1];
       const left2 = this.grid[row][col - 2];
-      if (left1 !== null && left1 === left2) {
-        unsafeTypes.add(left1);
+      if (left1 !== null && left2 !== null && left1.color === left2.color) {
+        unsafeTypes.add(left1.color);
       }
     }
 
     if (col < this.cols - 2) {
       const right1 = this.grid[row][col + 1];
       const right2 = this.grid[row][col + 2];
-      if (right1 !== null && right1 === right2) {
-        unsafeTypes.add(right1);
+      if (right1 !== null && right2 !== null && right1.color === right2.color) {
+        unsafeTypes.add(right1.color);
       }
     }
 
     if (col >= 1 && col < this.cols - 1) {
       const left1 = this.grid[row][col - 1];
       const right1 = this.grid[row][col + 1];
-      if (left1 !== null && left1 === right1) {
-        unsafeTypes.add(left1);
+      if (left1 !== null && right1 !== null && left1.color === right1.color) {
+        unsafeTypes.add(left1.color);
       }
     }
 
+    // Check vertical patterns
     if (row >= 2) {
       const above1 = this.grid[row - 1][col];
       const above2 = this.grid[row - 2][col];
-      if (above1 !== null && above1 === above2) {
-        unsafeTypes.add(above1);
+      if (above1 !== null && above2 !== null && above1.color === above2.color) {
+        unsafeTypes.add(above1.color);
       }
     }
 
     if (row < this.rows - 2) {
       const below1 = this.grid[row + 1][col];
       const below2 = this.grid[row + 2][col];
-      if (below1 !== null && below1 === below2) {
-        unsafeTypes.add(below1);
+      if (below1 !== null && below2 !== null && below1.color === below2.color) {
+        unsafeTypes.add(below1.color);
       }
     }
 
     if (row >= 1 && row < this.rows - 1) {
       const above1 = this.grid[row - 1][col];
       const below1 = this.grid[row + 1][col];
-      if (above1 !== null && above1 === below1) {
-        unsafeTypes.add(above1);
+      if (above1 !== null && below1 !== null && above1.color === below1.color) {
+        unsafeTypes.add(above1.color);
       }
     }
 

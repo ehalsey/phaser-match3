@@ -1,4 +1,9 @@
-import { Board, GemType } from '../Board';
+import { Board, Gem, GemType } from '../Board';
+
+// Helper to get gem color
+function getColor(gem: Gem | null): GemType | null {
+  return gem ? gem.color : null;
+}
 
 describe('Board', () => {
   describe('Phase 1: Board Creation & Match Detection', () => {
@@ -31,10 +36,10 @@ describe('Board', () => {
 
         board.initializeWithConfig(testConfig);
 
-        expect(board.getGemAt(0, 0)).toBe('red');
-        expect(board.getGemAt(0, 1)).toBe('blue');
-        expect(board.getGemAt(1, 2)).toBe('blue');
-        expect(board.getGemAt(3, 2)).toBe('purple');
+        expect(getColor(board.getGemAt(0, 0))).toBe('red');
+        expect(getColor(board.getGemAt(0, 1))).toBe('blue');
+        expect(getColor(board.getGemAt(1, 2))).toBe('blue');
+        expect(getColor(board.getGemAt(3, 2))).toBe('purple');
       });
 
       it('should handle null values in configuration', () => {
@@ -46,9 +51,9 @@ describe('Board', () => {
 
         board.initializeWithConfig(testConfig);
 
-        expect(board.getGemAt(0, 1)).toBeNull();
-        expect(board.getGemAt(1, 0)).toBeNull();
-        expect(board.getGemAt(0, 0)).toBe('red');
+        expect(getColor(board.getGemAt(0, 1))).toBeNull();
+        expect(getColor(board.getGemAt(1, 0))).toBeNull();
+        expect(getColor(board.getGemAt(0, 0))).toBe('red');
       });
 
       it('should throw error if config dimensions do not match board dimensions', () => {
@@ -71,7 +76,7 @@ describe('Board', () => {
         board.initializeWithConfig(testConfig);
         testConfig[0][0] = 'purple';
 
-        expect(board.getGemAt(0, 0)).toBe('red');
+        expect(getColor(board.getGemAt(0, 0))).toBe('red');
       });
     });
 
@@ -321,8 +326,8 @@ describe('Board', () => {
         const result = board.swap({ row: 0, col: 2 }, { row: 1, col: 2 });
 
         expect(result.valid).toBe(true);
-        expect(board.getGemAt(0, 2)).toBe('green');  // Swapped
-        expect(board.getGemAt(1, 2)).toBe('blue');   // Swapped - creates horizontal match in row 1
+        expect(getColor(board.getGemAt(0, 2))).toBe('green');  // Swapped
+        expect(getColor(board.getGemAt(1, 2))).toBe('blue');   // Swapped - creates horizontal match in row 1
       });
 
       it('should swap vertically adjacent gems when creating a match', () => {
@@ -338,8 +343,8 @@ describe('Board', () => {
         const result = board.swap({ row: 0, col: 0 }, { row: 1, col: 0 });
 
         expect(result.valid).toBe(true);
-        expect(board.getGemAt(0, 0)).toBe('red');     // Swapped
-        expect(board.getGemAt(1, 0)).toBe('yellow');  // Swapped - creates vertical match in column 0 (rows 1,2,3)
+        expect(getColor(board.getGemAt(0, 0))).toBe('red');     // Swapped
+        expect(getColor(board.getGemAt(1, 0))).toBe('yellow');  // Swapped - creates vertical match in column 0 (rows 1,2,3)
       });
     });
 
@@ -443,15 +448,15 @@ describe('Board', () => {
         board.initializeWithConfig(testConfig);
 
         // Remember original state
-        const originalGem1 = board.getGemAt(0, 0);
-        const originalGem2 = board.getGemAt(0, 1);
+        const originalGem1 = getColor(board.getGemAt(0, 0));
+        const originalGem2 = getColor(board.getGemAt(0, 1));
 
         // Attempt invalid swap
         board.swap({ row: 0, col: 0 }, { row: 0, col: 1 });
 
         // Verify board reverted to original state
-        expect(board.getGemAt(0, 0)).toBe(originalGem1);
-        expect(board.getGemAt(0, 1)).toBe(originalGem2);
+        expect(getColor(board.getGemAt(0, 0))).toBe(originalGem1);
+        expect(getColor(board.getGemAt(0, 1))).toBe(originalGem2);
       });
     });
   });
@@ -480,9 +485,9 @@ describe('Board', () => {
         const clearedCount = board.clearMatches(matches);
 
         // Verify gems were cleared (set to null)
-        expect(board.getGemAt(1, 2)).toBeNull();
-        expect(board.getGemAt(1, 0)).toBeNull();
-        expect(board.getGemAt(1, 1)).toBeNull();
+        expect(getColor(board.getGemAt(1, 2))).toBeNull();
+        expect(getColor(board.getGemAt(1, 0))).toBeNull();
+        expect(getColor(board.getGemAt(1, 1))).toBeNull();
         expect(clearedCount).toBe(3);
       });
 
@@ -508,9 +513,9 @@ describe('Board', () => {
         const clearedCount = board.clearMatches(matches);
 
         // Verify gems were cleared (set to null)
-        expect(board.getGemAt(0, 1)).toBeNull();
-        expect(board.getGemAt(1, 1)).toBeNull();
-        expect(board.getGemAt(2, 1)).toBeNull();
+        expect(getColor(board.getGemAt(0, 1))).toBeNull();
+        expect(getColor(board.getGemAt(1, 1))).toBeNull();
+        expect(getColor(board.getGemAt(2, 1))).toBeNull();
         expect(clearedCount).toBe(3);
       });
 
@@ -533,17 +538,17 @@ describe('Board', () => {
         const clearedCount = board.clearMatches(matches);
 
         // Verify all matched gems were cleared
-        expect(board.getGemAt(0, 0)).toBeNull();
-        expect(board.getGemAt(0, 1)).toBeNull();
-        expect(board.getGemAt(0, 2)).toBeNull();
-        expect(board.getGemAt(1, 0)).toBeNull();
-        expect(board.getGemAt(1, 1)).toBeNull();
-        expect(board.getGemAt(1, 2)).toBeNull();
+        expect(getColor(board.getGemAt(0, 0))).toBeNull();
+        expect(getColor(board.getGemAt(0, 1))).toBeNull();
+        expect(getColor(board.getGemAt(0, 2))).toBeNull();
+        expect(getColor(board.getGemAt(1, 0))).toBeNull();
+        expect(getColor(board.getGemAt(1, 1))).toBeNull();
+        expect(getColor(board.getGemAt(1, 2))).toBeNull();
         expect(clearedCount).toBe(6);
 
         // Verify unmatched gems remain
-        expect(board.getGemAt(2, 0)).toBe('purple');
-        expect(board.getGemAt(3, 0)).toBe('green');
+        expect(getColor(board.getGemAt(2, 0))).toBe('purple');
+        expect(getColor(board.getGemAt(3, 0))).toBe('green');
       });
 
       it('should clear longer matches (4+ gems)', () => {
@@ -566,10 +571,10 @@ describe('Board', () => {
         const clearedCount = board.clearMatches(matches);
 
         // Verify all 4 gems were cleared
-        expect(board.getGemAt(0, 0)).toBeNull();
-        expect(board.getGemAt(0, 1)).toBeNull();
-        expect(board.getGemAt(0, 2)).toBeNull();
-        expect(board.getGemAt(0, 3)).toBeNull();
+        expect(getColor(board.getGemAt(0, 0))).toBeNull();
+        expect(getColor(board.getGemAt(0, 1))).toBeNull();
+        expect(getColor(board.getGemAt(0, 2))).toBeNull();
+        expect(getColor(board.getGemAt(0, 3))).toBeNull();
         expect(clearedCount).toBe(4);
       });
 
@@ -589,8 +594,8 @@ describe('Board', () => {
 
         // Verify nothing was cleared
         expect(clearedCount).toBe(0);
-        expect(board.getGemAt(0, 0)).toBe('red');
-        expect(board.getGemAt(1, 1)).toBe('purple');
+        expect(getColor(board.getGemAt(0, 0))).toBe('red');
+        expect(getColor(board.getGemAt(1, 1))).toBe('purple');
       });
 
       it('should not affect gems that were not matched', () => {
@@ -612,11 +617,11 @@ describe('Board', () => {
         board.clearMatches(matches);
 
         // Verify unmatched gems remain unchanged
-        expect(board.getGemAt(1, 2)).toBeNull();  // Part of the match, should be cleared
-        expect(board.getGemAt(2, 0)).toBe('purple');
-        expect(board.getGemAt(2, 1)).toBe('orange');
-        expect(board.getGemAt(2, 2)).toBe('red');
-        expect(board.getGemAt(3, 0)).toBe('yellow');
+        expect(getColor(board.getGemAt(1, 2))).toBeNull();  // Part of the match, should be cleared
+        expect(getColor(board.getGemAt(2, 0))).toBe('purple');
+        expect(getColor(board.getGemAt(2, 1))).toBe('orange');
+        expect(getColor(board.getGemAt(2, 2))).toBe('red');
+        expect(getColor(board.getGemAt(3, 0))).toBe('yellow');
       });
     });
   });
@@ -638,10 +643,10 @@ describe('Board', () => {
         const moves = board.applyGravity();
 
         // Verify gems fell down to fill the empty row
-        expect(board.getGemAt(0, 0)).toBeNull();  // Top row now empty
-        expect(board.getGemAt(1, 0)).toBe('red');  // Red fell from row 0 to row 1
-        expect(board.getGemAt(2, 0)).toBe('purple');
-        expect(board.getGemAt(3, 0)).toBe('blue');
+        expect(getColor(board.getGemAt(0, 0))).toBeNull();  // Top row now empty
+        expect(getColor(board.getGemAt(1, 0))).toBe('red');  // Red fell from row 0 to row 1
+        expect(getColor(board.getGemAt(2, 0))).toBe('purple');
+        expect(getColor(board.getGemAt(3, 0))).toBe('blue');
 
         // Verify moves were returned
         expect(moves.length).toBeGreaterThan(0);
@@ -662,22 +667,22 @@ describe('Board', () => {
         board.applyGravity();
 
         // Column 0: red and purple should fall
-        expect(board.getGemAt(0, 0)).toBeNull();
-        expect(board.getGemAt(1, 0)).toBeNull();
-        expect(board.getGemAt(2, 0)).toBe('red');
-        expect(board.getGemAt(3, 0)).toBe('purple');
+        expect(getColor(board.getGemAt(0, 0))).toBeNull();
+        expect(getColor(board.getGemAt(1, 0))).toBeNull();
+        expect(getColor(board.getGemAt(2, 0))).toBe('red');
+        expect(getColor(board.getGemAt(3, 0))).toBe('purple');
 
         // Column 1: blue, orange, red should fall
-        expect(board.getGemAt(0, 1)).toBeNull();
-        expect(board.getGemAt(1, 1)).toBe('blue');
-        expect(board.getGemAt(2, 1)).toBe('orange');
-        expect(board.getGemAt(3, 1)).toBe('red');
+        expect(getColor(board.getGemAt(0, 1))).toBeNull();
+        expect(getColor(board.getGemAt(1, 1))).toBe('blue');
+        expect(getColor(board.getGemAt(2, 1))).toBe('orange');
+        expect(getColor(board.getGemAt(3, 1))).toBe('red');
 
         // Column 2: green, yellow should fall
-        expect(board.getGemAt(0, 2)).toBeNull();
-        expect(board.getGemAt(1, 2)).toBeNull();
-        expect(board.getGemAt(2, 2)).toBe('green');
-        expect(board.getGemAt(3, 2)).toBe('yellow');
+        expect(getColor(board.getGemAt(0, 2))).toBeNull();
+        expect(getColor(board.getGemAt(1, 2))).toBeNull();
+        expect(getColor(board.getGemAt(2, 2))).toBe('green');
+        expect(getColor(board.getGemAt(3, 2))).toBe('yellow');
       });
 
       it('should not move gems if no empty spaces below', () => {
@@ -695,10 +700,10 @@ describe('Board', () => {
         const moves = board.applyGravity();
 
         // Board should remain unchanged
-        expect(board.getGemAt(0, 0)).toBe('red');
-        expect(board.getGemAt(1, 0)).toBe('purple');
-        expect(board.getGemAt(2, 0)).toBe('blue');
-        expect(board.getGemAt(3, 0)).toBe('green');
+        expect(getColor(board.getGemAt(0, 0))).toBe('red');
+        expect(getColor(board.getGemAt(1, 0))).toBe('purple');
+        expect(getColor(board.getGemAt(2, 0))).toBe('blue');
+        expect(getColor(board.getGemAt(3, 0))).toBe('green');
 
         // No moves should be returned
         expect(moves.length).toBe(0);
@@ -719,14 +724,14 @@ describe('Board', () => {
         board.applyGravity();
 
         // Column 0 should remain all null
-        expect(board.getGemAt(0, 0)).toBeNull();
-        expect(board.getGemAt(1, 0)).toBeNull();
-        expect(board.getGemAt(2, 0)).toBeNull();
-        expect(board.getGemAt(3, 0)).toBeNull();
+        expect(getColor(board.getGemAt(0, 0))).toBeNull();
+        expect(getColor(board.getGemAt(1, 0))).toBeNull();
+        expect(getColor(board.getGemAt(2, 0))).toBeNull();
+        expect(getColor(board.getGemAt(3, 0))).toBeNull();
 
         // Other columns should be unchanged (already full)
-        expect(board.getGemAt(0, 1)).toBe('blue');
-        expect(board.getGemAt(3, 1)).toBe('yellow');
+        expect(getColor(board.getGemAt(0, 1))).toBe('blue');
+        expect(getColor(board.getGemAt(3, 1))).toBe('yellow');
       });
 
       it('should return move information for animations', () => {
@@ -768,13 +773,13 @@ describe('Board', () => {
         board.applyGravity();
 
         // Top 2 rows should be empty
-        expect(board.getGemAt(0, 0)).toBeNull();
-        expect(board.getGemAt(1, 0)).toBeNull();
+        expect(getColor(board.getGemAt(0, 0))).toBeNull();
+        expect(getColor(board.getGemAt(1, 0))).toBeNull();
 
         // Gems should have fallen
-        expect(board.getGemAt(2, 0)).toBe('red');
-        expect(board.getGemAt(3, 0)).toBe('purple');
-        expect(board.getGemAt(4, 0)).toBe('green');
+        expect(getColor(board.getGemAt(2, 0))).toBe('red');
+        expect(getColor(board.getGemAt(3, 0))).toBe('purple');
+        expect(getColor(board.getGemAt(4, 0))).toBe('green');
       });
     });
   });
@@ -796,9 +801,9 @@ describe('Board', () => {
         const refills = board.refillBoard();
 
         // Top row should now have gems
-        expect(board.getGemAt(0, 0)).not.toBeNull();
-        expect(board.getGemAt(0, 1)).not.toBeNull();
-        expect(board.getGemAt(0, 2)).not.toBeNull();
+        expect(getColor(board.getGemAt(0, 0))).not.toBeNull();
+        expect(getColor(board.getGemAt(0, 1))).not.toBeNull();
+        expect(getColor(board.getGemAt(0, 2))).not.toBeNull();
 
         // Should return 3 refill operations
         expect(refills.length).toBe(3);
@@ -819,12 +824,12 @@ describe('Board', () => {
         const refills = board.refillBoard();
 
         // All empty spaces should be filled
-        expect(board.getGemAt(0, 0)).not.toBeNull();
-        expect(board.getGemAt(0, 1)).not.toBeNull();
-        expect(board.getGemAt(0, 2)).not.toBeNull();
-        expect(board.getGemAt(1, 0)).not.toBeNull();
-        expect(board.getGemAt(1, 1)).not.toBeNull();
-        expect(board.getGemAt(1, 2)).not.toBeNull();
+        expect(getColor(board.getGemAt(0, 0))).not.toBeNull();
+        expect(getColor(board.getGemAt(0, 1))).not.toBeNull();
+        expect(getColor(board.getGemAt(0, 2))).not.toBeNull();
+        expect(getColor(board.getGemAt(1, 0))).not.toBeNull();
+        expect(getColor(board.getGemAt(1, 1))).not.toBeNull();
+        expect(getColor(board.getGemAt(1, 2))).not.toBeNull();
 
         // Should return 6 refill operations
         expect(refills.length).toBe(6);
@@ -885,20 +890,20 @@ describe('Board', () => {
 
         board.initializeWithConfig(testConfig);
 
-        // Remember existing gems
+        // Remember existing gem colors
         const existingGems = {
-          cell01: board.getGemAt(0, 1),
-          cell10: board.getGemAt(1, 0),
-          cell12: board.getGemAt(1, 2)
+          cell01: getColor(board.getGemAt(0, 1)),
+          cell10: getColor(board.getGemAt(1, 0)),
+          cell12: getColor(board.getGemAt(1, 2))
         };
 
         // Refill
         const refills = board.refillBoard();
 
         // Existing gems should not change
-        expect(board.getGemAt(0, 1)).toBe(existingGems.cell01);
-        expect(board.getGemAt(1, 0)).toBe(existingGems.cell10);
-        expect(board.getGemAt(1, 2)).toBe(existingGems.cell12);
+        expect(getColor(board.getGemAt(0, 1))).toBe(existingGems.cell01);
+        expect(getColor(board.getGemAt(1, 0))).toBe(existingGems.cell10);
+        expect(getColor(board.getGemAt(1, 2))).toBe(existingGems.cell12);
 
         // Only 3 nulls should be refilled
         expect(refills.length).toBe(3);
@@ -949,10 +954,10 @@ describe('Board', () => {
         expect(refills.length).toBe(4);
 
         // All top row should be filled
-        expect(board.getGemAt(0, 0)).not.toBeNull();
-        expect(board.getGemAt(0, 1)).not.toBeNull();
-        expect(board.getGemAt(0, 2)).not.toBeNull();
-        expect(board.getGemAt(0, 3)).not.toBeNull();
+        expect(getColor(board.getGemAt(0, 0))).not.toBeNull();
+        expect(getColor(board.getGemAt(0, 1))).not.toBeNull();
+        expect(getColor(board.getGemAt(0, 2))).not.toBeNull();
+        expect(getColor(board.getGemAt(0, 3))).not.toBeNull();
       });
     });
 

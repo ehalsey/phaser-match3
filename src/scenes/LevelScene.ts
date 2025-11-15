@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { Board, GemType, Position } from '../game/Board';
+import { Board, BombCreation, Gem, GemType, Position } from '../game/Board';
 import { BoardConfig } from '../game/BoardConfig';
 import { LevelObjectives } from '../game/LevelObjectives';
 import { LevelSettings } from '../game/LevelConfig';
@@ -7,6 +7,7 @@ import { LevelSettings } from '../game/LevelConfig';
 interface GemSprite {
   circle: any; // Phaser.GameObjects.Circle type not exported correctly
   text: Phaser.GameObjects.Text;
+  bombIndicator?: Phaser.GameObjects.Text; // Star indicator for bomb gems
   row: number;
   col: number;
 }
@@ -207,9 +208,9 @@ export class LevelScene extends Phaser.Scene {
     border.setFillStyle(0x000000, 0);
   }
 
-  private createGemSprite(x: number, y: number, gem: GemType, row: number, col: number, cellId: number): GemSprite {
+  private createGemSprite(x: number, y: number, gem: Gem, row: number, col: number, cellId: number): GemSprite {
     // Create clickable gem circle
-    const gemCircle = this.add.circle(x, y, 30, this.GEM_COLORS[gem]);
+    const gemCircle = this.add.circle(x, y, 30, this.GEM_COLORS[gem.color]);
     gemCircle.setStrokeStyle(3, 0xffffff, 0.5);
     gemCircle.setInteractive({ useHandCursor: true });
     gemCircle.setData('row', row);
@@ -240,7 +241,17 @@ export class LevelScene extends Phaser.Scene {
       gemCircle.setScale(1.0);
     });
 
-    return { circle: gemCircle, text, row, col };
+    // Add bomb indicator if this is a bomb gem
+    let bombIndicator: Phaser.GameObjects.Text | undefined;
+    if (gem.special === 'bomb') {
+      bombIndicator = this.add.text(x, y, '⭐', {
+        fontSize: '32px',
+        color: '#ffffff'
+      }).setOrigin(0.5);
+      bombIndicator.setDepth(1); // Ensure it's above the circle
+    }
+
+    return { circle: gemCircle, text, bombIndicator, row, col };
   }
 
   private onGemClick(row: number, col: number): void {
@@ -278,9 +289,9 @@ export class LevelScene extends Phaser.Scene {
 
         this.updateStatus('✓ Valid swap! Match found: ' + result.matches[0].type + ' x ' + result.matches[0].positions.length);
 
-        // Animate the swap, then clear matches
+        // Animate the swap, then clear matches (passing bomb creation info)
         this.animateSwap(pos1, pos2, () => {
-          this.animateGemClearing(result.matches, 0);
+          this.animateGemClearing(result.matches, 0, result.bombsToCreate || []);
         });
       } else {
         this.updateStatus('✗ Invalid swap! No match created. Try again.');
@@ -292,7 +303,10 @@ export class LevelScene extends Phaser.Scene {
     this.clearSelection();
   }
 
-  private animateGemClearing(matches: any[], cascadeLevel: number): void {
+  private animateGemClearing(matches: any[], cascadeLevel: number, bombsToCreate: BombCreation[] = []): void {
+    // Check if any of the matched gems are bombs - they should explode!
+    const bombPositions = this.board.checkForBombsInMatches(matches);
+
     // Calculate and add score for this match
     const matchScore = this.board.calculateScore(matches, cascadeLevel);
     this.score += matchScore;
@@ -300,6 +314,7 @@ export class LevelScene extends Phaser.Scene {
 
     const spritesToClear: GemSprite[] = [];
 
+    // Collect sprites to clear from matches
     for (const match of matches) {
       for (const pos of match.positions) {
         const key = pos.row + ',' + pos.col;
@@ -310,9 +325,29 @@ export class LevelScene extends Phaser.Scene {
       }
     }
 
+    // If there are bombs in the matches, explode them
+    if (bombPositions.length > 0) {
+      for (const bombPos of bombPositions) {
+        const explodedPositions = this.board.explodeBomb(bombPos);
+        // Add bonus points for bomb explosion
+        this.score += explodedPositions.length * 50;
+        this.updateScore();
+
+        // Add exploded sprites to clearing list
+        for (const pos of explodedPositions) {
+          const key = pos.row + ',' + pos.col;
+          const sprite = this.gemSprites.get(key);
+          if (sprite && !spritesToClear.includes(sprite)) {
+            spritesToClear.push(sprite);
+          }
+        }
+      }
+      this.updateStatus('💥 BOMB EXPLOSION! +' + (bombPositions.length * 50) + ' bonus!');
+    }
+
     spritesToClear.forEach(sprite => {
       this.tweens.add({
-        targets: [sprite.circle, sprite.text],
+        targets: [sprite.circle, sprite.text, sprite.bombIndicator].filter(Boolean),
         alpha: 0,
         scale: 0.3,
         duration: 400,
@@ -322,6 +357,16 @@ export class LevelScene extends Phaser.Scene {
 
     this.time.delayedCall(450, () => {
       this.board.clearMatches(matches);
+
+      // Create bombs at specified positions (from 4+ matches)
+      for (const bombCreation of bombsToCreate) {
+        this.board.setGemAt(
+          bombCreation.position.row,
+          bombCreation.position.col,
+          { color: bombCreation.color, special: 'bomb' }
+        );
+      }
+
       const moves = this.board.applyGravity();
 
       if (moves.length > 0) {
@@ -400,6 +445,9 @@ export class LevelScene extends Phaser.Scene {
     this.gemSprites.forEach(sprite => {
       sprite.circle.destroy();
       sprite.text.destroy();
+      if (sprite.bombIndicator) {
+        sprite.bombIndicator.destroy();
+      }
     });
     this.gemSprites.clear();
 
