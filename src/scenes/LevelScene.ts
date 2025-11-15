@@ -287,12 +287,22 @@ export class LevelScene extends Phaser.Scene {
           this.updateObjectivesDisplay();
         }
 
-        this.updateStatus('✓ Valid swap! Match found: ' + result.matches[0].type + ' x ' + result.matches[0].positions.length);
+        // Check if this was a bomb swap (no matches, just explosion)
+        if (result.bombExplosions && result.bombExplosions.length > 0) {
+          this.updateStatus('💥 BOMB ACTIVATED!');
 
-        // Animate the swap, then clear matches (passing bomb creation info)
-        this.animateSwap(pos1, pos2, () => {
-          this.animateGemClearing(result.matches, 0, result.bombsToCreate || []);
-        });
+          // Animate the swap, then trigger bomb explosions
+          this.animateSwap(pos1, pos2, () => {
+            this.handleBombExplosions(result.bombExplosions || []);
+          });
+        } else {
+          this.updateStatus('✓ Valid swap! Match found: ' + result.matches[0].type + ' x ' + result.matches[0].positions.length);
+
+          // Animate the swap, then clear matches (passing bomb creation info)
+          this.animateSwap(pos1, pos2, () => {
+            this.animateGemClearing(result.matches, 0, result.bombsToCreate || []);
+          });
+        }
       } else {
         this.updateStatus('✗ Invalid swap! No match created. Try again.');
       }
@@ -301,6 +311,51 @@ export class LevelScene extends Phaser.Scene {
     }
 
     this.clearSelection();
+  }
+
+  private handleBombExplosions(bombPositions: Position[]): void {
+    const spritesToClear: GemSprite[] = [];
+
+    // Explode each bomb and collect sprites to clear
+    for (const bombPos of bombPositions) {
+      const explodedPositions = this.board.explodeBomb(bombPos);
+
+      // Add bonus points for bomb explosion
+      const explosionBonus = explodedPositions.length * 50;
+      this.score += explosionBonus;
+      this.updateScore();
+
+      // Collect sprites for animation
+      for (const pos of explodedPositions) {
+        const key = `${pos.row},${pos.col}`;
+        const sprite = this.gemSprites.get(key);
+        if (sprite && !spritesToClear.includes(sprite)) {
+          spritesToClear.push(sprite);
+        }
+      }
+    }
+
+    // Animate explosion
+    spritesToClear.forEach(sprite => {
+      this.tweens.add({
+        targets: [sprite.circle, sprite.text, sprite.bombIndicator].filter(Boolean),
+        alpha: 0,
+        scale: 0.3,
+        duration: 400,
+        ease: 'Power2'
+      });
+    });
+
+    // Continue game flow after explosion animation
+    this.time.delayedCall(450, () => {
+      const moves = this.board.applyGravity();
+
+      if (moves.length > 0) {
+        this.animateGravity(moves, 0);
+      } else {
+        this.refillAndCheckCascade(0);
+      }
+    });
   }
 
   private animateGemClearing(matches: any[], cascadeLevel: number, bombsToCreate: BombCreation[] = []): void {

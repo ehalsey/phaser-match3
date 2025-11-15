@@ -26,6 +26,7 @@ export interface SwapResult {
   valid: boolean;
   matches: Match[];
   bombsToCreate?: BombCreation[];
+  bombExplosions?: Position[]; // Positions of bombs that were triggered by swap
 }
 
 export interface GemMove {
@@ -221,9 +222,32 @@ export class Board {
       throw new Error('Gems are not adjacent');
     }
 
+    // Check if either gem is a bomb BEFORE swapping
+    const gem1 = this.grid[pos1.row][pos1.col];
+    const gem2 = this.grid[pos2.row][pos2.col];
+    const hasBomb = (gem1 && gem1.special === 'bomb') || (gem2 && gem2.special === 'bomb');
+
     const temp = this.grid[pos1.row][pos1.col];
     this.grid[pos1.row][pos1.col] = this.grid[pos2.row][pos2.col];
     this.grid[pos2.row][pos2.col] = temp;
+
+    // If a bomb was swapped, it's always valid and triggers explosion
+    if (hasBomb) {
+      const bombExplosions: Position[] = [];
+      if (gem1 && gem1.special === 'bomb') {
+        bombExplosions.push(pos2); // Bomb moved to pos2
+      }
+      if (gem2 && gem2.special === 'bomb') {
+        bombExplosions.push(pos1); // Bomb moved to pos1
+      }
+
+      return {
+        valid: true,
+        matches: [],
+        bombsToCreate: [],
+        bombExplosions
+      };
+    }
 
     const matches = this.findMatches();
 
@@ -235,7 +259,8 @@ export class Board {
       return {
         valid: false,
         matches: [],
-        bombsToCreate: []
+        bombsToCreate: [],
+        bombExplosions: []
       };
     }
 
@@ -245,7 +270,8 @@ export class Board {
     return {
       valid: true,
       matches,
-      bombsToCreate
+      bombsToCreate,
+      bombExplosions: []
     };
   }
 
