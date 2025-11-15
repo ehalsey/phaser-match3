@@ -9,10 +9,10 @@
 
 ### What's Working ✅
 
-1. **Complete Test Coverage (89/89 tests passing)**
-   - 79 unit tests (Jest) - ~1.4s (54 Board + 25 MetaProgression)
-   - 10 E2E tests (Playwright) - ~19s
-   - Total execution time: < 21 seconds
+1. **Complete Test Coverage (100/100 unit tests passing)**
+   - 100 unit tests (Jest) - ~1.9s (54 Board + 25 MetaProgression + 21 LevelObjectives)
+   - E2E tests (Playwright)
+   - Fast unit test execution: < 2 seconds
 
 2. **Complete Match-3 Mechanics**
    - Flexible board sizes (3×3 to 20×20) via URL params
@@ -51,7 +51,7 @@
    - Proper game flow: Menu → Level → End Level / Shop
    - E2E test support with `?skipMenu=true` parameter
 
-6. **Meta Progression System 🆕**
+6. **Meta Progression System**
    - **Lives System:**
      - Start with 5 lives (max capacity)
      - Consume 1 life when starting a level
@@ -69,6 +69,29 @@
    - **Persistence:**
      - Lives, coins, and timestamps saved to localStorage
      - State preserved across page reloads
+
+7. **Level Objectives System** 🆕
+   - **Move Counter:**
+     - Track moves remaining (default: 20 moves per level)
+     - Decrement on each valid swap
+     - Color-coded display (red when low, orange when medium, white when plenty)
+     - Real-time updates in DOM
+   - **Target Score:**
+     - Set target score to pass level (default: 1000 points)
+     - Display current progress
+     - Visual feedback when approaching target
+   - **Progress Bar:**
+     - Animated progress bar showing completion percentage
+     - Gradient color scheme (blue to green)
+     - Real-time updates as score increases
+   - **Win/Loss Conditions:**
+     - Pass: Reach target score before running out of moves
+     - Fail: Run out of moves without reaching target
+     - Only award coins on level pass
+     - Different end screens for pass vs fail
+   - **Test Configuration:**
+     - `skipObjectives=true` URL parameter for E2E tests
+     - Objectives can be disabled for testing purposes
 
 7. **Hybrid DOM + Canvas Architecture**
    - Phaser canvas renders game board
@@ -204,7 +227,7 @@ Test Scenario 2 - Vertical Match:
 
 ## 📊 Test Coverage
 
-### Unit Tests (79 tests total)
+### Unit Tests (100 tests total)
 
 **Board Tests (54 tests - src/game/__tests__/Board.test.ts)**
 
@@ -258,7 +281,7 @@ Test Scenario 2 - Vertical Match:
 - ✅ Calculate total score for multiple matches
 - ✅ Return 0 for empty matches array
 
-**MetaProgression Tests (25 tests - src/game/__tests__/MetaProgressionManager.test.ts)** 🆕
+**MetaProgression Tests (25 tests - src/game/__tests__/MetaProgressionManager.test.ts)**
 - ✅ Initialization (start with 5 lives, 0 coins)
 - ✅ Lives management (consume, add, check availability)
 - ✅ Coin management (add, spend, check balance)
@@ -267,6 +290,14 @@ Test Scenario 2 - Vertical Match:
 - ✅ Persistence (save/load from localStorage)
 - ✅ Constants (max lives, life cost, regen time)
 - ✅ Timer formatting (MM:SS display)
+
+**LevelObjectives Tests (21 tests - src/game/__tests__/LevelObjectives.test.ts)** 🆕
+- ✅ Initialization (moves, target score)
+- ✅ Move management (decrement, bounds checking)
+- ✅ Score management (update, track progress)
+- ✅ Progress calculation (0-100%, capped at target)
+- ✅ Level status (in_progress, passed, failed)
+- ✅ Completion checking (moves depleted or target reached)
 
 ### E2E Tests (10 tests - e2e/game-interaction.spec.ts)
 
@@ -357,17 +388,11 @@ Test Scenario 2 - Vertical Match:
 6. ✅ **Board Configuration** - URL params, console API, 5 presets (4×3 to 12×12)
 7. ✅ **Multi-Scene Architecture** - Main menu, level scene, end level scene, shop scene
 8. ✅ **Meta Progression System** - Lives, coins, regeneration, shop, persistence
+9. ✅ **Move Counter & Level Objectives** - Move tracking, target score, progress bar, win/loss conditions
 
 ### Immediate Next Steps (in priority order)
 
-1. **Move Counter & Level Objectives** 🎯 NEXT
-   - Track number of moves remaining (e.g., 20 moves per level)
-   - Display moves counter in DOM
-   - Game ends when no moves left → transition to EndLevelScene
-   - Target score to complete level (pass/fail conditions)
-   - Progress bar showing objective completion
-
-3. **Level Progression System**
+1. **Level Progression System** 🎯 NEXT
    - Multiple levels with increasing difficulty
    - Level selection screen
    - Save progress between sessions
