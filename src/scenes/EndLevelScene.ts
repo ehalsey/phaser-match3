@@ -23,12 +23,14 @@ export class EndLevelScene extends Phaser.Scene {
     this.levelNumber = data.levelNumber || 1;
     this.metaManager = MetaProgressionManager.getInstance();
 
-    // Only award coins if level was passed
+    // Handle level completion
     if (this.levelStatus === LevelStatus.PASSED) {
+      // Award coins and advance to next level
       this.coinsEarned = this.metaManager.rewardLevelCompletion(this.finalScore);
-      // Advance to next level
       this.metaManager.advanceToNextLevel();
     } else {
+      // Consume a life on failure
+      this.metaManager.consumeLife();
       this.coinsEarned = 0;
     }
   }

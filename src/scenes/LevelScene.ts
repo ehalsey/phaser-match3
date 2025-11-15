@@ -64,9 +64,7 @@ export class LevelScene extends Phaser.Scene {
     this.objectivesEnabled = !skipObjectives;
 
     this.metaManager = MetaProgressionManager.getInstance();
-    if (!skipMenu) {
-      this.metaManager.consumeLife();
-    }
+    // Note: Lives are now consumed on level FAILURE, not at start
 
     // Set up keyboard input for showing cell IDs
     this.input.keyboard?.on('keydown-SHIFT', () => {
