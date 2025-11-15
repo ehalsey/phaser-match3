@@ -68,6 +68,15 @@ export class LevelScene extends Phaser.Scene {
       this.metaManager.consumeLife();
     }
 
+    // Set up keyboard input for showing cell IDs
+    this.input.keyboard?.on('keydown-SHIFT', () => {
+      this.showAllCellIds(true);
+    });
+
+    this.input.keyboard?.on('keyup-SHIFT', () => {
+      this.showAllCellIds(false);
+    });
+
     // Get board configuration from URL params or use default
     const config = BoardConfig.fromURL();
 
@@ -211,12 +220,13 @@ export class LevelScene extends Phaser.Scene {
     (gemCircle as any).setDataEnabled();
     gemCircle.setName(`gem-${cellId}`);
 
-    // Add cell ID text
+    // Add cell ID text (hidden by default)
     const text = this.add.text(x, y, cellId.toString(), {
       fontSize: '24px',
       color: '#ffffff',
       fontStyle: 'bold'
     }).setOrigin(0.5);
+    text.setVisible(false); // Hide by default
 
     // Click handler
     gemCircle.on('pointerdown', () => this.onGemClick(row, col));
@@ -486,5 +496,11 @@ export class LevelScene extends Phaser.Scene {
         });
       });
     }
+  }
+
+  private showAllCellIds(visible: boolean): void {
+    this.gemSprites.forEach(sprite => {
+      sprite.text.setVisible(visible);
+    });
   }
 }
