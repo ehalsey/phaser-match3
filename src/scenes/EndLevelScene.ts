@@ -7,9 +7,7 @@ export class EndLevelScene extends Phaser.Scene {
   private coinsEarned: number = 0;
   private metaManager!: MetaProgressionManager;
   private levelStatus: LevelStatus = LevelStatus.FAILED;
-  private movesRemaining: number = 0;
   private targetScore: number = 0;
-  private levelNumber: number = 1;
 
   constructor() {
     super({ key: 'EndLevelScene' });
@@ -18,9 +16,7 @@ export class EndLevelScene extends Phaser.Scene {
   init(data: { score: number, status: LevelStatus, movesRemaining: number, targetScore: number, levelNumber: number }): void {
     this.finalScore = data.score || 0;
     this.levelStatus = data.status || LevelStatus.FAILED;
-    this.movesRemaining = data.movesRemaining || 0;
     this.targetScore = data.targetScore || 0;
-    this.levelNumber = data.levelNumber || 1;
     this.metaManager = MetaProgressionManager.getInstance();
 
     // Handle level completion

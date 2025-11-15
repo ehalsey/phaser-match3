@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { LevelConfig, LevelDifficulty } from '../game/LevelConfig';
+import { LevelConfig } from '../game/LevelConfig';
 import { MetaProgressionManager } from '../game/MetaProgressionManager';
 
 export class LevelJourneyScene extends Phaser.Scene {
@@ -13,7 +13,6 @@ export class LevelJourneyScene extends Phaser.Scene {
   create(): void {
     const { width, height } = this.scale;
     const centerX = width / 2;
-    const centerY = height / 2;
 
     this.metaManager = MetaProgressionManager.getInstance();
 

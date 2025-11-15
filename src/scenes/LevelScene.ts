@@ -1,8 +1,7 @@
 import Phaser from 'phaser';
 import { Board, GemType, Position } from '../game/Board';
 import { BoardConfig } from '../game/BoardConfig';
-import { MetaProgressionManager } from '../game/MetaProgressionManager';
-import { LevelObjectives, LevelStatus } from '../game/LevelObjectives';
+import { LevelObjectives } from '../game/LevelObjectives';
 import { LevelSettings } from '../game/LevelConfig';
 
 interface GemSprite {
@@ -18,7 +17,6 @@ export class LevelScene extends Phaser.Scene {
   private selectedGem: Position | null = null;
   private selectionIndicator: Phaser.GameObjects.Rectangle | null = null;
   private score: number = 0;
-  private metaManager!: MetaProgressionManager;
   private objectives!: LevelObjectives;
   private objectivesEnabled: boolean = true;
   private levelNumber: number = 1;
@@ -61,12 +59,10 @@ export class LevelScene extends Phaser.Scene {
   create(): void {
     // Get URL params for test configuration
     const urlParams = new URLSearchParams(window.location.search);
-    const skipMenu = urlParams.get('skipMenu') === 'true';
     const skipObjectives = urlParams.get('skipObjectives') === 'true';
 
     this.objectivesEnabled = !skipObjectives;
 
-    this.metaManager = MetaProgressionManager.getInstance();
     // Note: Lives are now consumed on level FAILURE, not at start
 
     // Set up keyboard input for showing cell IDs
