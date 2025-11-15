@@ -501,4 +501,8 @@ Multi-scene architecture complete ✅
 Meta progression system complete ✅
 E2E tests fixed with skipMenu parameter ✅
 Documentation updated ✅
-Ready for move counter & level objectives ✅
+Ready for move counter & level objective
+
+The icons overlap the game board.  You should see that on a screenshot and the icons are not directly under the title
+We should remove the text that starts with "Click gems..." we don't need it
+Can we replace score goal with clear gem goals? Easy 30 of one color, medium 30 of one color and 20 of a different color and hard 30, 20 & 20. We need to make sure the board has the color(s) for the goal
