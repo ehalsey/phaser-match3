@@ -9,7 +9,7 @@ interface GemSprite {
   col: number;
 }
 
-export class InteractiveGameScene extends Phaser.Scene {
+export class LevelScene extends Phaser.Scene {
   private board!: Board;
   private gemSprites: Map<string, GemSprite> = new Map();
   private selectedGem: Position | null = null;
@@ -31,7 +31,7 @@ export class InteractiveGameScene extends Phaser.Scene {
   };
 
   constructor() {
-    super({ key: 'InteractiveGameScene' });
+    super({ key: 'LevelScene' });
   }
 
   create(): void {
@@ -72,9 +72,6 @@ export class InteractiveGameScene extends Phaser.Scene {
 
     // Draw the board
     this.drawBoard();
-
-    // Add legend
-    this.drawLegend();
 
     // Log helpful info
     console.log(`[Game] Board initialized: ${config.rows}x${config.cols}`);
@@ -368,36 +365,5 @@ export class InteractiveGameScene extends Phaser.Scene {
     if (domScore) {
       domScore.textContent = `Score: ${this.score}`;
     }
-  }
-
-  private drawLegend(): void {
-    // Position legend to the right of the board dynamically
-    const rows = this.board.getRows();
-    const cols = this.board.getCols();
-    const boardWidth = cols * this.CELL_SIZE;
-
-    const legendX = this.BOARD_OFFSET_X + boardWidth + 50;  // 50px margin from board
-    const legendY = this.BOARD_OFFSET_Y;
-
-    // Legend title
-    this.add.text(legendX, legendY - 30, 'Gem Types:', {
-      fontSize: '18px',
-      color: '#ffffff',
-      fontStyle: 'bold'
-    });
-
-    const gemTypes: GemType[] = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
-    gemTypes.forEach((gem, index) => {
-      const y = legendY + index * 35;
-
-      // Draw gem color circle
-      this.add.circle(legendX + 15, y, 12, this.GEM_COLORS[gem]);
-
-      // Draw gem name
-      this.add.text(legendX + 35, y, gem.charAt(0).toUpperCase() + gem.slice(1), {
-        fontSize: '16px',
-        color: '#ecf0f1'
-      }).setOrigin(0, 0.5);
-    });
   }
 }

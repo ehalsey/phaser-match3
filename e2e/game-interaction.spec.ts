@@ -4,7 +4,14 @@ test.describe('Match-3 Game Interactions', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     // Wait for Phaser to load
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(1000);
+
+    // Click "Start Game" button in MainMenuScene (canvas button at center)
+    // Canvas for 4x3 board: width=340, height=600
+    // Button position: centerX=170, centerY+50=350
+    const canvas = page.locator('canvas');
+    await canvas.click({ position: { x: 170, y: 350 } });
+    await page.waitForTimeout(1000);
   });
 
   test('should display the game board with all gems', async ({ page }) => {

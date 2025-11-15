@@ -1,11 +1,11 @@
 # Where We Are - Project Status
 
 **Last Updated:** 2025-11-15
-**Session:** Complete Match-3 Game with Scoring & Dynamic Board Configuration
+**Session:** Multi-Scene Architecture with Main Menu & End Level
 
 ---
 
-## 🎯 Current State: FEATURE-COMPLETE MATCH-3 GAME 🎮
+## 🎯 Current State: FEATURE-COMPLETE MATCH-3 GAME WITH SCENE SYSTEM 🎮
 
 ### What's Working ✅
 
@@ -42,13 +42,20 @@
    - Cascade multipliers: level 0=1x, level 1=2x, level 2=3x, etc.
    - Real-time score updates in DOM
 
-5. **Hybrid DOM + Canvas Architecture**
+5. **Multi-Scene Game Architecture 🆕**
+   - **MainMenuScene:** Title screen with start button and instructions
+   - **LevelScene:** Main gameplay (formerly InteractiveGameScene)
+   - **EndLevelScene:** Game over screen with score and restart options
+   - Smooth scene transitions
+   - Proper game flow: Menu → Level → End Level
+
+6. **Hybrid DOM + Canvas Architecture**
    - Phaser canvas renders game board
    - DOM elements for title, instructions, status, score
    - Perfect balance: testable + beautiful visuals
    - Better accessibility
 
-6. **Manual Test Scenarios** (Default 4×3 Board)
+7. **Manual Test Scenarios** (Default 4×3 Board)
    - **Horizontal Match:** Swap cell 2 ↔ 5 (creates 3 blues in row 1)
    - **Vertical Match:** Swap cell 7 ↔ 10 (creates 3 blues in column 1, cells 1,4,7)
 
@@ -124,10 +131,13 @@ phaser-dev/
 ├── src/
 │   ├── game/
 │   │   ├── Board.ts                    # Core game logic
+│   │   ├── BoardConfig.ts              # Board configuration system
 │   │   └── __tests__/
-│   │       └── Board.test.ts           # 26 unit tests
+│   │       └── Board.test.ts           # 54 unit tests
 │   ├── scenes/
-│   │   ├── InteractiveGameScene.ts     # Main playable scene
+│   │   ├── MainMenuScene.ts            # Main menu with start button
+│   │   ├── LevelScene.ts               # Main gameplay scene
+│   │   ├── EndLevelScene.ts            # End level with score & restart
 │   │   └── TestBoardScene.ts           # Visual test scene
 │   └── main.ts                         # Phaser game config
 ├── e2e/
@@ -240,7 +250,22 @@ Test Scenario 2 - Vertical Match:
 
 ---
 
-## 🔄 Recent Changes (Last 7 Commits)
+## 🔄 Recent Changes (Last 9 Commits)
+
+### Commit 9: `refactor: implement multi-scene architecture` 🆕
+- Created MainMenuScene with title and start button
+- Renamed InteractiveGameScene to LevelScene
+- Created EndLevelScene with score display and restart options
+- Updated main.ts to register all three scenes
+- Removed legend (no longer needed)
+- Proper game flow: Main Menu → Level → End Level
+
+### Commit 8: `fix: dynamic canvas sizing and legend positioning for large boards`
+- Made canvas size calculate dynamically based on board dimensions
+- Reduced BOARD_OFFSET_X from 200 to 50
+- Made legend position dynamic (positioned to right of board)
+- Updated all E2E test click positions
+- All 64 tests passing
 
 ### Commit 7: `feat: add flexible board configuration system`
 - URL parameters for board sizing (`?rows=10&cols=10`, `?board=large`)
@@ -297,22 +322,23 @@ Test Scenario 2 - Vertical Match:
 4. ✅ **Cascade Matching** - Recursive cascade loop (up to 10 levels)
 5. ✅ **Scoring System** - Size & cascade multipliers, real-time display
 6. ✅ **Board Configuration** - URL params, console API, 5 presets (4×3 to 12×12)
+7. ✅ **Multi-Scene Architecture** - Main menu, level scene, end level scene
 
 ### Immediate Next Steps (in priority order)
 
-1. **Move Counter & Game Over** 🎯 NEXT
-   - Track number of moves remaining
-   - Game ends when no moves left
-   - Display moves in DOM
-   - "Game Over" overlay with final score
-   - Restart game option
-
-2. **Level Objectives**
-   - Target score to complete level
+1. **Move Counter & Level Objectives** 🎯 NEXT
+   - Track number of moves remaining (e.g., 20 moves per level)
+   - Display moves counter in DOM
+   - Game ends when no moves left → transition to EndLevelScene
+   - Target score to complete level (pass/fail conditions)
    - Progress bar showing objective completion
-   - Win/lose conditions
-   - Level transition animations
-   - Multiple difficulty levels
+
+2. **Level Progression System**
+   - Multiple levels with increasing difficulty
+   - Level selection screen
+   - Save progress between sessions
+   - Unlock new levels after completing previous ones
+   - Different board sizes and layouts per level
 
 3. **Polish & Enhancements**
    - Sound effects for matches, swaps, cascades
@@ -335,9 +361,11 @@ Test Scenario 2 - Vertical Match:
 
 - ✅ Complete TDD workflow established (54 unit tests, 10 E2E tests)
 - ✅ Full match-3 game loop (swap → match → clear → gravity → refill → cascade → score)
+- ✅ **Multi-scene architecture** (Main Menu, Level, End Level)
 - ✅ **Scoring system** with size & cascade multipliers
 - ✅ **Flexible board configuration** (3×3 to 20×20 via URL/console)
 - ✅ **5 preset board sizes** for easy testing
+- ✅ **Dynamic canvas sizing** for any board size
 - ✅ Hybrid DOM + Canvas architecture (testable + visual)
 - ✅ Dimension-agnostic board logic (works on any size)
 - ✅ Smart refill algorithm (prevents immediate matches)
@@ -407,5 +435,6 @@ All 64 tests passing ✅
 Match-3 mechanics complete ✅
 Scoring system complete ✅
 Board configuration complete ✅
+Multi-scene architecture complete ✅
 Documentation updated ✅
-Ready for move counter & game over ✅
+Ready for move counter & level objectives ✅
