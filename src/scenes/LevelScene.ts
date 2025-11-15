@@ -153,7 +153,7 @@ export class LevelScene extends Phaser.Scene {
     // Small icon buttons positioned below title (centered, side by side)
     const buttonSize = 35;
     const buttonSpacing = 50;
-    const buttonY = 120;
+    const buttonY = 30; // Top of canvas, below HTML title
 
     // Back to Map button (left)
     const mapButton = this.add.circle(centerX - buttonSpacing / 2, buttonY, buttonSize / 2, 0x3498db);
