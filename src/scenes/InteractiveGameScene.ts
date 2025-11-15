@@ -167,13 +167,13 @@ export class InteractiveGameScene extends Phaser.Scene {
       const result = this.board.swap(pos1, pos2);
 
       if (result.valid) {
-        this.updateStatus('Valid swap! Match found: ' + result.matches[0].type + ' x ' + result.matches[0].positions.length);
+        this.updateStatus('✓ Valid swap! Match found: ' + result.matches[0].type + ' x ' + result.matches[0].positions.length);
         this.animateGemClearing(result.matches, 0);
       } else {
-        this.updateStatus('Invalid swap! No match created. Try again.');
+        this.updateStatus('✗ Invalid swap! No match created. Try again.');
       }
     } catch (error) {
-      this.updateStatus('Error: ' + (error as Error).message);
+      this.updateStatus('✗ Error: ' + (error as Error).message);
     }
 
     this.clearSelection();
