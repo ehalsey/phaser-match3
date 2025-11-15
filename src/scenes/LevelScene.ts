@@ -99,7 +99,8 @@ export class LevelScene extends Phaser.Scene {
   private generateRandomBoard(): void {
     const rows = this.board.getRows();
     const cols = this.board.getCols();
-    const gemTypes: GemType[] = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
+    // Level 1 uses 5 colors (orange reserved for later levels)
+    const gemTypes: GemType[] = ['red', 'blue', 'green', 'yellow', 'purple'];
 
     const config: (GemType | null)[][] = [];
 

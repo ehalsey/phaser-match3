@@ -2,8 +2,8 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Match-3 Game Interactions', () => {
   test.beforeEach(async ({ page }) => {
-    // Skip main menu for E2E tests to go directly to LevelScene
-    await page.goto('/?skipMenu=true');
+    // Skip main menu and use test board (4x3) for E2E tests
+    await page.goto('/?skipMenu=true&board=test');
 
     // Wait for LevelScene to be ready by checking for the ready message
     await page.waitForFunction(() => {

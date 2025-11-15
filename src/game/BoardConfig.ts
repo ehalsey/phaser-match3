@@ -13,8 +13,13 @@ export class BoardConfig {
   private static readonly PRESETS: Record<string, BoardPreset> = {
     default: {
       name: 'default',
+      dimensions: { rows: 8, cols: 8 },
+      description: 'Default Level 1 board (8x8)'
+    },
+    test: {
+      name: 'test',
       dimensions: { rows: 4, cols: 3 },
-      description: 'Default 4x3 board for testing'
+      description: 'Test board for E2E tests (4x3)'
     },
     small: {
       name: 'small',
@@ -71,7 +76,7 @@ export class BoardConfig {
     }
 
     // Default
-    console.log('[BoardConfig] Using default dimensions: 4x3');
+    console.log('[BoardConfig] Using default dimensions: 8x8');
     return this.PRESETS.default.dimensions;
   }
 
