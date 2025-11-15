@@ -158,7 +158,7 @@ test.describe('Match-3 Game Interactions', () => {
     await canvas.click({ position: { x: 360, y: 150 } }); // Select cell 2
     await page.waitForTimeout(300);
     await canvas.click({ position: { x: 360, y: 230 } }); // Swap with cell 5
-    
+
     // Wait for clearing animation
     await page.waitForTimeout(500);
     await page.screenshot({ path: 'screenshots/e2e-gravity-02-clearing.png' });
@@ -172,5 +172,28 @@ test.describe('Match-3 Game Interactions', () => {
 
     // After gravity, gems should have fallen and board should be updated
     // This is verified visually through screenshots
+  });
+
+  test('should update score after matches', async ({ page }) => {
+    const canvas = page.locator('canvas');
+
+    // Initial score should be 0
+    await expect(page.locator('#game-score')).toHaveText('Score: 0');
+
+    // Take initial screenshot
+    await page.screenshot({ path: 'screenshots/e2e-score-01-initial.png' });
+
+    // Perform valid swap to create 3-gem match
+    await canvas.click({ position: { x: 360, y: 150 } }); // Select cell 2
+    await page.waitForTimeout(300);
+    await canvas.click({ position: { x: 360, y: 230 } }); // Swap with cell 5
+
+    // Wait for match animation and score update
+    await page.waitForTimeout(500);
+
+    // Score should be updated (3 gems × 100 × 1 × 1 = 300 points)
+    await expect(page.locator('#game-score')).toHaveText('Score: 300');
+
+    await page.screenshot({ path: 'screenshots/e2e-score-02-after-match.png' });
   });
 });

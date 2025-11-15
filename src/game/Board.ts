@@ -248,6 +248,34 @@ export class Board {
     return refills;
   }
 
+  calculateScore(matches: Match[], cascadeLevel: number): number {
+    const BASE_POINTS = 100;
+    let totalScore = 0;
+
+    for (const match of matches) {
+      const gemsMatched = match.positions.length;
+
+      // Match size multiplier: 3=1x, 4=2x, 5=3x, 6+=4x
+      let sizeMultiplier = 1;
+      if (gemsMatched === 4) {
+        sizeMultiplier = 2;
+      } else if (gemsMatched === 5) {
+        sizeMultiplier = 3;
+      } else if (gemsMatched >= 6) {
+        sizeMultiplier = 4;
+      }
+
+      // Cascade multiplier: level 0=1x, level 1=2x, level 2=3x, etc.
+      const cascadeMultiplier = cascadeLevel + 1;
+
+      // Calculate score for this match
+      const matchScore = gemsMatched * BASE_POINTS * sizeMultiplier * cascadeMultiplier;
+      totalScore += matchScore;
+    }
+
+    return totalScore;
+  }
+
   private getSafeGemTypes(row: number, col: number, allTypes: GemType[]): GemType[] {
     const unsafeTypes = new Set<GemType>();
 

@@ -13,6 +13,7 @@ export class InteractiveGameScene extends Phaser.Scene {
   private gemSprites: Map<string, GemSprite> = new Map();
   private selectedGem: Position | null = null;
   private selectionIndicator: Phaser.GameObjects.Rectangle | null = null;
+  private score: number = 0;
 
   private readonly CELL_SIZE = 80;
   private readonly BOARD_OFFSET_X = 200;
@@ -180,6 +181,11 @@ export class InteractiveGameScene extends Phaser.Scene {
   }
 
   private animateGemClearing(matches: any[], cascadeLevel: number): void {
+    // Calculate and add score for this match
+    const matchScore = this.board.calculateScore(matches, cascadeLevel);
+    this.score += matchScore;
+    this.updateScore();
+
     const spritesToClear: GemSprite[] = [];
 
     for (const match of matches) {
@@ -205,7 +211,7 @@ export class InteractiveGameScene extends Phaser.Scene {
     this.time.delayedCall(450, () => {
       this.board.clearMatches(matches);
       const moves = this.board.applyGravity();
-      
+
       if (moves.length > 0) {
         this.animateGravity(moves, cascadeLevel);
       } else {
@@ -308,6 +314,14 @@ export class InteractiveGameScene extends Phaser.Scene {
     const domStatus = document.getElementById('game-status');
     if (domStatus) {
       domStatus.textContent = message;
+    }
+  }
+
+  private updateScore(): void {
+    // Update DOM score element
+    const domScore = document.getElementById('game-score');
+    if (domScore) {
+      domScore.textContent = `Score: ${this.score}`;
     }
   }
 

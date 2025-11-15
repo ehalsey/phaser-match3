@@ -955,5 +955,173 @@ describe('Board', () => {
         expect(board.getGemAt(0, 3)).not.toBeNull();
       });
     });
+
+    describe('Phase 6: Scoring System', () => {
+      describe('Test 12: Calculate score for matches', () => {
+        it('should calculate base score for 3-gem match (300 points)', () => {
+          const board = new Board(4, 3);
+          const testConfig: (GemType | null)[][] = [
+            ['red', 'red', 'red'],  // 3-match
+            ['blue', 'green', 'yellow'],
+            ['purple', 'orange', 'blue'],
+            ['green', 'yellow', 'purple']
+          ];
+
+          board.initializeWithConfig(testConfig);
+          const matches = board.findMatches();
+
+          // Calculate score at cascade level 0
+          const score = board.calculateScore(matches, 0);
+
+          // 3 gems × 100 points × 1 (no size bonus) × 1 (level 0) = 300
+          expect(score).toBe(300);
+        });
+
+        it('should apply 2x multiplier for 4-gem match (800 points)', () => {
+          const board = new Board(4, 4);
+          const testConfig: (GemType | null)[][] = [
+            ['red', 'red', 'red', 'red'],  // 4-match
+            ['blue', 'green', 'yellow', 'purple'],
+            ['orange', 'blue', 'green', 'red'],
+            ['yellow', 'purple', 'orange', 'blue']
+          ];
+
+          board.initializeWithConfig(testConfig);
+          const matches = board.findMatches();
+
+          // Calculate score at cascade level 0
+          const score = board.calculateScore(matches, 0);
+
+          // 4 gems × 100 points × 2 (size multiplier) × 1 (level 0) = 800
+          expect(score).toBe(800);
+        });
+
+        it('should apply 3x multiplier for 5-gem match (1500 points)', () => {
+          const board = new Board(4, 5);
+          const testConfig: (GemType | null)[][] = [
+            ['red', 'red', 'red', 'red', 'red'],  // 5-match
+            ['blue', 'green', 'yellow', 'purple', 'orange'],
+            ['orange', 'blue', 'green', 'red', 'blue'],
+            ['yellow', 'purple', 'orange', 'blue', 'green']
+          ];
+
+          board.initializeWithConfig(testConfig);
+          const matches = board.findMatches();
+
+          // Calculate score at cascade level 0
+          const score = board.calculateScore(matches, 0);
+
+          // 5 gems × 100 points × 3 (size multiplier) × 1 (level 0) = 1500
+          expect(score).toBe(1500);
+        });
+
+        it('should apply 4x multiplier for 6+ gem match (2400 points)', () => {
+          const board = new Board(4, 6);
+          const testConfig: (GemType | null)[][] = [
+            ['red', 'red', 'red', 'red', 'red', 'red'],  // 6-match
+            ['blue', 'green', 'yellow', 'purple', 'orange', 'blue'],
+            ['orange', 'blue', 'green', 'red', 'blue', 'green'],
+            ['yellow', 'purple', 'orange', 'blue', 'green', 'yellow']
+          ];
+
+          board.initializeWithConfig(testConfig);
+          const matches = board.findMatches();
+
+          // Calculate score at cascade level 0
+          const score = board.calculateScore(matches, 0);
+
+          // 6 gems × 100 points × 4 (size multiplier) × 1 (level 0) = 2400
+          expect(score).toBe(2400);
+        });
+
+        it('should apply cascade multiplier (level 1 = 2x)', () => {
+          const board = new Board(4, 3);
+          const testConfig: (GemType | null)[][] = [
+            ['red', 'red', 'red'],  // 3-match
+            ['blue', 'green', 'yellow'],
+            ['purple', 'orange', 'blue'],
+            ['green', 'yellow', 'purple']
+          ];
+
+          board.initializeWithConfig(testConfig);
+          const matches = board.findMatches();
+
+          // Calculate score at cascade level 1
+          const score = board.calculateScore(matches, 1);
+
+          // 3 gems × 100 points × 1 (no size bonus) × 2 (level 1) = 600
+          expect(score).toBe(600);
+        });
+
+        it('should apply cascade multiplier (level 2 = 3x)', () => {
+          const board = new Board(4, 3);
+          const testConfig: (GemType | null)[][] = [
+            ['red', 'red', 'red'],  // 3-match
+            ['blue', 'green', 'yellow'],
+            ['purple', 'orange', 'blue'],
+            ['green', 'yellow', 'purple']
+          ];
+
+          board.initializeWithConfig(testConfig);
+          const matches = board.findMatches();
+
+          // Calculate score at cascade level 2
+          const score = board.calculateScore(matches, 2);
+
+          // 3 gems × 100 points × 1 (no size bonus) × 3 (level 2) = 900
+          expect(score).toBe(900);
+        });
+
+        it('should combine size and cascade multipliers', () => {
+          const board = new Board(4, 4);
+          const testConfig: (GemType | null)[][] = [
+            ['red', 'red', 'red', 'red'],  // 4-match
+            ['blue', 'green', 'yellow', 'purple'],
+            ['orange', 'blue', 'green', 'red'],
+            ['yellow', 'purple', 'orange', 'blue']
+          ];
+
+          board.initializeWithConfig(testConfig);
+          const matches = board.findMatches();
+
+          // Calculate score at cascade level 2
+          const score = board.calculateScore(matches, 2);
+
+          // 4 gems × 100 points × 2 (size) × 3 (level 2) = 2400
+          expect(score).toBe(2400);
+        });
+
+        it('should calculate total score for multiple matches', () => {
+          const board = new Board(5, 3);
+          const testConfig: (GemType | null)[][] = [
+            ['red', 'red', 'red'],      // Horizontal 3-match (row 0)
+            ['blue', 'green', 'yellow'],
+            ['blue', 'purple', 'orange'],
+            ['blue', 'orange', 'red'],   // Vertical 3-match (column 0, rows 1-3)
+            ['yellow', 'purple', 'orange']
+          ];
+
+          board.initializeWithConfig(testConfig);
+          const matches = board.findMatches();
+
+          // Should have 2 matches: horizontal reds and vertical blues
+          expect(matches.length).toBe(2);
+
+          // Calculate score at cascade level 0
+          const score = board.calculateScore(matches, 0);
+
+          // Match 1: 3 reds × 100 × 1 × 1 = 300
+          // Match 2: 3 blues × 100 × 1 × 1 = 300
+          // Total = 600
+          expect(score).toBe(600);
+        });
+
+        it('should return 0 for empty matches array', () => {
+          const board = new Board(4, 3);
+          const score = board.calculateScore([], 0);
+          expect(score).toBe(0);
+        });
+      });
+    });
   });
 });

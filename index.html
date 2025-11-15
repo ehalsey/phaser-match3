@@ -33,6 +33,17 @@
       color: #2ecc71;
       text-align: center;
     }
+    #game-score {
+      font-size: 28px;
+      font-weight: bold;
+      color: #f39c12;
+      text-align: center;
+      padding: 10px;
+      background-color: #34495e;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      min-width: 250px;
+    }
     #game-container {
       margin: 0 auto;
     }
@@ -53,6 +64,7 @@
   <div id="game-wrapper">
     <h1 id="game-title">Interactive Match-3 Game</h1>
     <p id="game-instructions">Click gems to swap them! Create matches of 3+</p>
+    <div id="game-score">Score: 0</div>
     <div id="game-container"></div>
     <div id="game-status">Try: Horizontal (cell 2 ↔ 5) or Vertical (cell 7 ↔ 10)</div>
   </div>
