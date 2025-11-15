@@ -51,7 +51,7 @@ export class EndLevelScene extends Phaser.Scene {
       color: '#ecf0f1'
     }).setOrigin(0.5);
 
-    const coinsIcon = this.add.circle(centerX - 40, centerY + 30, 12, 0xf1c40f);
+    this.add.circle(centerX - 40, centerY + 30, 12, 0xf1c40f);
     this.add.text(centerX, centerY + 25, `+${this.coinsEarned}`, {
       fontSize: '40px',
       color: '#f1c40f',

@@ -125,7 +125,7 @@ export class MainMenuScene extends Phaser.Scene {
 
   private createResourceDisplay(x: number, y: number): void {
     // Lives display
-    const livesIcon = this.add.circle(x + 15, y + 15, 12, 0xe74c3c);
+    this.add.circle(x + 15, y + 15, 12, 0xe74c3c);
     this.livesText = this.add.text(x + 35, y + 5, `${this.metaManager.getLives()}/${this.metaManager.getMaxLives()}`, {
       fontSize: '24px',
       color: '#ffffff',
@@ -137,15 +137,17 @@ export class MainMenuScene extends Phaser.Scene {
       fontSize: '16px',
       color: '#95a5a6'
     });
-    this.updateTimer();
 
     // Coins display (below lives)
-    const coinsIcon = this.add.circle(x + 15, y + 75, 12, 0xf1c40f);
+    this.add.circle(x + 15, y + 75, 12, 0xf1c40f);
     this.coinsText = this.add.text(x + 35, y + 65, `${this.metaManager.getCoins()}`, {
       fontSize: '24px',
       color: '#ffffff',
       fontStyle: 'bold'
     });
+
+    // Update timer after all text objects are created
+    this.updateTimer();
   }
 
   private updateTimer(): void {
@@ -161,10 +163,9 @@ export class MainMenuScene extends Phaser.Scene {
     }
   }
 
-  destroy(): void {
+  shutdown(): void {
     if (this.timerEvent) {
       this.timerEvent.remove();
     }
-    super.destroy();
   }
 }
