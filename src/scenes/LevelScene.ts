@@ -128,6 +128,9 @@ export class LevelScene extends Phaser.Scene {
     // Draw the board
     this.drawBoard();
 
+    // Add navigation buttons
+    this.createNavigationButtons();
+
     // Initialize score display
     this.updateScore();
 
@@ -141,6 +144,86 @@ export class LevelScene extends Phaser.Scene {
       domStatus.setAttribute('data-scene-ready', 'true');
       domStatus.textContent = 'Click a gem to select it!';
     }
+  }
+
+  private createNavigationButtons(): void {
+    const { width } = this.scale;
+
+    // Back to Map button (top-right)
+    const mapButton = this.add.rectangle(width - 80, 30, 140, 40, 0x3498db);
+    mapButton.setStrokeStyle(2, 0x2980b9);
+    mapButton.setInteractive({ useHandCursor: true });
+    mapButton.setScrollFactor(0); // Keep button fixed on screen
+    mapButton.setDepth(1000); // Ensure it's on top
+
+    const mapText = this.add.text(width - 80, 30, '← Map', {
+      fontSize: '18px',
+      color: '#ffffff',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    mapText.setScrollFactor(0);
+    mapText.setDepth(1001);
+
+    // Main Menu button (below map button)
+    const menuButton = this.add.rectangle(width - 80, 80, 140, 40, 0x95a5a6);
+    menuButton.setStrokeStyle(2, 0x7f8c8d);
+    menuButton.setInteractive({ useHandCursor: true });
+    menuButton.setScrollFactor(0);
+    menuButton.setDepth(1000);
+
+    const menuText = this.add.text(width - 80, 80, '⌂ Menu', {
+      fontSize: '18px',
+      color: '#ffffff',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    menuText.setScrollFactor(0);
+    menuText.setDepth(1001);
+
+    // Hover effects for Map button
+    mapButton.on('pointerover', () => {
+      mapButton.setFillStyle(0x2980b9);
+      mapButton.setScale(1.05);
+      mapText.setScale(1.05);
+    });
+
+    mapButton.on('pointerout', () => {
+      mapButton.setFillStyle(0x3498db);
+      mapButton.setScale(1.0);
+      mapText.setScale(1.0);
+    });
+
+    mapButton.on('pointerdown', () => {
+      // Hide objectives UI when leaving
+      const objectivesDiv = document.getElementById('game-objectives');
+      const progressDiv = document.getElementById('game-progress-container');
+      if (objectivesDiv) objectivesDiv.style.display = 'none';
+      if (progressDiv) progressDiv.style.display = 'none';
+
+      this.scene.start('JourneyMapScene');
+    });
+
+    // Hover effects for Menu button
+    menuButton.on('pointerover', () => {
+      menuButton.setFillStyle(0x7f8c8d);
+      menuButton.setScale(1.05);
+      menuText.setScale(1.05);
+    });
+
+    menuButton.on('pointerout', () => {
+      menuButton.setFillStyle(0x95a5a6);
+      menuButton.setScale(1.0);
+      menuText.setScale(1.0);
+    });
+
+    menuButton.on('pointerdown', () => {
+      // Hide objectives UI when leaving
+      const objectivesDiv = document.getElementById('game-objectives');
+      const progressDiv = document.getElementById('game-progress-container');
+      if (objectivesDiv) objectivesDiv.style.display = 'none';
+      if (progressDiv) progressDiv.style.display = 'none';
+
+      this.scene.start('MainMenuScene');
+    });
   }
 
   private generateRandomBoard(): void {

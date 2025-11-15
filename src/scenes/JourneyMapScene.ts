@@ -111,11 +111,13 @@ export class JourneyMapScene extends Phaser.Scene {
         repeat: -1,
         ease: 'Sine.easeInOut'
       });
+    }
 
-      // Make current level clickable
+    // Make current and completed levels clickable
+    if (isCurrent || isCompleted) {
       circle.setInteractive({ useHandCursor: true });
       circle.on('pointerdown', () => {
-        this.scene.start('LevelJourneyScene');
+        this.scene.start('LevelJourneyScene', { selectedLevel: level });
       });
 
       circle.on('pointerover', () => {
@@ -154,12 +156,12 @@ export class JourneyMapScene extends Phaser.Scene {
     const badge = this.add.circle(badgeX, y, 8, difficultyColor);
     badge.setStrokeStyle(2, 0xffffff, 0.8);
 
-    // Info panel on hover (only for current and upcoming levels)
-    if (isCurrent || isUpcoming) {
+    // Info panel on hover (for current, completed, and upcoming levels)
+    if (isCurrent || isCompleted || isUpcoming) {
       const infoPanel = this.createInfoPanel(x, y - 100, levelSettings);
       infoPanel.setVisible(false);
 
-      if (isCurrent) {
+      if (isCurrent || isCompleted) {
         circle.on('pointerover', () => {
           infoPanel.setVisible(true);
         });
