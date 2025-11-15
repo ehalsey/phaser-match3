@@ -142,37 +142,43 @@ export class LevelScene extends Phaser.Scene {
     const domStatus = document.getElementById('game-status');
     if (domStatus) {
       domStatus.setAttribute('data-scene-ready', 'true');
-      domStatus.textContent = 'Click a gem to select it!';
+      domStatus.textContent = '';
     }
   }
 
   private createNavigationButtons(): void {
     const { width } = this.scale;
+    const centerX = width / 2;
 
-    // Back to Map button (top-right)
-    const mapButton = this.add.rectangle(width - 80, 30, 140, 40, 0x3498db);
+    // Small icon buttons positioned below title (centered, side by side)
+    const buttonSize = 35;
+    const buttonSpacing = 50;
+    const buttonY = 120;
+
+    // Back to Map button (left)
+    const mapButton = this.add.circle(centerX - buttonSpacing / 2, buttonY, buttonSize / 2, 0x3498db);
     mapButton.setStrokeStyle(2, 0x2980b9);
     mapButton.setInteractive({ useHandCursor: true });
-    mapButton.setScrollFactor(0); // Keep button fixed on screen
-    mapButton.setDepth(1000); // Ensure it's on top
+    mapButton.setScrollFactor(0);
+    mapButton.setDepth(1000);
 
-    const mapText = this.add.text(width - 80, 30, '← Map', {
-      fontSize: '18px',
+    const mapText = this.add.text(centerX - buttonSpacing / 2, buttonY, '←', {
+      fontSize: '24px',
       color: '#ffffff',
       fontStyle: 'bold'
     }).setOrigin(0.5);
     mapText.setScrollFactor(0);
     mapText.setDepth(1001);
 
-    // Main Menu button (below map button)
-    const menuButton = this.add.rectangle(width - 80, 80, 140, 40, 0x95a5a6);
+    // Main Menu button (right)
+    const menuButton = this.add.circle(centerX + buttonSpacing / 2, buttonY, buttonSize / 2, 0x95a5a6);
     menuButton.setStrokeStyle(2, 0x7f8c8d);
     menuButton.setInteractive({ useHandCursor: true });
     menuButton.setScrollFactor(0);
     menuButton.setDepth(1000);
 
-    const menuText = this.add.text(width - 80, 80, '⌂ Menu', {
-      fontSize: '18px',
+    const menuText = this.add.text(centerX + buttonSpacing / 2, buttonY, '⌂', {
+      fontSize: '24px',
       color: '#ffffff',
       fontStyle: 'bold'
     }).setOrigin(0.5);
@@ -182,8 +188,8 @@ export class LevelScene extends Phaser.Scene {
     // Hover effects for Map button
     mapButton.on('pointerover', () => {
       mapButton.setFillStyle(0x2980b9);
-      mapButton.setScale(1.05);
-      mapText.setScale(1.05);
+      mapButton.setScale(1.15);
+      mapText.setScale(1.15);
     });
 
     mapButton.on('pointerout', () => {
@@ -205,8 +211,8 @@ export class LevelScene extends Phaser.Scene {
     // Hover effects for Menu button
     menuButton.on('pointerover', () => {
       menuButton.setFillStyle(0x7f8c8d);
-      menuButton.setScale(1.05);
-      menuText.setScale(1.05);
+      menuButton.setScale(1.15);
+      menuText.setScale(1.15);
     });
 
     menuButton.on('pointerout', () => {
