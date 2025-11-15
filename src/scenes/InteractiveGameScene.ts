@@ -167,30 +167,24 @@ export class InteractiveGameScene extends Phaser.Scene {
       const result = this.board.swap(pos1, pos2);
 
       if (result.valid) {
-        // Valid swap - animate clearing matched gems
-        this.updateStatus(`✓ Valid swap! Match found: ${result.matches[0].type} x ${result.matches[0].positions.length}`);
-
-        // Animate the matched gems disappearing, then clear and refresh
-        this.animateGemClearing(result.matches);
+        this.updateStatus('Valid swap! Match found: ' + result.matches[0].type + ' x ' + result.matches[0].positions.length);
+        this.animateGemClearing(result.matches, 0);
       } else {
-        // Invalid swap - no match created (already reverted by Board)
-        this.updateStatus(`✗ Invalid swap! No match created. Try again.`);
+        this.updateStatus('Invalid swap! No match created. Try again.');
       }
     } catch (error) {
-      // Swap error (not adjacent, out of bounds, etc.)
-      this.updateStatus(`✗ ${(error as Error).message}`);
+      this.updateStatus('Error: ' + (error as Error).message);
     }
 
     this.clearSelection();
   }
 
-  private animateGemClearing(matches: any[]): void {
-    // Collect all sprites that need to be cleared
+  private animateGemClearing(matches: any[], cascadeLevel: number): void {
     const spritesToClear: GemSprite[] = [];
 
     for (const match of matches) {
       for (const pos of match.positions) {
-        const key = `${pos.row},${pos.col}`;
+        const key = pos.row + ',' + pos.col;
         const sprite = this.gemSprites.get(key);
         if (sprite) {
           spritesToClear.push(sprite);
@@ -198,7 +192,6 @@ export class InteractiveGameScene extends Phaser.Scene {
       }
     }
 
-    // Animate all matched gems fading out and scaling down
     spritesToClear.forEach(sprite => {
       this.tweens.add({
         targets: [sprite.circle, sprite.text],
@@ -209,24 +202,21 @@ export class InteractiveGameScene extends Phaser.Scene {
       });
     });
 
-    // After animation completes, clear from board, apply gravity, and animate falling
     this.time.delayedCall(450, () => {
       this.board.clearMatches(matches);
-      
-      // Apply gravity and get gem movements
       const moves = this.board.applyGravity();
       
       if (moves.length > 0) {
-        this.animateGravity(moves);
+        this.animateGravity(moves, cascadeLevel);
       } else {
-        // No gems to fall, just refresh
-        this.refreshBoard();
+        this.refillAndCheckCascade(cascadeLevel);
       }
     });
-  private animateGravity(moves: any[]): void {
-    // Animate gems falling to their new positions
+  }
+
+  private animateGravity(moves: any[], cascadeLevel: number): void {
     moves.forEach(move => {
-      const key = `${move.from.row},${move.from.col}`;
+      const key = move.from.row + ',' + move.from.col;
       const sprite = this.gemSprites.get(key);
       
       if (sprite) {
@@ -241,14 +231,29 @@ export class InteractiveGameScene extends Phaser.Scene {
       }
     });
 
-    // After falling animation, refill and refresh
     this.time.delayedCall(350, () => {
-      // Refill empty spaces with new gems
-      this.board.refillBoard();
-      
-      // Refresh to show new gems
-      this.refreshBoard();
+      this.refillAndCheckCascade(cascadeLevel);
     });
+  }
+
+  private refillAndCheckCascade(cascadeLevel: number): void {
+    this.board.refillBoard();
+    this.refreshBoard();
+    
+    const newMatches = this.board.findMatches();
+    
+    if (newMatches.length > 0 && cascadeLevel < 10) {
+      const nextLevel = cascadeLevel + 1;
+      this.updateStatus('CASCADE x' + nextLevel + '! ' + newMatches[0].type + ' match!');
+      
+      this.time.delayedCall(500, () => {
+        this.animateGemClearing(newMatches, nextLevel);
+      });
+    } else {
+      if (cascadeLevel > 0) {
+        this.updateStatus('Cascade complete! ' + cascadeLevel + ' chains!');
+      }
+    }
   }
 
   private showSelection(row: number, col: number): void {
