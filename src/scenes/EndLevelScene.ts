@@ -132,7 +132,7 @@ export class EndLevelScene extends Phaser.Scene {
     });
 
     nextButton.on('pointerdown', () => {
-      this.scene.start('LevelJourneyScene');
+      this.scene.start('JourneyMapScene');
     });
 
     // Main Menu button hover effects
@@ -149,7 +149,7 @@ export class EndLevelScene extends Phaser.Scene {
     });
 
     menuButton.on('pointerdown', () => {
-      this.scene.start('LevelJourneyScene');
+      this.scene.start('JourneyMapScene');
     });
   }
 }

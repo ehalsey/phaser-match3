@@ -10,14 +10,15 @@ export class LevelJourneyScene extends Phaser.Scene {
     super({ key: 'LevelJourneyScene' });
   }
 
+  init(data?: { selectedLevel?: number }): void {
+    this.metaManager = MetaProgressionManager.getInstance();
+    // Use selected level if provided, otherwise use current level
+    this.currentLevel = data?.selectedLevel || this.metaManager.getCurrentLevel();
+  }
+
   create(): void {
     const { width, height } = this.scale;
     const centerX = width / 2;
-
-    this.metaManager = MetaProgressionManager.getInstance();
-
-    // Load current level from localStorage
-    this.currentLevel = this.metaManager.getCurrentLevel();
 
     // Get level configuration
     const levelSettings = LevelConfig.getLevel(this.currentLevel);
