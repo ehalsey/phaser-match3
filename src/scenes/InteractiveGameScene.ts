@@ -1,8 +1,9 @@
 import Phaser from 'phaser';
 import { Board, GemType, Position } from '../game/Board';
+import { BoardConfig } from '../game/BoardConfig';
 
 interface GemSprite {
-  circle: Phaser.GameObjects.Circle;
+  circle: any; // Phaser.GameObjects.Circle type not exported correctly
   text: Phaser.GameObjects.Text;
   row: number;
   col: number;
@@ -34,33 +35,77 @@ export class InteractiveGameScene extends Phaser.Scene {
   }
 
   create(): void {
-    // Create board instance
-    this.board = new Board(4, 3);
+    // Get board configuration from URL params or use default
+    const config = BoardConfig.fromURL();
 
-    // Initialize with test configuration - TWO manual test scenarios:
-    //
-    // SCENARIO 1 - HORIZONTAL MATCH:
-    //   Swap cell 2 (blue) ↔ cell 5 (green)
-    //   Result: 3 blues horizontally in row 1 (cells 2, 3, 4)
-    //
-    // SCENARIO 2 - VERTICAL MATCH:
-    //   Swap cell 7 (orange) ↔ cell 10 (blue)
-    //   Result: 3 blues vertically in column 1 (cells 1, 4, 7)
-    //
-    const testConfig: (GemType | null)[][] = [
-      ['red', 'blue', 'blue'],      // Row 0: cells 0, 1, 2
-      ['blue', 'blue', 'green'],    // Row 1: cells 3, 4, 5
-      ['purple', 'orange', 'red'],  // Row 2: cells 6, 7, 8
-      ['yellow', 'blue', 'orange']  // Row 3: cells 9, 10, 11
-    ];
+    // Create board instance with configured dimensions
+    this.board = new Board(config.rows, config.cols);
 
-    this.board.initializeWithConfig(testConfig);
+    // For default 4x3 board, use test configuration
+    // For other sizes, generate random board without matches
+    if (config.rows === 4 && config.cols === 3) {
+      // Initialize with test configuration - TWO manual test scenarios:
+      //
+      // SCENARIO 1 - HORIZONTAL MATCH:
+      //   Swap cell 2 (blue) ↔ cell 5 (green)
+      //   Result: 3 blues horizontally in row 1 (cells 2, 3, 4)
+      //
+      // SCENARIO 2 - VERTICAL MATCH:
+      //   Swap cell 7 (orange) ↔ cell 10 (blue)
+      //   Result: 3 blues vertically in column 1 (cells 1, 4, 7)
+      //
+      const testConfig: (GemType | null)[][] = [
+        ['red', 'blue', 'blue'],      // Row 0: cells 0, 1, 2
+        ['blue', 'blue', 'green'],    // Row 1: cells 3, 4, 5
+        ['purple', 'orange', 'red'],  // Row 2: cells 6, 7, 8
+        ['yellow', 'blue', 'orange']  // Row 3: cells 9, 10, 11
+      ];
+
+      this.board.initializeWithConfig(testConfig);
+    } else {
+      // Generate random board without initial matches
+      this.generateRandomBoard();
+    }
+
+    // Setup console API for runtime configuration
+    BoardConfig.setupConsoleAPI();
 
     // Draw the board
     this.drawBoard();
 
     // Add legend
     this.drawLegend();
+
+    // Log helpful info
+    console.log(`[Game] Board initialized: ${config.rows}x${config.cols}`);
+    console.log('[Game] Try: gameConfig.listPresets() to see available boards');
+  }
+
+  private generateRandomBoard(): void {
+    const rows = this.board.getRows();
+    const cols = this.board.getCols();
+    const gemTypes: GemType[] = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
+
+    const config: (GemType | null)[][] = [];
+
+    for (let row = 0; row < rows; row++) {
+      const rowConfig: (GemType | null)[] = [];
+      for (let col = 0; col < cols; col++) {
+        // Pick random gem type
+        const randomGem = gemTypes[Math.floor(Math.random() * gemTypes.length)];
+        rowConfig.push(randomGem);
+      }
+      config.push(rowConfig);
+    }
+
+    this.board.initializeWithConfig(config);
+
+    // Clear any accidental matches
+    const matches = this.board.findMatches();
+    if (matches.length > 0) {
+      this.board.clearMatches(matches);
+      this.board.refillBoard();
+    }
   }
 
   private drawBoard(): void {
