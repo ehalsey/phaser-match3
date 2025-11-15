@@ -53,6 +53,9 @@ export class LevelScene extends Phaser.Scene {
       boardCols: 8,
       colorCount: 5
     };
+
+    // Reset score for new level
+    this.score = 0;
   }
 
   create(): void {
@@ -121,6 +124,9 @@ export class LevelScene extends Phaser.Scene {
 
     // Draw the board
     this.drawBoard();
+
+    // Initialize score display
+    this.updateScore();
 
     // Log helpful info
     console.log(`[Game] Board initialized: ${config.rows}x${config.cols}`);
@@ -275,7 +281,11 @@ export class LevelScene extends Phaser.Scene {
         }
 
         this.updateStatus('✓ Valid swap! Match found: ' + result.matches[0].type + ' x ' + result.matches[0].positions.length);
-        this.animateGemClearing(result.matches, 0);
+
+        // Animate the swap, then clear matches
+        this.animateSwap(pos1, pos2, () => {
+          this.animateGemClearing(result.matches, 0);
+        });
       } else {
         this.updateStatus('✗ Invalid swap! No match created. Try again.');
       }
@@ -499,6 +509,53 @@ export class LevelScene extends Phaser.Scene {
   private showAllCellIds(visible: boolean): void {
     this.gemSprites.forEach(sprite => {
       sprite.text.setVisible(visible);
+    });
+  }
+
+  private animateSwap(pos1: Position, pos2: Position, onComplete: () => void): void {
+    const sprite1 = this.gemSprites.get(`${pos1.row},${pos1.col}`);
+    const sprite2 = this.gemSprites.get(`${pos2.row},${pos2.col}`);
+
+    if (!sprite1 || !sprite2) {
+      onComplete();
+      return;
+    }
+
+    // Calculate target positions
+    const x1 = this.BOARD_OFFSET_X + pos1.col * this.CELL_SIZE;
+    const y1 = this.BOARD_OFFSET_Y + pos1.row * this.CELL_SIZE;
+    const x2 = this.BOARD_OFFSET_X + pos2.col * this.CELL_SIZE;
+    const y2 = this.BOARD_OFFSET_Y + pos2.row * this.CELL_SIZE;
+
+    // Animate sprite1 to pos2's location
+    this.tweens.add({
+      targets: [sprite1.circle, sprite1.text],
+      x: x2,
+      y: y2,
+      duration: 200,
+      ease: 'Power2'
+    });
+
+    // Animate sprite2 to pos1's location
+    this.tweens.add({
+      targets: [sprite2.circle, sprite2.text],
+      x: x1,
+      y: y1,
+      duration: 200,
+      ease: 'Power2',
+      onComplete: () => {
+        // Update the sprite map after swap
+        this.gemSprites.set(`${pos1.row},${pos1.col}`, sprite2);
+        this.gemSprites.set(`${pos2.row},${pos2.col}`, sprite1);
+
+        // Update sprite data
+        sprite1.row = pos2.row;
+        sprite1.col = pos2.col;
+        sprite2.row = pos1.row;
+        sprite2.col = pos1.col;
+
+        onComplete();
+      }
     });
   }
 }
