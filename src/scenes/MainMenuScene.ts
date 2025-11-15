@@ -66,7 +66,7 @@ export class MainMenuScene extends Phaser.Scene {
     // Start game on click
     startButton.on('pointerdown', () => {
       if (this.metaManager.hasLives()) {
-        this.scene.start('LevelJourneyScene');
+        this.scene.start('JourneyMapScene');
       }
     });
 
