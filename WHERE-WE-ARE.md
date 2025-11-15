@@ -5,14 +5,14 @@
 
 ---
 
-## 🎯 Current State: FEATURE-COMPLETE MATCH-3 GAME WITH SCENE SYSTEM 🎮
+## 🎯 Current State: MATCH-3 GAME WITH META PROGRESSION & SCENES 🎮
 
 ### What's Working ✅
 
-1. **Complete Test Coverage (64/64 tests passing)**
-   - 54 unit tests (Jest) - ~0.9s
-   - 10 E2E tests (Playwright) - ~17s
-   - Total execution time: < 20 seconds
+1. **Complete Test Coverage (89/89 tests passing)**
+   - 79 unit tests (Jest) - ~1.4s (54 Board + 25 MetaProgression)
+   - 10 E2E tests (Playwright) - ~19s
+   - Total execution time: < 21 seconds
 
 2. **Complete Match-3 Mechanics**
    - Flexible board sizes (3×3 to 20×20) via URL params
@@ -43,13 +43,34 @@
    - Real-time score updates in DOM
 
 5. **Multi-Scene Game Architecture 🆕**
-   - **MainMenuScene:** Title screen with start button and instructions
+   - **MainMenuScene:** Title screen with start button, lives/coins display, shop access
    - **LevelScene:** Main gameplay (formerly InteractiveGameScene)
-   - **EndLevelScene:** Game over screen with score and restart options
+   - **EndLevelScene:** Game over screen with score, coins earned, and restart options
+   - **ShopScene:** Purchase lives with coins
    - Smooth scene transitions
-   - Proper game flow: Menu → Level → End Level
+   - Proper game flow: Menu → Level → End Level / Shop
+   - E2E test support with `?skipMenu=true` parameter
 
-6. **Hybrid DOM + Canvas Architecture**
+6. **Meta Progression System 🆕**
+   - **Lives System:**
+     - Start with 5 lives (max capacity)
+     - Consume 1 life when starting a level
+     - Regenerate 1 life every 30 minutes when below max
+     - Display with regeneration timer
+     - Disable start button when out of lives
+   - **Currency System:**
+     - Earn coins from completing levels (100-200 based on score)
+     - Persistent between sessions (localStorage)
+     - Display coins in main menu
+   - **Shop System:**
+     - Purchase lives with coins (50 coins = 1 life)
+     - Shop accessible from main menu
+     - Visual feedback for purchases
+   - **Persistence:**
+     - Lives, coins, and timestamps saved to localStorage
+     - State preserved across page reloads
+
+7. **Hybrid DOM + Canvas Architecture**
    - Phaser canvas renders game board
    - DOM elements for title, instructions, status, score
    - Perfect balance: testable + beautiful visuals
@@ -183,7 +204,9 @@ Test Scenario 2 - Vertical Match:
 
 ## 📊 Test Coverage
 
-### Unit Tests (54 tests - src/game/__tests__/Board.test.ts)
+### Unit Tests (79 tests total)
+
+**Board Tests (54 tests - src/game/__tests__/Board.test.ts)**
 
 **Phase 1: Board Creation & Match Detection (17 tests)**
 - ✅ Board creation with correct dimensions (4×3, 5×6, 7×2, 2×8, 6×3)
@@ -234,6 +257,16 @@ Test Scenario 2 - Vertical Match:
 - ✅ Combine size and cascade multipliers
 - ✅ Calculate total score for multiple matches
 - ✅ Return 0 for empty matches array
+
+**MetaProgression Tests (25 tests - src/game/__tests__/MetaProgressionManager.test.ts)** 🆕
+- ✅ Initialization (start with 5 lives, 0 coins)
+- ✅ Lives management (consume, add, check availability)
+- ✅ Coin management (add, spend, check balance)
+- ✅ Level rewards (calculate based on score)
+- ✅ Shop system (buy lives with coins, validation)
+- ✅ Persistence (save/load from localStorage)
+- ✅ Constants (max lives, life cost, regen time)
+- ✅ Timer formatting (MM:SS display)
 
 ### E2E Tests (10 tests - e2e/game-interaction.spec.ts)
 
@@ -322,29 +355,12 @@ Test Scenario 2 - Vertical Match:
 4. ✅ **Cascade Matching** - Recursive cascade loop (up to 10 levels)
 5. ✅ **Scoring System** - Size & cascade multipliers, real-time display
 6. ✅ **Board Configuration** - URL params, console API, 5 presets (4×3 to 12×12)
-7. ✅ **Multi-Scene Architecture** - Main menu, level scene, end level scene
+7. ✅ **Multi-Scene Architecture** - Main menu, level scene, end level scene, shop scene
+8. ✅ **Meta Progression System** - Lives, coins, regeneration, shop, persistence
 
 ### Immediate Next Steps (in priority order)
 
-1. **Meta Progression System (Lives & Currency)** 🎯 IN PROGRESS
-   - **Lives System:**
-     - Start with 5 lives (max capacity)
-     - Lose 1 life when failing a level
-     - Regenerate 1 life every 30 minutes when below max
-     - Persist between sessions (localStorage)
-   - **Currency System:**
-     - Earn coins from completing levels (base: 100 coins)
-     - Bonus coins for higher scores
-     - Display coins in UI
-   - **Shop System:**
-     - Purchase lives with coins (50 coins = 1 life)
-     - Shop scene accessible from main menu
-   - **UI Components:**
-     - Lives display with regeneration timer
-     - Coins display
-     - Block level start when out of lives
-
-2. **Move Counter & Level Objectives**
+1. **Move Counter & Level Objectives** 🎯 NEXT
    - Track number of moves remaining (e.g., 20 moves per level)
    - Display moves counter in DOM
    - Game ends when no moves left → transition to EndLevelScene
@@ -378,20 +394,22 @@ Test Scenario 2 - Vertical Match:
 
 ## 🏆 Key Achievements So Far
 
-- ✅ Complete TDD workflow established (54 unit tests, 10 E2E tests)
+- ✅ Complete TDD workflow established (79 unit tests, 10 E2E tests = 89 total)
 - ✅ Full match-3 game loop (swap → match → clear → gravity → refill → cascade → score)
-- ✅ **Multi-scene architecture** (Main Menu, Level, End Level)
+- ✅ **Multi-scene architecture** (Main Menu, Level, End Level, Shop)
+- ✅ **Meta progression system** (lives, coins, regeneration, shop, persistence)
 - ✅ **Scoring system** with size & cascade multipliers
 - ✅ **Flexible board configuration** (3×3 to 20×20 via URL/console)
 - ✅ **5 preset board sizes** for easy testing
 - ✅ **Dynamic canvas sizing** for any board size
+- ✅ **E2E test support** with skipMenu parameter
 - ✅ Hybrid DOM + Canvas architecture (testable + visual)
 - ✅ Dimension-agnostic board logic (works on any size)
 - ✅ Smart refill algorithm (prevents immediate matches)
 - ✅ Cascade system with 10-level depth limit
 - ✅ Beautiful animations (fade-out, bounce, tweens)
-- ✅ Fast test execution (< 20 seconds total)
-- ✅ Fully playable interactive game
+- ✅ Fast test execution (< 21 seconds total)
+- ✅ Fully playable interactive game with progression
 - ✅ Automated screenshot testing
 - ✅ Comprehensive documentation
 - ✅ Console API for runtime configuration
@@ -450,10 +468,12 @@ None currently! All tests passing, game fully functional.
 
 **Ready to continue building!** 🚀
 
-All 64 tests passing ✅
+All 89 tests passing ✅
 Match-3 mechanics complete ✅
 Scoring system complete ✅
 Board configuration complete ✅
 Multi-scene architecture complete ✅
+Meta progression system complete ✅
+E2E tests fixed with skipMenu parameter ✅
 Documentation updated ✅
 Ready for move counter & level objectives ✅

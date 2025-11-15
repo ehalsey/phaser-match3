@@ -37,9 +37,14 @@ export class LevelScene extends Phaser.Scene {
   }
 
   create(): void {
-    // Get meta progression manager and consume a life
+    // Get meta progression manager and consume a life (only if not skipping menu)
+    const urlParams = new URLSearchParams(window.location.search);
+    const skipMenu = urlParams.get('skipMenu') === 'true';
+
     this.metaManager = MetaProgressionManager.getInstance();
-    this.metaManager.consumeLife();
+    if (!skipMenu) {
+      this.metaManager.consumeLife();
+    }
 
     // Get board configuration from URL params or use default
     const config = BoardConfig.fromURL();
@@ -82,6 +87,13 @@ export class LevelScene extends Phaser.Scene {
     // Log helpful info
     console.log(`[Game] Board initialized: ${config.rows}x${config.cols}`);
     console.log('[Game] Try: gameConfig.listPresets() to see available boards');
+
+    // Signal that scene is ready for E2E tests
+    const domStatus = document.getElementById('game-status');
+    if (domStatus) {
+      domStatus.setAttribute('data-scene-ready', 'true');
+      domStatus.textContent = 'Click a gem to select it!';
+    }
   }
 
   private generateRandomBoard(): void {

@@ -2,27 +2,14 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Match-3 Game Interactions', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    // Skip main menu for E2E tests to go directly to LevelScene
+    await page.goto('/?skipMenu=true');
 
-    // Clear localStorage to reset lives/coins for each test
-    await page.evaluate(() => {
-      localStorage.clear();
-    });
-
-    // Reload to apply fresh state
-    await page.reload();
-
-    // Wait for Phaser to load
-    await page.waitForTimeout(1000);
-
-    // Click "Start Game" button in MainMenuScene (canvas button at center)
-    // Canvas for 4x3 board: width=340, height=600
-    // Button position: centerX=170, centerY+50=350
-    const canvas = page.locator('canvas');
-    await canvas.click({ position: { x: 170, y: 350 } });
-
-    // Wait longer for LevelScene to fully initialize
-    await page.waitForTimeout(2000);
+    // Wait for LevelScene to be ready by checking for the ready message
+    await page.waitForFunction(() => {
+      const statusEl = document.getElementById('game-status');
+      return statusEl && statusEl.textContent?.includes('Click a gem to select it!');
+    }, { timeout: 10000 });
   });
 
   test('should display the game board with all gems', async ({ page }) => {
