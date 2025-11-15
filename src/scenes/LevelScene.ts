@@ -3,6 +3,7 @@ import { Board, GemType, Position } from '../game/Board';
 import { BoardConfig } from '../game/BoardConfig';
 import { MetaProgressionManager } from '../game/MetaProgressionManager';
 import { LevelObjectives, LevelStatus } from '../game/LevelObjectives';
+import { LevelSettings } from '../game/LevelConfig';
 
 interface GemSprite {
   circle: any; // Phaser.GameObjects.Circle type not exported correctly
@@ -20,6 +21,8 @@ export class LevelScene extends Phaser.Scene {
   private metaManager!: MetaProgressionManager;
   private objectives!: LevelObjectives;
   private objectivesEnabled: boolean = true;
+  private levelNumber: number = 1;
+  private levelSettings!: LevelSettings;
 
   private readonly CELL_SIZE = 80;
   private readonly BOARD_OFFSET_X = 50;  // Match main.ts
@@ -37,6 +40,19 @@ export class LevelScene extends Phaser.Scene {
 
   constructor() {
     super({ key: 'LevelScene' });
+  }
+
+  init(data: { levelNumber?: number, levelSettings?: LevelSettings }): void {
+    this.levelNumber = data.levelNumber || 1;
+    this.levelSettings = data.levelSettings || {
+      levelNumber: 1,
+      difficulty: 'medium' as any,
+      moves: 20,
+      targetScore: 5000,
+      boardRows: 8,
+      boardCols: 8,
+      colorCount: 5
+    };
   }
 
   create(): void {
@@ -87,9 +103,12 @@ export class LevelScene extends Phaser.Scene {
     // Setup console API for runtime configuration
     BoardConfig.setupConsoleAPI();
 
-    // Initialize level objectives only if enabled (20 moves, 5000 target score for Level 1)
+    // Initialize level objectives only if enabled (use level settings)
     if (this.objectivesEnabled) {
-      this.objectives = new LevelObjectives(20, 5000);
+      this.objectives = new LevelObjectives(
+        this.levelSettings.moves,
+        this.levelSettings.targetScore
+      );
       this.updateObjectivesDisplay();
     }
 
@@ -462,7 +481,8 @@ export class LevelScene extends Phaser.Scene {
           score: this.score,
           status: status,
           movesRemaining: this.objectives.getMovesRemaining(),
-          targetScore: this.objectives.getTargetScore()
+          targetScore: this.objectives.getTargetScore(),
+          levelNumber: this.levelNumber
         });
       });
     }

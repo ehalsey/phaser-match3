@@ -9,21 +9,25 @@ export class EndLevelScene extends Phaser.Scene {
   private levelStatus: LevelStatus = LevelStatus.FAILED;
   private movesRemaining: number = 0;
   private targetScore: number = 0;
+  private levelNumber: number = 1;
 
   constructor() {
     super({ key: 'EndLevelScene' });
   }
 
-  init(data: { score: number, status: LevelStatus, movesRemaining: number, targetScore: number }): void {
+  init(data: { score: number, status: LevelStatus, movesRemaining: number, targetScore: number, levelNumber: number }): void {
     this.finalScore = data.score || 0;
     this.levelStatus = data.status || LevelStatus.FAILED;
     this.movesRemaining = data.movesRemaining || 0;
     this.targetScore = data.targetScore || 0;
+    this.levelNumber = data.levelNumber || 1;
     this.metaManager = MetaProgressionManager.getInstance();
 
     // Only award coins if level was passed
     if (this.levelStatus === LevelStatus.PASSED) {
       this.coinsEarned = this.metaManager.rewardLevelCompletion(this.finalScore);
+      // Advance to next level
+      this.metaManager.advanceToNextLevel();
     } else {
       this.coinsEarned = 0;
     }
@@ -89,9 +93,10 @@ export class EndLevelScene extends Phaser.Scene {
       }).setOrigin(0.5);
     }
 
-    // Play Again button
-    const playAgainButton = this.add.rectangle(centerX, centerY + 100, 250, 70, 0x3498db);
-    const playAgainText = this.add.text(centerX, centerY + 100, 'Play Again', {
+    // Next Level / Try Again button
+    const nextButton = this.add.rectangle(centerX, centerY + 100, 250, 70, 0x3498db);
+    const buttonText = isPassed ? 'Next Level' : 'Try Again';
+    const nextText = this.add.text(centerX, centerY + 100, buttonText, {
       fontSize: '28px',
       color: '#ffffff',
       fontStyle: 'bold'
@@ -99,10 +104,10 @@ export class EndLevelScene extends Phaser.Scene {
 
     // Disable if no lives
     if (this.metaManager.hasLives()) {
-      playAgainButton.setInteractive({ useHandCursor: true });
+      nextButton.setInteractive({ useHandCursor: true });
     } else {
-      playAgainButton.setFillStyle(0x7f8c8d);
-      playAgainText.setText('No Lives!');
+      nextButton.setFillStyle(0x7f8c8d);
+      nextText.setText('No Lives!');
     }
 
     // Main Menu button
@@ -115,21 +120,21 @@ export class EndLevelScene extends Phaser.Scene {
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
-    // Play Again button hover effects
-    playAgainButton.on('pointerover', () => {
-      playAgainButton.setFillStyle(0x2980b9);
-      playAgainButton.setScale(1.05);
-      playAgainText.setScale(1.05);
+    // Next Level / Try Again button hover effects
+    nextButton.on('pointerover', () => {
+      nextButton.setFillStyle(0x2980b9);
+      nextButton.setScale(1.05);
+      nextText.setScale(1.05);
     });
 
-    playAgainButton.on('pointerout', () => {
-      playAgainButton.setFillStyle(0x3498db);
-      playAgainButton.setScale(1.0);
-      playAgainText.setScale(1.0);
+    nextButton.on('pointerout', () => {
+      nextButton.setFillStyle(0x3498db);
+      nextButton.setScale(1.0);
+      nextText.setScale(1.0);
     });
 
-    playAgainButton.on('pointerdown', () => {
-      this.scene.start('LevelScene');
+    nextButton.on('pointerdown', () => {
+      this.scene.start('LevelJourneyScene');
     });
 
     // Main Menu button hover effects
@@ -146,7 +151,7 @@ export class EndLevelScene extends Phaser.Scene {
     });
 
     menuButton.on('pointerdown', () => {
-      this.scene.start('MainMenuScene');
+      this.scene.start('LevelJourneyScene');
     });
   }
 }
