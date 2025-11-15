@@ -215,6 +215,29 @@ export class Board {
   }
 
   /**
+   * Clear matched gems from the board (set to null)
+   * @param matches Array of matches to clear
+   * @returns Number of gems cleared
+   */
+  clearMatches(matches: Match[]): number {
+    let clearedCount = 0;
+
+    // Loop through each match
+    for (const match of matches) {
+      // Clear each position in the match
+      for (const pos of match.positions) {
+        // Only count if not already null
+        if (this.grid[pos.row][pos.col] !== null) {
+          this.grid[pos.row][pos.col] = null;
+          clearedCount++;
+        }
+      }
+    }
+
+    return clearedCount;
+  }
+
+  /**
    * Validate a position is within board bounds
    */
   private validatePosition(pos: Position): void {

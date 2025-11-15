@@ -167,9 +167,11 @@ export class InteractiveGameScene extends Phaser.Scene {
       const result = this.board.swap(pos1, pos2);
 
       if (result.valid) {
-        // Valid swap - refresh the display
+        // Valid swap - animate clearing matched gems
         this.updateStatus(`✓ Valid swap! Match found: ${result.matches[0].type} x ${result.matches[0].positions.length}`);
-        this.refreshBoard();
+
+        // Animate the matched gems disappearing, then clear and refresh
+        this.animateGemClearing(result.matches);
       } else {
         // Invalid swap - no match created (already reverted by Board)
         this.updateStatus(`✗ Invalid swap! No match created. Try again.`);
@@ -180,6 +182,38 @@ export class InteractiveGameScene extends Phaser.Scene {
     }
 
     this.clearSelection();
+  }
+
+  private animateGemClearing(matches: any[]): void {
+    // Collect all sprites that need to be cleared
+    const spritesToClear: GemSprite[] = [];
+
+    for (const match of matches) {
+      for (const pos of match.positions) {
+        const key = `${pos.row},${pos.col}`;
+        const sprite = this.gemSprites.get(key);
+        if (sprite) {
+          spritesToClear.push(sprite);
+        }
+      }
+    }
+
+    // Animate all matched gems fading out and scaling down
+    spritesToClear.forEach(sprite => {
+      this.tweens.add({
+        targets: [sprite.circle, sprite.text],
+        alpha: 0,
+        scale: 0.3,
+        duration: 400,
+        ease: 'Power2'
+      });
+    });
+
+    // After animation completes, clear from board and refresh
+    this.time.delayedCall(450, () => {
+      this.board.clearMatches(matches);
+      this.refreshBoard();
+    });
   }
 
   private showSelection(row: number, col: number): void {

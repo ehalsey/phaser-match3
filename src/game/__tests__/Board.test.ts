@@ -455,4 +455,169 @@ describe('Board', () => {
       });
     });
   });
+
+  describe('Phase 3: Gem Clearing', () => {
+    describe('Test 9: Clear matched gems from board', () => {
+      it('should clear a horizontal match (set to null)', () => {
+        const board = new Board(4, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'blue'],
+          ['blue', 'blue', 'green'],
+          ['purple', 'orange', 'red'],
+          ['yellow', 'purple', 'orange']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Swap to create horizontal match of 3 blues in row 1 (positions 2,3,4)
+        board.swap({ row: 0, col: 2 }, { row: 1, col: 2 });
+
+        // Find the matches
+        const matches = board.findMatches();
+        expect(matches.length).toBeGreaterThan(0);
+
+        // Clear the matches
+        const clearedCount = board.clearMatches(matches);
+
+        // Verify gems were cleared (set to null)
+        expect(board.getGemAt(1, 2)).toBeNull();
+        expect(board.getGemAt(1, 0)).toBeNull();
+        expect(board.getGemAt(1, 1)).toBeNull();
+        expect(clearedCount).toBe(3);
+      });
+
+      it('should clear a vertical match (set to null)', () => {
+        const board = new Board(4, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'blue'],
+          ['blue', 'blue', 'green'],
+          ['purple', 'orange', 'red'],
+          ['yellow', 'blue', 'orange']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Swap to create vertical match of 3 blues in column 1 (cells 1,4,7)
+        board.swap({ row: 2, col: 1 }, { row: 3, col: 1 });
+
+        // Find the matches
+        const matches = board.findMatches();
+        expect(matches.length).toBeGreaterThan(0);
+
+        // Clear the matches
+        const clearedCount = board.clearMatches(matches);
+
+        // Verify gems were cleared (set to null)
+        expect(board.getGemAt(0, 1)).toBeNull();
+        expect(board.getGemAt(1, 1)).toBeNull();
+        expect(board.getGemAt(2, 1)).toBeNull();
+        expect(clearedCount).toBe(3);
+      });
+
+      it('should clear multiple matches at once', () => {
+        const board = new Board(4, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'red', 'red'],      // Horizontal match of 3 reds
+          ['blue', 'blue', 'blue'],   // Horizontal match of 3 blues
+          ['purple', 'orange', 'yellow'],
+          ['green', 'purple', 'orange']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Find the matches (should find 2 horizontal matches)
+        const matches = board.findMatches();
+        expect(matches.length).toBe(2);
+
+        // Clear all matches
+        const clearedCount = board.clearMatches(matches);
+
+        // Verify all matched gems were cleared
+        expect(board.getGemAt(0, 0)).toBeNull();
+        expect(board.getGemAt(0, 1)).toBeNull();
+        expect(board.getGemAt(0, 2)).toBeNull();
+        expect(board.getGemAt(1, 0)).toBeNull();
+        expect(board.getGemAt(1, 1)).toBeNull();
+        expect(board.getGemAt(1, 2)).toBeNull();
+        expect(clearedCount).toBe(6);
+
+        // Verify unmatched gems remain
+        expect(board.getGemAt(2, 0)).toBe('purple');
+        expect(board.getGemAt(3, 0)).toBe('green');
+      });
+
+      it('should clear longer matches (4+ gems)', () => {
+        const board = new Board(4, 4);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'red', 'red', 'red'],  // Match of 4 reds
+          ['blue', 'green', 'yellow', 'purple'],
+          ['orange', 'blue', 'green', 'red'],
+          ['yellow', 'purple', 'orange', 'blue']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Find the match (4 reds)
+        const matches = board.findMatches();
+        expect(matches.length).toBe(1);
+        expect(matches[0].positions.length).toBe(4);
+
+        // Clear the match
+        const clearedCount = board.clearMatches(matches);
+
+        // Verify all 4 gems were cleared
+        expect(board.getGemAt(0, 0)).toBeNull();
+        expect(board.getGemAt(0, 1)).toBeNull();
+        expect(board.getGemAt(0, 2)).toBeNull();
+        expect(board.getGemAt(0, 3)).toBeNull();
+        expect(clearedCount).toBe(4);
+      });
+
+      it('should handle empty matches array', () => {
+        const board = new Board(4, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green'],
+          ['yellow', 'purple', 'orange'],
+          ['blue', 'green', 'red'],
+          ['purple', 'orange', 'yellow']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Clear with empty matches array
+        const clearedCount = board.clearMatches([]);
+
+        // Verify nothing was cleared
+        expect(clearedCount).toBe(0);
+        expect(board.getGemAt(0, 0)).toBe('red');
+        expect(board.getGemAt(1, 1)).toBe('purple');
+      });
+
+      it('should not affect gems that were not matched', () => {
+        const board = new Board(4, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'blue'],
+          ['blue', 'blue', 'green'],
+          ['purple', 'orange', 'red'],
+          ['yellow', 'purple', 'orange']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Swap to create match
+        board.swap({ row: 0, col: 2 }, { row: 1, col: 2 });
+
+        // Clear matches
+        const matches = board.findMatches();
+        board.clearMatches(matches);
+
+        // Verify unmatched gems remain unchanged
+        expect(board.getGemAt(1, 2)).toBeNull();  // Part of the match, should be cleared
+        expect(board.getGemAt(2, 0)).toBe('purple');
+        expect(board.getGemAt(2, 1)).toBe('orange');
+        expect(board.getGemAt(2, 2)).toBe('red');
+        expect(board.getGemAt(3, 0)).toBe('yellow');
+      });
+    });
+  });
 });

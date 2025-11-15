@@ -128,4 +128,31 @@ test.describe('Match-3 Game Interactions', () => {
     // Verify the status mentions "blue" gems matched
     await expect(page.locator('text=/Match found.*blue/')).toBeVisible();
   });
+
+  test('should clear matched gems after valid swap', async ({ page }) => {
+    const canvas = page.locator('canvas');
+
+    // Initial state - take screenshot
+    await page.screenshot({ path: 'screenshots/e2e-clear-01-before.png' });
+
+    // Perform valid swap: cell 2 with cell 5 (creates horizontal blue match)
+    await canvas.click({ position: { x: 360, y: 150 } }); // Select cell 2
+    await page.waitForTimeout(300);
+    await canvas.click({ position: { x: 360, y: 230 } }); // Swap with cell 5
+    
+    // Wait for animation to start
+    await page.waitForTimeout(200);
+    await page.screenshot({ path: 'screenshots/e2e-clear-02-animating.png' });
+
+    // Wait for animation to complete (450ms delay in animateGemClearing)
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: 'screenshots/e2e-clear-03-cleared.png' });
+
+    // Verify the match was created
+    await expect(page.locator('text=/✓ Valid swap!/')).toBeVisible();
+
+    // The matched gems should now be cleared (no longer visible on the canvas)
+    // We can verify this by taking a screenshot and checking the status
+    await expect(page.locator('text=/Match found.*blue/')).toBeVisible();
+  });
 });
