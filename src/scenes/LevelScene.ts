@@ -58,6 +58,12 @@ export class LevelScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Show objectives UI (hidden by default in HTML)
+    const objectivesDiv = document.getElementById('game-objectives');
+    const progressDiv = document.getElementById('game-progress-container');
+    if (objectivesDiv) objectivesDiv.style.display = 'flex';
+    if (progressDiv) progressDiv.style.display = 'block';
+
     // Get URL params for test configuration
     const urlParams = new URLSearchParams(window.location.search);
     const skipObjectives = urlParams.get('skipObjectives') === 'true';
@@ -209,8 +215,9 @@ export class LevelScene extends Phaser.Scene {
   }
 
   private createGemSprite(x: number, y: number, gem: Gem, row: number, col: number, cellId: number): GemSprite {
-    // Create clickable gem circle
-    const gemCircle = this.add.circle(x, y, 30, this.GEM_COLORS[gem.color]);
+    // Create clickable gem circle - bombs get neutral gray color
+    const gemColor = gem.special === 'bomb' ? 0x808080 : this.GEM_COLORS[gem.color];
+    const gemCircle = this.add.circle(x, y, 30, gemColor);
     gemCircle.setStrokeStyle(3, 0xffffff, 0.5);
     gemCircle.setInteractive({ useHandCursor: true });
     gemCircle.setData('row', row);
