@@ -1,26 +1,30 @@
 # Where We Are - Project Status
 
-**Last Updated:** 2025-11-13
-**Session:** Complete E2E Testing Implementation + Vertical Match Testing
+**Last Updated:** 2025-11-15
+**Session:** Core Match-3 Game Complete (Clearing, Gravity, Refill, Cascades)
 
 ---
 
-## 🎯 Current State: FULLY FUNCTIONAL
+## 🎯 Current State: CORE GAME COMPLETE ✨
 
 ### What's Working ✅
 
-1. **Complete Test Coverage (33/33 tests passing)**
-   - 26 unit tests (Jest) - ~0.7s
-   - 7 E2E tests (Playwright) - ~12s
-   - Total execution time: < 20 seconds
+1. **Complete Test Coverage (54/54 tests passing)**
+   - 45 unit tests (Jest) - ~0.9s
+   - 9 E2E tests (Playwright) - ~23s
+   - Total execution time: < 30 seconds
 
-2. **Core Game Features**
+2. **Complete Match-3 Mechanics**
    - 4×3 board with 6 gem types (red, blue, green, yellow, purple, orange)
    - Click-to-swap gem mechanics
    - Match detection (horizontal and vertical, 3+ gems)
    - Swap validation with auto-revert for invalid swaps
+   - **Gem clearing with fade-out animations**
+   - **Gravity system with bounce animations**
+   - **Smart refill (prevents immediate matches)**
+   - **Cascade matching (up to 10 levels)**
    - Visual feedback (selection highlight, hover effects)
-   - Real-time status updates
+   - Real-time status updates with emoji indicators
 
 3. **Hybrid DOM + Canvas Architecture**
    - Phaser canvas renders game board
@@ -136,9 +140,9 @@ Test Scenario 2 - Vertical Match:
 
 ## 📊 Test Coverage
 
-### Unit Tests (26 tests - src/game/__tests__/Board.test.ts)
+### Unit Tests (45 tests - src/game/__tests__/Board.test.ts)
 
-**Phase 1: Board Creation & Match Detection**
+**Phase 1: Board Creation & Match Detection (17 tests)**
 - ✅ Board creation with correct dimensions (4×3, 5×6, 7×2, 2×8, 6×3)
 - ✅ Board initialization with predefined config
 - ✅ Horizontal match detection (3+ consecutive gems)
@@ -146,13 +150,38 @@ Test Scenario 2 - Vertical Match:
 - ✅ Multiple matches on same board
 - ✅ Dimension-agnostic testing
 
-**Phase 2: Swap Mechanics**
+**Phase 2: Swap Mechanics (9 tests)**
 - ✅ Adjacent gems can swap (horizontal and vertical)
 - ✅ Non-adjacent gems cannot swap
 - ✅ Swaps creating matches are valid
 - ✅ Swaps NOT creating matches auto-revert
 
-### E2E Tests (7 tests - e2e/game-interaction.spec.ts)
+**Phase 3: Gem Clearing (6 tests)**
+- ✅ Clear horizontal matches (set to null)
+- ✅ Clear vertical matches (set to null)
+- ✅ Clear multiple matches simultaneously
+- ✅ Clear longer matches (4+ gems)
+- ✅ Handle empty matches array
+- ✅ Preserve non-matched gems
+
+**Phase 4: Gravity and Falling Gems (6 tests)**
+- ✅ Gems fall down to fill empty spaces
+- ✅ Handle multiple empty spaces in a column
+- ✅ No movement if no empty spaces below
+- ✅ Handle all gems cleared in a column
+- ✅ Return move information for animations
+- ✅ Work on different board dimensions
+
+**Phase 5: Refill Empty Spaces (7 tests)**
+- ✅ Refill empty spaces at top of columns
+- ✅ Refill multiple empty rows
+- ✅ Prevent immediate horizontal matches
+- ✅ Prevent immediate vertical matches
+- ✅ Only refill null spaces
+- ✅ Return refill information for animations
+- ✅ Work on different board dimensions
+
+### E2E Tests (9 tests - e2e/game-interaction.spec.ts)
 
 - ✅ Display game board with all gems
 - ✅ Click gem to select it
@@ -161,62 +190,75 @@ Test Scenario 2 - Vertical Match:
 - ✅ Reject non-adjacent swap
 - ✅ Allow deselecting by clicking same gem
 - ✅ Full game flow: select → swap → verify match
+- ✅ Clear matched gems after valid swap (with animations)
+- ✅ Apply gravity after clearing gems
 
 ---
 
-## 🔄 Recent Changes (Last 3 Commits)
+## 🔄 Recent Changes (Last 5 Commits)
 
-### Commit 3: `docs: add Claude.md with guidelines to prevent instruction errors`
-- Created guidelines to prevent documentation errors
-- Added verification checklist for state-changing operations
-- Documented incident log and prevention measures
+### Commit 5: `fix: add status message emojis for E2E test compatibility`
+- Added ✓ and ✗ emoji symbols to swap status messages
+- Fixed 6 failing E2E tests
+- All 54 tests now passing (45 unit + 9 E2E)
 
-### Commit 2: `feat: add vertical match test scenario and correct documentation`
-- Updated board to support both horizontal AND vertical match testing
-- Corrected documentation with accurate steps
-- Added clear code comments for both scenarios
+### Commit 4: `feat: implement cascade matching for chain reactions`
+- Recursive cascade logic (up to 10 levels)
+- Checks for new matches after refill
+- Status updates showing cascade level
+- Complete game loop: swap → clear → gravity → refill → cascade
 
-### Commit 1: `feat: complete E2E testing with hybrid DOM + Canvas architecture`
-- Solved Phaser canvas testing problem with hybrid architecture
-- All 7 E2E tests now passing (was 0/7)
-- Added DOM elements for testability: title, instructions, status
-- Updated documentation to reflect complete implementation
+### Commit 3: `feat: implement board refill with match prevention`
+- Smart refill using `getSafeGemTypes()` logic
+- Prevents immediate horizontal and vertical matches
+- Added 7 unit tests (Phase 5)
+- Returns refill information for animations
+
+### Commit 2: `feat: implement gravity and falling gems with animations`
+- Column-based gravity algorithm
+- Bounce animations for falling gems
+- Added 6 unit tests (Phase 4)
+- Returns move information for animations
+
+### Commit 1: `feat: implement gem clearing with animations`
+- Fade-out animations for matched gems
+- Board state updates (set to null)
+- Added 6 unit tests (Phase 3)
+- Added E2E test for clearing
 
 ---
 
 ## 🎯 What's Next
 
+### Completed Features ✅
+
+1. ✅ **Gem Clearing After Matches** - Board.clearMatches() with fade animations
+2. ✅ **Gravity/Falling Gems** - Board.applyGravity() with bounce animations
+3. ✅ **Refill Empty Spaces** - Board.refillBoard() with smart match prevention
+4. ✅ **Cascade Matching** - Recursive cascade loop (up to 10 levels)
+
 ### Immediate Next Steps (in priority order)
 
-1. **Gem Clearing After Matches**
-   - Remove matched gems from board
-   - Update Board class with `clearMatches()` method
-   - Add visual animations for gem removal
-   - Write tests first (TDD)
-
-2. **Gravity/Falling Gems**
-   - Gems above cleared spaces fall down
-   - Implement `applyGravity()` method
-   - Animate falling gems
-   - Test with various board configurations
-
-3. **Refill Empty Spaces**
-   - Generate new random gems to fill top row
-   - Ensure new gems don't create immediate matches
-   - `refillBoard()` method with validation
-   - Test edge cases (all gems cleared, etc.)
-
-4. **Cascade Matching**
-   - After gravity + refill, check for new matches
-   - Repeat clear → gravity → refill until no matches
-   - Track cascade multiplier for scoring
-   - Complex but important for game feel
-
-5. **Scoring System**
+1. **Scoring System** 🎯 NEXT
+   - Add score tracking to Board class
    - Points for matches (base: 100 per gem)
    - Cascade multipliers (2x, 3x, 4x, etc.)
    - Larger matches worth more (4-match, 5-match bonuses)
    - Display score in DOM element
+   - Add unit tests for score calculation
+   - Add E2E test to verify score updates
+
+2. **Move Counter & Game Over**
+   - Track number of moves remaining
+   - Game ends when no moves left
+   - Display moves in DOM
+   - "Game Over" overlay with final score
+
+3. **Level Objectives**
+   - Target score to complete level
+   - Progress bar showing objective completion
+   - Win/lose conditions
+   - Level transition animations
 
 ### Future Enhancements (spec.md)
 
@@ -230,11 +272,14 @@ Test Scenario 2 - Vertical Match:
 
 ## 🏆 Key Achievements So Far
 
-- ✅ Complete TDD workflow established
-- ✅ 100% test coverage (unit + E2E)
+- ✅ Complete TDD workflow established (45 unit tests, 9 E2E tests)
+- ✅ Full match-3 game loop (swap → match → clear → gravity → refill → cascade)
 - ✅ Hybrid DOM + Canvas architecture (testable + visual)
 - ✅ Dimension-agnostic board logic (works on any size)
-- ✅ Fast test execution (< 20 seconds total)
+- ✅ Smart refill algorithm (prevents immediate matches)
+- ✅ Cascade system with 10-level depth limit
+- ✅ Beautiful animations (fade-out, bounce, tweens)
+- ✅ Fast test execution (< 30 seconds total)
 - ✅ Fully playable interactive game
 - ✅ Automated screenshot testing
 - ✅ Comprehensive documentation
@@ -279,18 +324,19 @@ None currently! All tests passing, game fully functional.
 
 ## 💡 Tips for Next Session
 
-1. **Start by running tests:** `npm run test:all` - verify everything works
+1. **Start by running tests:** `npm run test:all` - verify everything works (54/54 should pass)
 2. **Check git status:** Make sure you're on `master` and up to date
 3. **Review docs/spec.md:** Refresh on the overall game vision
-4. **Pick next feature:** Likely "Gem Clearing After Matches" (see What's Next)
+4. **Pick next feature:** Scoring System (see What's Next)
 5. **Write tests first:** Follow TDD approach established in this project
 6. **Reference Claude.md:** Guidelines to maintain accuracy
+7. **Test the game:** `npm run dev` and try creating cascades!
 
 ---
 
 **Ready to continue building!** 🚀
 
-All tests passing ✅
-Game fully functional ✅
-Documentation complete ✅
-Ready for next feature ✅
+All 54 tests passing ✅
+Core match-3 mechanics complete ✅
+Documentation updated ✅
+Ready for scoring system ✅
