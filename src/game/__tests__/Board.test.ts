@@ -620,4 +620,162 @@ describe('Board', () => {
       });
     });
   });
+
+  describe('Phase 4: Gravity and Falling Gems', () => {
+    describe('Test 10: Apply gravity to make gems fall', () => {
+      it('should make gems fall down to fill empty spaces', () => {
+        const board = new Board(4, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green'],
+          [null, null, null],      // Empty row (cleared matches)
+          ['purple', 'orange', 'yellow'],
+          ['blue', 'red', 'purple']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Apply gravity
+        const moves = board.applyGravity();
+
+        // Verify gems fell down to fill the empty row
+        expect(board.getGemAt(0, 0)).toBeNull();  // Top row now empty
+        expect(board.getGemAt(1, 0)).toBe('red');  // Red fell from row 0 to row 1
+        expect(board.getGemAt(2, 0)).toBe('purple');
+        expect(board.getGemAt(3, 0)).toBe('blue');
+
+        // Verify moves were returned
+        expect(moves.length).toBeGreaterThan(0);
+      });
+
+      it('should handle multiple empty spaces in a column', () => {
+        const board = new Board(4, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green'],
+          [null, 'orange', null],
+          [null, null, 'yellow'],
+          ['purple', 'red', null]
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Apply gravity
+        board.applyGravity();
+
+        // Column 0: red and purple should fall
+        expect(board.getGemAt(0, 0)).toBeNull();
+        expect(board.getGemAt(1, 0)).toBeNull();
+        expect(board.getGemAt(2, 0)).toBe('red');
+        expect(board.getGemAt(3, 0)).toBe('purple');
+
+        // Column 1: blue, orange, red should fall
+        expect(board.getGemAt(0, 1)).toBeNull();
+        expect(board.getGemAt(1, 1)).toBe('blue');
+        expect(board.getGemAt(2, 1)).toBe('orange');
+        expect(board.getGemAt(3, 1)).toBe('red');
+
+        // Column 2: green, yellow should fall
+        expect(board.getGemAt(0, 2)).toBeNull();
+        expect(board.getGemAt(1, 2)).toBeNull();
+        expect(board.getGemAt(2, 2)).toBe('green');
+        expect(board.getGemAt(3, 2)).toBe('yellow');
+      });
+
+      it('should not move gems if no empty spaces below', () => {
+        const board = new Board(4, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green'],
+          ['purple', 'orange', 'yellow'],
+          ['blue', 'red', 'purple'],
+          ['green', 'yellow', 'orange']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Apply gravity (should not change anything)
+        const moves = board.applyGravity();
+
+        // Board should remain unchanged
+        expect(board.getGemAt(0, 0)).toBe('red');
+        expect(board.getGemAt(1, 0)).toBe('purple');
+        expect(board.getGemAt(2, 0)).toBe('blue');
+        expect(board.getGemAt(3, 0)).toBe('green');
+
+        // No moves should be returned
+        expect(moves.length).toBe(0);
+      });
+
+      it('should handle all gems cleared in a column', () => {
+        const board = new Board(4, 3);
+        const testConfig: (GemType | null)[][] = [
+          [null, 'blue', 'green'],
+          [null, 'orange', 'yellow'],
+          [null, 'red', 'purple'],
+          [null, 'yellow', 'orange']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Apply gravity
+        board.applyGravity();
+
+        // Column 0 should remain all null
+        expect(board.getGemAt(0, 0)).toBeNull();
+        expect(board.getGemAt(1, 0)).toBeNull();
+        expect(board.getGemAt(2, 0)).toBeNull();
+        expect(board.getGemAt(3, 0)).toBeNull();
+
+        // Other columns should be unchanged (already full)
+        expect(board.getGemAt(0, 1)).toBe('blue');
+        expect(board.getGemAt(3, 1)).toBe('yellow');
+      });
+
+      it('should return move information for animations', () => {
+        const board = new Board(4, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', null, null],
+          [null, null, null],
+          [null, null, null],
+          [null, null, null]
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Apply gravity
+        const moves = board.applyGravity();
+
+        // Should have one move: red from (0,0) to (3,0)
+        expect(moves.length).toBe(1);
+        expect(moves[0].from.row).toBe(0);
+        expect(moves[0].from.col).toBe(0);
+        expect(moves[0].to.row).toBe(3);
+        expect(moves[0].to.col).toBe(0);
+        expect(moves[0].gemType).toBe('red');
+      });
+
+      it('should work on different board dimensions', () => {
+        const board = new Board(5, 4);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green', 'yellow'],
+          [null, null, null, null],
+          [null, null, null, null],
+          ['purple', 'orange', 'red', 'blue'],
+          ['green', 'yellow', 'purple', 'orange']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Apply gravity
+        board.applyGravity();
+
+        // Top 2 rows should be empty
+        expect(board.getGemAt(0, 0)).toBeNull();
+        expect(board.getGemAt(1, 0)).toBeNull();
+
+        // Gems should have fallen
+        expect(board.getGemAt(2, 0)).toBe('red');
+        expect(board.getGemAt(3, 0)).toBe('purple');
+        expect(board.getGemAt(4, 0)).toBe('green');
+      });
+    });
+  });
 });

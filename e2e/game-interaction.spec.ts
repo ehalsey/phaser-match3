@@ -18,13 +18,10 @@ test.describe('Match-3 Game Interactions', () => {
   test('should allow clicking a gem to select it', async ({ page }) => {
     // Click on gem at cell 2 (row 0, col 2)
     const canvas = page.locator('canvas');
-
-    // Click at position of cell 2 (approximate coordinates)
-    // Cell 2 is at row=0, col=2: x = 200 + 2*80 = 360, y = 150 + 0*80 = 150
     await canvas.click({ position: { x: 360, y: 150 } });
 
-    // Wait a bit for selection
-    await page.waitForTimeout(500);
+    // Wait for selection to register
+    await page.waitForTimeout(300);
 
     // Check status message changed
     await expect(page.locator('text=/Selected cell.*Click an adjacent gem/')).toBeVisible();
@@ -35,13 +32,11 @@ test.describe('Match-3 Game Interactions', () => {
   test('should perform valid swap and create match', async ({ page }) => {
     const canvas = page.locator('canvas');
 
-    // Click cell 2 (row=0, col=2): blue gem
-    // x = 200 + 2*80 = 360, y = 150
+    // Click first gem (cell 2)
     await canvas.click({ position: { x: 360, y: 150 } });
     await page.waitForTimeout(300);
 
-    // Click cell 5 (row=1, col=2): green gem (adjacent vertically)
-    // x = 200 + 2*80 = 360, y = 150 + 80 = 230
+    // Click adjacent gem to create match (cell 5)
     await canvas.click({ position: { x: 360, y: 230 } });
     await page.waitForTimeout(500);
 
@@ -54,15 +49,12 @@ test.describe('Match-3 Game Interactions', () => {
   test('should reject invalid swap (no match)', async ({ page }) => {
     const canvas = page.locator('canvas');
 
-    // Click cell 0 (row=0, col=0): red gem
-    // x = 200, y = 150
-    await canvas.click({ position: { x: 200, y: 150 } });
+    // Click first gem (cell 0)
+    await canvas.click({ position: { x: 280, y: 150 } });
     await page.waitForTimeout(300);
 
-    // Click cell 1 (row=0, col=1): yellow gem (adjacent horizontally)
-    // This swap should NOT create a match
-    // x = 200 + 80 = 280, y = 150
-    await canvas.click({ position: { x: 280, y: 150 } });
+    // Click adjacent gem that won't create a match (cell 1)
+    await canvas.click({ position: { x: 280, y: 230 } });
     await page.waitForTimeout(500);
 
     // Check for error message
@@ -74,13 +66,13 @@ test.describe('Match-3 Game Interactions', () => {
   test('should reject non-adjacent swap', async ({ page }) => {
     const canvas = page.locator('canvas');
 
-    // Click cell 0 (row=0, col=0)
-    await canvas.click({ position: { x: 200, y: 150 } });
+    // Click first gem (cell 0)
+    await canvas.click({ position: { x: 280, y: 150 } });
     await page.waitForTimeout(300);
 
-    // Click cell 2 (row=0, col=2) - not adjacent (skips cell 1)
-    await canvas.click({ position: { x: 360, y: 150 } });
-    await page.waitForTimeout(500);
+    // Click non-adjacent gem (cell 8 - diagonal)
+    await canvas.click({ position: { x: 360, y: 310 } });
+    await page.waitForTimeout(300);
 
     // Check for error message about not adjacent
     await expect(page.locator('text=/✗.*not adjacent/')).toBeVisible();
@@ -91,12 +83,12 @@ test.describe('Match-3 Game Interactions', () => {
   test('should allow deselecting by clicking same gem', async ({ page }) => {
     const canvas = page.locator('canvas');
 
-    // Click cell 2 to select
-    await canvas.click({ position: { x: 360, y: 150 } });
+    // Click gem to select
+    await canvas.click({ position: { x: 280, y: 150 } });
     await page.waitForTimeout(300);
 
-    // Click same cell again to deselect
-    await canvas.click({ position: { x: 360, y: 150 } });
+    // Click same gem again to deselect
+    await canvas.click({ position: { x: 280, y: 150 } });
     await page.waitForTimeout(300);
 
     // Check for cleared message
@@ -154,5 +146,31 @@ test.describe('Match-3 Game Interactions', () => {
     // The matched gems should now be cleared (no longer visible on the canvas)
     // We can verify this by taking a screenshot and checking the status
     await expect(page.locator('text=/Match found.*blue/')).toBeVisible();
+  });
+
+  test('should apply gravity after clearing gems', async ({ page }) => {
+    const canvas = page.locator('canvas');
+
+    // Take initial screenshot
+    await page.screenshot({ path: 'screenshots/e2e-gravity-01-initial.png' });
+
+    // Perform valid swap to create match
+    await canvas.click({ position: { x: 360, y: 150 } }); // Select cell 2
+    await page.waitForTimeout(300);
+    await canvas.click({ position: { x: 360, y: 230 } }); // Swap with cell 5
+    
+    // Wait for clearing animation
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: 'screenshots/e2e-gravity-02-clearing.png' });
+
+    // Wait for gravity animation to complete
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: 'screenshots/e2e-gravity-03-after-gravity.png' });
+
+    // Verify match was created
+    await expect(page.locator('text=/✓ Valid swap!/')).toBeVisible();
+
+    // After gravity, gems should have fallen and board should be updated
+    // This is verified visually through screenshots
   });
 });

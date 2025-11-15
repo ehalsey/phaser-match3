@@ -209,9 +209,42 @@ export class InteractiveGameScene extends Phaser.Scene {
       });
     });
 
-    // After animation completes, clear from board and refresh
+    // After animation completes, clear from board, apply gravity, and animate falling
     this.time.delayedCall(450, () => {
       this.board.clearMatches(matches);
+      
+      // Apply gravity and get gem movements
+      const moves = this.board.applyGravity();
+      
+      if (moves.length > 0) {
+        this.animateGravity(moves);
+      } else {
+        // No gems to fall, just refresh
+        this.refreshBoard();
+      }
+    });
+  }
+
+  private animateGravity(moves: any[]): void {
+    // Animate gems falling to their new positions
+    moves.forEach(move => {
+      const key = `${move.from.row},${move.from.col}`;
+      const sprite = this.gemSprites.get(key);
+      
+      if (sprite) {
+        const newY = this.BOARD_OFFSET_Y + move.to.row * this.CELL_SIZE;
+        
+        this.tweens.add({
+          targets: [sprite.circle, sprite.text],
+          y: newY,
+          duration: 300,
+          ease: 'Bounce.easeOut'
+        });
+      }
+    });
+
+    // After falling animation, refresh the board
+    this.time.delayedCall(350, () => {
       this.refreshBoard();
     });
   }
