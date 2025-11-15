@@ -11,6 +11,7 @@ export interface MetaProgressionState {
   lives: number;
   coins: number;
   lastLifeRegenTime: number; // Timestamp in milliseconds
+  currentLevel: number;
 }
 
 export class MetaProgressionManager {
@@ -27,12 +28,14 @@ export class MetaProgressionManager {
   private lives: number;
   private coins: number;
   private lastLifeRegenTime: number;
+  private currentLevel: number;
 
   // Singleton pattern
   private constructor() {
     this.lives = this.MAX_LIVES;
     this.coins = 0;
     this.lastLifeRegenTime = Date.now();
+    this.currentLevel = 1;
     this.loadFromStorage();
   }
 
@@ -206,6 +209,31 @@ export class MetaProgressionManager {
     return coinsEarned;
   }
 
+  // === Level Progression ===
+
+  /**
+   * Get current level number
+   */
+  public getCurrentLevel(): number {
+    return this.currentLevel;
+  }
+
+  /**
+   * Advance to next level
+   */
+  public advanceToNextLevel(): void {
+    this.currentLevel++;
+    this.saveToStorage();
+  }
+
+  /**
+   * Set current level (for testing or level selection)
+   */
+  public setCurrentLevel(level: number): void {
+    this.currentLevel = Math.max(1, level);
+    this.saveToStorage();
+  }
+
   // === Persistence ===
 
   /**
@@ -215,7 +243,8 @@ export class MetaProgressionManager {
     const state: MetaProgressionState = {
       lives: this.lives,
       coins: this.coins,
-      lastLifeRegenTime: this.lastLifeRegenTime
+      lastLifeRegenTime: this.lastLifeRegenTime,
+      currentLevel: this.currentLevel
     };
 
     try {
@@ -236,6 +265,7 @@ export class MetaProgressionManager {
         this.lives = state.lives;
         this.coins = state.coins;
         this.lastLifeRegenTime = state.lastLifeRegenTime;
+        this.currentLevel = state.currentLevel || 1; // Default to 1 if not present
 
         // Update lives based on time elapsed
         this.updateLivesFromRegen();
@@ -252,6 +282,7 @@ export class MetaProgressionManager {
     this.lives = this.MAX_LIVES;
     this.coins = 0;
     this.lastLifeRegenTime = Date.now();
+    this.currentLevel = 1;
     this.saveToStorage();
   }
 

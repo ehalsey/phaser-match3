@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { MainMenuScene } from './scenes/MainMenuScene';
+import { LevelJourneyScene } from './scenes/LevelJourneyScene';
 import { LevelScene } from './scenes/LevelScene';
 import { EndLevelScene } from './scenes/EndLevelScene';
 import { ShopScene } from './scenes/ShopScene';
@@ -28,7 +29,7 @@ const config: Phaser.Types.Core.GameConfig = {
   height: canvasHeight,
   parent: 'game-container',
   backgroundColor: '#2c3e50',
-  scene: skipMenu ? [LevelScene, EndLevelScene, ShopScene] : [MainMenuScene, LevelScene, EndLevelScene, ShopScene]
+  scene: skipMenu ? [LevelScene, EndLevelScene, ShopScene] : [MainMenuScene, LevelJourneyScene, LevelScene, EndLevelScene, ShopScene]
 };
 
 console.log(`[Game] Canvas size: ${canvasWidth}×${canvasHeight} for ${boardConfig.rows}×${boardConfig.cols} board`);

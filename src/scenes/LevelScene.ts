@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import { Board, GemType, Position } from '../game/Board';
 import { BoardConfig } from '../game/BoardConfig';
-import { MetaProgressionManager } from '../game/MetaProgressionManager';
+import { LevelObjectives } from '../game/LevelObjectives';
+import { LevelSettings } from '../game/LevelConfig';
 
 interface GemSprite {
   circle: any; // Phaser.GameObjects.Circle type not exported correctly
@@ -16,7 +17,10 @@ export class LevelScene extends Phaser.Scene {
   private selectedGem: Position | null = null;
   private selectionIndicator: Phaser.GameObjects.Rectangle | null = null;
   private score: number = 0;
-  private metaManager!: MetaProgressionManager;
+  private objectives!: LevelObjectives;
+  private objectivesEnabled: boolean = true;
+  private levelNumber: number = 1;
+  private levelSettings!: LevelSettings;
 
   private readonly CELL_SIZE = 80;
   private readonly BOARD_OFFSET_X = 50;  // Match main.ts
@@ -36,15 +40,39 @@ export class LevelScene extends Phaser.Scene {
     super({ key: 'LevelScene' });
   }
 
-  create(): void {
-    // Get meta progression manager and consume a life (only if not skipping menu)
-    const urlParams = new URLSearchParams(window.location.search);
-    const skipMenu = urlParams.get('skipMenu') === 'true';
+  init(data: { levelNumber?: number, levelSettings?: LevelSettings }): void {
+    this.levelNumber = data.levelNumber || 1;
+    this.levelSettings = data.levelSettings || {
+      levelNumber: 1,
+      difficulty: 'medium' as any,
+      moves: 20,
+      targetScore: 5000,
+      boardRows: 8,
+      boardCols: 8,
+      colorCount: 5
+    };
 
-    this.metaManager = MetaProgressionManager.getInstance();
-    if (!skipMenu) {
-      this.metaManager.consumeLife();
-    }
+    // Reset score for new level
+    this.score = 0;
+  }
+
+  create(): void {
+    // Get URL params for test configuration
+    const urlParams = new URLSearchParams(window.location.search);
+    const skipObjectives = urlParams.get('skipObjectives') === 'true';
+
+    this.objectivesEnabled = !skipObjectives;
+
+    // Note: Lives are now consumed on level FAILURE, not at start
+
+    // Set up keyboard input for showing cell IDs
+    this.input.keyboard?.on('keydown-SHIFT', () => {
+      this.showAllCellIds(true);
+    });
+
+    this.input.keyboard?.on('keyup-SHIFT', () => {
+      this.showAllCellIds(false);
+    });
 
     // Get board configuration from URL params or use default
     const config = BoardConfig.fromURL();
@@ -81,8 +109,20 @@ export class LevelScene extends Phaser.Scene {
     // Setup console API for runtime configuration
     BoardConfig.setupConsoleAPI();
 
+    // Initialize level objectives only if enabled (use level settings)
+    if (this.objectivesEnabled) {
+      this.objectives = new LevelObjectives(
+        this.levelSettings.moves,
+        this.levelSettings.targetScore
+      );
+      this.updateObjectivesDisplay();
+    }
+
     // Draw the board
     this.drawBoard();
+
+    // Initialize score display
+    this.updateScore();
 
     // Log helpful info
     console.log(`[Game] Board initialized: ${config.rows}x${config.cols}`);
@@ -180,12 +220,13 @@ export class LevelScene extends Phaser.Scene {
     (gemCircle as any).setDataEnabled();
     gemCircle.setName(`gem-${cellId}`);
 
-    // Add cell ID text
+    // Add cell ID text (hidden by default)
     const text = this.add.text(x, y, cellId.toString(), {
       fontSize: '24px',
       color: '#ffffff',
       fontStyle: 'bold'
     }).setOrigin(0.5);
+    text.setVisible(false); // Hide by default
 
     // Click handler
     gemCircle.on('pointerdown', () => this.onGemClick(row, col));
@@ -229,8 +270,18 @@ export class LevelScene extends Phaser.Scene {
       const result = this.board.swap(pos1, pos2);
 
       if (result.valid) {
+        // Decrement moves only on valid swaps (if objectives enabled)
+        if (this.objectivesEnabled) {
+          this.objectives.makeMove();
+          this.updateObjectivesDisplay();
+        }
+
         this.updateStatus('✓ Valid swap! Match found: ' + result.matches[0].type + ' x ' + result.matches[0].positions.length);
-        this.animateGemClearing(result.matches, 0);
+
+        // Animate the swap, then clear matches
+        this.animateSwap(pos1, pos2, () => {
+          this.animateGemClearing(result.matches, 0);
+        });
       } else {
         this.updateStatus('✗ Invalid swap! No match created. Try again.');
       }
@@ -384,5 +435,123 @@ export class LevelScene extends Phaser.Scene {
     if (domScore) {
       domScore.textContent = `Score: ${this.score}`;
     }
+
+    // Update objectives with new score (if objectives enabled)
+    if (this.objectivesEnabled) {
+      this.objectives.updateScore(this.score);
+      this.updateObjectivesDisplay();
+
+      // Check if level is complete
+      this.checkLevelCompletion();
+    }
+  }
+
+  private updateObjectivesDisplay(): void {
+    if (!this.objectivesEnabled) return;
+
+    // Update moves counter
+    const movesElement = document.getElementById('game-moves');
+    if (movesElement) {
+      const moves = this.objectives.getMovesRemaining();
+      movesElement.textContent = `Moves: ${moves}`;
+
+      // Change color based on remaining moves
+      if (moves <= 5) {
+        movesElement.style.color = '#e74c3c'; // Red when low
+      } else if (moves <= 10) {
+        movesElement.style.color = '#f39c12'; // Orange when medium
+      } else {
+        movesElement.style.color = '#ecf0f1'; // White when plenty
+      }
+    }
+
+    // Update target display
+    const targetElement = document.getElementById('game-target');
+    if (targetElement) {
+      targetElement.textContent = `Target: ${this.objectives.getTargetScore()}`;
+    }
+
+    // Update progress bar
+    const progress = this.objectives.getProgress();
+    const progressBar = document.getElementById('game-progress-bar');
+    const progressText = document.getElementById('game-progress-text');
+
+    if (progressBar) {
+      progressBar.style.width = `${progress * 100}%`;
+    }
+
+    if (progressText) {
+      progressText.textContent = `${Math.floor(progress * 100)}%`;
+    }
+  }
+
+  private checkLevelCompletion(): void {
+    if (this.objectives.isComplete()) {
+      const status = this.objectives.getStatus();
+
+      // Delay transition to show final score/animation
+      this.time.delayedCall(1000, () => {
+        this.scene.start('EndLevelScene', {
+          score: this.score,
+          status: status,
+          movesRemaining: this.objectives.getMovesRemaining(),
+          targetScore: this.objectives.getTargetScore(),
+          levelNumber: this.levelNumber
+        });
+      });
+    }
+  }
+
+  private showAllCellIds(visible: boolean): void {
+    this.gemSprites.forEach(sprite => {
+      sprite.text.setVisible(visible);
+    });
+  }
+
+  private animateSwap(pos1: Position, pos2: Position, onComplete: () => void): void {
+    const sprite1 = this.gemSprites.get(`${pos1.row},${pos1.col}`);
+    const sprite2 = this.gemSprites.get(`${pos2.row},${pos2.col}`);
+
+    if (!sprite1 || !sprite2) {
+      onComplete();
+      return;
+    }
+
+    // Calculate target positions
+    const x1 = this.BOARD_OFFSET_X + pos1.col * this.CELL_SIZE;
+    const y1 = this.BOARD_OFFSET_Y + pos1.row * this.CELL_SIZE;
+    const x2 = this.BOARD_OFFSET_X + pos2.col * this.CELL_SIZE;
+    const y2 = this.BOARD_OFFSET_Y + pos2.row * this.CELL_SIZE;
+
+    // Animate sprite1 to pos2's location
+    this.tweens.add({
+      targets: [sprite1.circle, sprite1.text],
+      x: x2,
+      y: y2,
+      duration: 200,
+      ease: 'Power2'
+    });
+
+    // Animate sprite2 to pos1's location
+    this.tweens.add({
+      targets: [sprite2.circle, sprite2.text],
+      x: x1,
+      y: y1,
+      duration: 200,
+      ease: 'Power2',
+      onComplete: () => {
+        // Update the sprite map after swap
+        this.gemSprites.set(`${pos1.row},${pos1.col}`, sprite2);
+        this.gemSprites.set(`${pos2.row},${pos2.col}`, sprite1);
+
+        // Update sprite data
+        sprite1.row = pos2.row;
+        sprite1.col = pos2.col;
+        sprite2.row = pos1.row;
+        sprite2.col = pos1.col;
+
+        onComplete();
+      }
+    });
   }
 }

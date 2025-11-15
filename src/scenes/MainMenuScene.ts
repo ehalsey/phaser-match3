@@ -13,6 +13,7 @@ export class MainMenuScene extends Phaser.Scene {
   }
 
   create(): void {
+    console.log('[MainMenuScene] Creating main menu');
     const { width, height } = this.scale;
     const centerX = width / 2;
     const centerY = height / 2;
@@ -65,7 +66,7 @@ export class MainMenuScene extends Phaser.Scene {
     // Start game on click
     startButton.on('pointerdown', () => {
       if (this.metaManager.hasLives()) {
-        this.scene.start('LevelScene');
+        this.scene.start('LevelJourneyScene');
       }
     });
 
