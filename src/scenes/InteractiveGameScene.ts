@@ -17,7 +17,7 @@ export class InteractiveGameScene extends Phaser.Scene {
   private score: number = 0;
 
   private readonly CELL_SIZE = 80;
-  private readonly BOARD_OFFSET_X = 200;
+  private readonly BOARD_OFFSET_X = 50;  // Match main.ts
   private readonly BOARD_OFFSET_Y = 150;
 
   // Color mapping for gems
@@ -371,8 +371,13 @@ export class InteractiveGameScene extends Phaser.Scene {
   }
 
   private drawLegend(): void {
-    const legendX = 520;
-    const legendY = 180;
+    // Position legend to the right of the board dynamically
+    const rows = this.board.getRows();
+    const cols = this.board.getCols();
+    const boardWidth = cols * this.CELL_SIZE;
+
+    const legendX = this.BOARD_OFFSET_X + boardWidth + 50;  // 50px margin from board
+    const legendY = this.BOARD_OFFSET_Y;
 
     // Legend title
     this.add.text(legendX, legendY - 30, 'Gem Types:', {
