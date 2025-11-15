@@ -22,6 +22,11 @@ export interface GemMove {
   gemType: GemType;
 }
 
+export interface GemRefill {
+  position: Position;
+  gemType: GemType;
+}
+
 export class Board {
   private grid: (GemType | null)[][];
   private rows: number;
@@ -218,6 +223,84 @@ export class Board {
     }
 
     return moves;
+  }
+
+  refillBoard(): GemRefill[] {
+    const refills: GemRefill[] = [];
+    const allGemTypes: GemType[] = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
+
+    for (let row = 0; row < this.rows; row++) {
+      for (let col = 0; col < this.cols; col++) {
+        if (this.grid[row][col] === null) {
+          const safeGemTypes = this.getSafeGemTypes(row, col, allGemTypes);
+          const gemType = safeGemTypes[Math.floor(Math.random() * safeGemTypes.length)];
+          
+          this.grid[row][col] = gemType;
+          
+          refills.push({
+            position: { row, col },
+            gemType
+          });
+        }
+      }
+    }
+
+    return refills;
+  }
+
+  private getSafeGemTypes(row: number, col: number, allTypes: GemType[]): GemType[] {
+    const unsafeTypes = new Set<GemType>();
+
+    if (col >= 2) {
+      const left1 = this.grid[row][col - 1];
+      const left2 = this.grid[row][col - 2];
+      if (left1 !== null && left1 === left2) {
+        unsafeTypes.add(left1);
+      }
+    }
+
+    if (col < this.cols - 2) {
+      const right1 = this.grid[row][col + 1];
+      const right2 = this.grid[row][col + 2];
+      if (right1 !== null && right1 === right2) {
+        unsafeTypes.add(right1);
+      }
+    }
+
+    if (col >= 1 && col < this.cols - 1) {
+      const left1 = this.grid[row][col - 1];
+      const right1 = this.grid[row][col + 1];
+      if (left1 !== null && left1 === right1) {
+        unsafeTypes.add(left1);
+      }
+    }
+
+    if (row >= 2) {
+      const above1 = this.grid[row - 1][col];
+      const above2 = this.grid[row - 2][col];
+      if (above1 !== null && above1 === above2) {
+        unsafeTypes.add(above1);
+      }
+    }
+
+    if (row < this.rows - 2) {
+      const below1 = this.grid[row + 1][col];
+      const below2 = this.grid[row + 2][col];
+      if (below1 !== null && below1 === below2) {
+        unsafeTypes.add(below1);
+      }
+    }
+
+    if (row >= 1 && row < this.rows - 1) {
+      const above1 = this.grid[row - 1][col];
+      const below1 = this.grid[row + 1][col];
+      if (above1 !== null && above1 === below1) {
+        unsafeTypes.add(above1);
+      }
+    }
+
+    const safeTypes = allTypes.filter(type => !unsafeTypes.has(type));
+    return safeTypes.length > 0 ? safeTypes : allTypes;
   }
 
   private validatePosition(pos: Position): void {

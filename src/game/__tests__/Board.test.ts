@@ -778,4 +778,182 @@ describe('Board', () => {
       });
     });
   });
+
+  describe('Phase 5: Refill Empty Spaces', () => {
+    describe('Test 11: Refill empty spaces with new gems', () => {
+      it('should refill empty spaces at top of columns', () => {
+        const board = new Board(4, 3);
+        const testConfig: (GemType | null)[][] = [
+          [null, null, null],      // Top row empty
+          ['red', 'blue', 'green'],
+          ['purple', 'orange', 'yellow'],
+          ['blue', 'red', 'purple']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Refill the board
+        const refills = board.refillBoard();
+
+        // Top row should now have gems
+        expect(board.getGemAt(0, 0)).not.toBeNull();
+        expect(board.getGemAt(0, 1)).not.toBeNull();
+        expect(board.getGemAt(0, 2)).not.toBeNull();
+
+        // Should return 3 refill operations
+        expect(refills.length).toBe(3);
+      });
+
+      it('should refill multiple empty rows', () => {
+        const board = new Board(4, 3);
+        const testConfig: (GemType | null)[][] = [
+          [null, null, null],
+          [null, null, null],
+          ['red', 'blue', 'green'],
+          ['purple', 'orange', 'yellow']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Refill the board
+        const refills = board.refillBoard();
+
+        // All empty spaces should be filled
+        expect(board.getGemAt(0, 0)).not.toBeNull();
+        expect(board.getGemAt(0, 1)).not.toBeNull();
+        expect(board.getGemAt(0, 2)).not.toBeNull();
+        expect(board.getGemAt(1, 0)).not.toBeNull();
+        expect(board.getGemAt(1, 1)).not.toBeNull();
+        expect(board.getGemAt(1, 2)).not.toBeNull();
+
+        // Should return 6 refill operations
+        expect(refills.length).toBe(6);
+      });
+
+      it('should not create immediate horizontal matches', () => {
+        const board = new Board(4, 3);
+        const testConfig: (GemType | null)[][] = [
+          [null, null, null],
+          ['red', 'red', 'green'],  // Two reds in a row
+          ['purple', 'orange', 'yellow'],
+          ['blue', 'red', 'purple']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Refill multiple times to test randomness
+        for (let i = 0; i < 10; i++) {
+          board.initializeWithConfig(testConfig);
+          board.refillBoard();
+
+          // Check no immediate matches were created
+          const matches = board.findMatches();
+          expect(matches.length).toBe(0);
+        }
+      });
+
+      it('should not create immediate vertical matches', () => {
+        const board = new Board(4, 3);
+        const testConfig: (GemType | null)[][] = [
+          [null, 'blue', 'green'],
+          [null, 'blue', 'yellow'],  // Two blues vertically
+          ['red', 'orange', 'purple'],
+          ['purple', 'red', 'orange']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Refill multiple times to test randomness
+        for (let i = 0; i < 10; i++) {
+          board.initializeWithConfig(testConfig);
+          board.refillBoard();
+
+          // Check no immediate matches were created
+          const matches = board.findMatches();
+          expect(matches.length).toBe(0);
+        }
+      });
+
+      it('should only refill null spaces', () => {
+        const board = new Board(4, 3);
+        const testConfig: (GemType | null)[][] = [
+          [null, 'blue', null],
+          ['red', null, 'green'],
+          ['purple', 'orange', 'yellow'],
+          ['blue', 'red', 'purple']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Remember existing gems
+        const existingGems = {
+          cell01: board.getGemAt(0, 1),
+          cell10: board.getGemAt(1, 0),
+          cell12: board.getGemAt(1, 2)
+        };
+
+        // Refill
+        const refills = board.refillBoard();
+
+        // Existing gems should not change
+        expect(board.getGemAt(0, 1)).toBe(existingGems.cell01);
+        expect(board.getGemAt(1, 0)).toBe(existingGems.cell10);
+        expect(board.getGemAt(1, 2)).toBe(existingGems.cell12);
+
+        // Only 3 nulls should be refilled
+        expect(refills.length).toBe(3);
+      });
+
+      it('should return refill information for animations', () => {
+        const board = new Board(4, 3);
+        const testConfig: (GemType | null)[][] = [
+          [null, null, 'green'],
+          ['red', 'blue', 'yellow'],
+          ['purple', 'orange', 'blue'],
+          ['blue', 'red', 'purple']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Refill
+        const refills = board.refillBoard();
+
+        // Should return 2 refills
+        expect(refills.length).toBe(2);
+
+        // Each refill should have position and gemType
+        refills.forEach(refill => {
+          expect(refill).toHaveProperty('position');
+          expect(refill).toHaveProperty('gemType');
+          expect(refill.position).toHaveProperty('row');
+          expect(refill.position).toHaveProperty('col');
+        });
+      });
+
+      it('should work on different board dimensions', () => {
+        const board = new Board(5, 4);
+        const testConfig: (GemType | null)[][] = [
+          [null, null, null, null],
+          ['red', 'blue', 'green', 'yellow'],
+          ['purple', 'orange', 'red', 'blue'],
+          ['green', 'yellow', 'purple', 'orange'],
+          ['blue', 'red', 'green', 'yellow']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Refill
+        const refills = board.refillBoard();
+
+        // Should fill 4 empty spaces
+        expect(refills.length).toBe(4);
+
+        // All top row should be filled
+        expect(board.getGemAt(0, 0)).not.toBeNull();
+        expect(board.getGemAt(0, 1)).not.toBeNull();
+        expect(board.getGemAt(0, 2)).not.toBeNull();
+        expect(board.getGemAt(0, 3)).not.toBeNull();
+      });
+    });
+  });
 });

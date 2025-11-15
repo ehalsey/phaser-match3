@@ -223,8 +223,6 @@ export class InteractiveGameScene extends Phaser.Scene {
         this.refreshBoard();
       }
     });
-  }
-
   private animateGravity(moves: any[]): void {
     // Animate gems falling to their new positions
     moves.forEach(move => {
@@ -243,8 +241,12 @@ export class InteractiveGameScene extends Phaser.Scene {
       }
     });
 
-    // After falling animation, refresh the board
+    // After falling animation, refill and refresh
     this.time.delayedCall(350, () => {
+      // Refill empty spaces with new gems
+      this.board.refillBoard();
+      
+      // Refresh to show new gems
       this.refreshBoard();
     });
   }
