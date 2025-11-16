@@ -7,14 +7,18 @@ export class EndLevelScene extends Phaser.Scene {
   private coinsEarned: number = 0;
   private metaManager!: MetaProgressionManager;
   private levelStatus: LevelStatus = LevelStatus.FAILED;
+  private levelNumber: number = 1;
+  private continuationAttempts: number = 0;
 
   constructor() {
     super({ key: 'EndLevelScene' });
   }
 
-  init(data: { score: number, status: LevelStatus, movesRemaining: number, levelNumber: number }): void {
+  init(data: { score: number, status: LevelStatus, movesRemaining: number, levelNumber: number, continuationAttempts?: number }): void {
     this.finalScore = data.score || 0;
     this.levelStatus = data.status || LevelStatus.FAILED;
+    this.levelNumber = data.levelNumber || 1;
+    this.continuationAttempts = data.continuationAttempts || 0;
     this.metaManager = MetaProgressionManager.getInstance();
 
     // Handle level completion
@@ -88,8 +92,8 @@ export class EndLevelScene extends Phaser.Scene {
         color: '#ecf0f1'
       }).setOrigin(0.5);
 
-      // Add Buy Life button for failed levels
-      this.createBuyLifeButton(centerX, centerY + 60);
+      // Add Buy Turns button for failed levels
+      this.createBuyTurnsButton(centerX, centerY + 60);
     }
 
     // Next Level / Try Again button (shifted down if failed)
@@ -156,42 +160,36 @@ export class EndLevelScene extends Phaser.Scene {
     });
   }
 
-  private createBuyLifeButton(x: number, y: number): void {
-    const lifeCost = this.metaManager.getLifeCost();
+  private createBuyTurnsButton(x: number, y: number): void {
+    // Cost increases with each continuation attempt: 10, 20, 30, etc.
+    const turnsCost = 10 * (this.continuationAttempts + 1);
     const currentCoins = this.metaManager.getCoins();
-    const canAfford = currentCoins >= lifeCost;
-    const hasMaxLives = this.metaManager.getLives() >= this.metaManager.getMaxLives();
+    const canAfford = currentCoins >= turnsCost;
 
-    // Buy Life button
+    // Buy Turns button
     const buyButton = this.add.rectangle(x, y, 250, 60, 0x27ae60);
-    const buyText = this.add.text(x, y - 8, 'Buy Life', {
-      fontSize: '24px',
+    const buyText = this.add.text(x, y - 8, 'Buy 5 More Turns', {
+      fontSize: '22px',
       color: '#ffffff',
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
     // Cost display
-    this.add.circle(x - 40, y + 12, 8, 0xf1c40f);
-    const costText = this.add.text(x, y + 10, `-${lifeCost}`, {
+    this.add.circle(x - 50, y + 12, 8, 0xf1c40f);
+    const costText = this.add.text(x - 20, y + 10, `-${turnsCost}`, {
       fontSize: '18px',
       color: '#f1c40f',
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
-    // Disable if can't afford or at max lives
-    if (!canAfford || hasMaxLives) {
+    // Disable if can't afford
+    if (!canAfford) {
       buyButton.setFillStyle(0x7f8c8d);
       buyButton.setAlpha(0.5);
       buyText.setAlpha(0.5);
       costText.setAlpha(0.5);
-
-      if (!canAfford) {
-        buyText.setText('Not enough coins');
-        costText.setVisible(false);
-      } else if (hasMaxLives) {
-        buyText.setText('Max Lives');
-        costText.setVisible(false);
-      }
+      buyText.setText('Not enough coins');
+      costText.setVisible(false);
     } else {
       buyButton.setInteractive({ useHandCursor: true });
 
@@ -210,10 +208,15 @@ export class EndLevelScene extends Phaser.Scene {
       });
 
       buyButton.on('pointerdown', () => {
-        const success = this.metaManager.buyLife();
+        // Deduct coins
+        const success = this.metaManager.spendCoins(turnsCost);
         if (success) {
-          // Refresh the scene to update button states
-          this.scene.restart({ score: this.finalScore, status: this.levelStatus, movesRemaining: 0, levelNumber: 0 });
+          // Restart the level with bonus moves
+          this.scene.start('LevelScene', {
+            levelNumber: this.levelNumber,
+            bonusMoves: 5,
+            continuationAttempts: this.continuationAttempts + 1
+          });
         }
       });
     }

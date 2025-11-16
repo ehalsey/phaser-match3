@@ -20,7 +20,6 @@ export class MetaProgressionManager {
   // Game constants
   private readonly MAX_LIVES = 5;
   private readonly LIFE_REGEN_TIME_MS = 30 * 60 * 1000; // 30 minutes in milliseconds
-  private readonly COINS_PER_LEVEL = 100;
   private readonly LIFE_COST_COINS = 50;
   private readonly STORAGE_KEY = 'match3_meta_progression';
 
@@ -183,21 +182,17 @@ export class MetaProgressionManager {
 
   /**
    * Calculate coins earned from a level based on score
+   * Returns fixed amounts: 20, 40, or 60 coins
    */
   public calculateLevelReward(score: number): number {
-    // Base reward
-    let coins = this.COINS_PER_LEVEL;
-
-    // Bonus for high scores
-    if (score >= 5000) {
-      coins += 100; // +100 for excellent score
-    } else if (score >= 2000) {
-      coins += 50; // +50 for good score
-    } else if (score >= 1000) {
-      coins += 25; // +25 for decent score
+    // Fixed coin rewards based on score tiers
+    if (score >= 3000) {
+      return 60; // Excellent score
+    } else if (score >= 1500) {
+      return 40; // Good score
+    } else {
+      return 20; // Completed
     }
-
-    return coins;
   }
 
   /**

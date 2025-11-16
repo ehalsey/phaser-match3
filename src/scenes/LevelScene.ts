@@ -22,6 +22,8 @@ export class LevelScene extends Phaser.Scene {
   private objectivesEnabled: boolean = true;
   private levelNumber: number = 1;
   private levelSettings!: LevelSettings;
+  private bonusMoves: number = 0;
+  private continuationAttempts: number = 0;
 
   private readonly CELL_SIZE = 80;
   private readonly BOARD_OFFSET_X = 50;  // Match main.ts
@@ -41,8 +43,10 @@ export class LevelScene extends Phaser.Scene {
     super({ key: 'LevelScene' });
   }
 
-  init(data: { levelNumber?: number, levelSettings?: LevelSettings }): void {
+  init(data: { levelNumber?: number, levelSettings?: LevelSettings, bonusMoves?: number, continuationAttempts?: number }): void {
     this.levelNumber = data.levelNumber || 1;
+    this.bonusMoves = data.bonusMoves || 0;
+    this.continuationAttempts = data.continuationAttempts || 0;
     this.levelSettings = data.levelSettings || {
       levelNumber: 1,
       difficulty: 'medium' as any,
@@ -121,7 +125,7 @@ export class LevelScene extends Phaser.Scene {
     // Initialize level objectives only if enabled (use level settings)
     if (this.objectivesEnabled) {
       this.objectives = new LevelObjectives(
-        this.levelSettings.moves,
+        this.levelSettings.moves + this.bonusMoves,
         this.levelSettings.gemGoals
       );
       this.updateObjectivesDisplay();
@@ -144,37 +148,43 @@ export class LevelScene extends Phaser.Scene {
     const domStatus = document.getElementById('game-status');
     if (domStatus) {
       domStatus.setAttribute('data-scene-ready', 'true');
-      domStatus.textContent = 'Click a gem to select it!';
+      domStatus.textContent = '';
     }
   }
 
   private createNavigationButtons(): void {
     const { width } = this.scale;
+    const centerX = width / 2;
 
-    // Back to Map button (top-right)
-    const mapButton = this.add.rectangle(width - 80, 30, 140, 40, 0x3498db);
+    // Small icon buttons positioned below title (centered, side by side)
+    const buttonSize = 35;
+    const buttonSpacing = 50;
+    const buttonY = 30; // Top of canvas, below HTML title
+
+    // Back to Map button (left)
+    const mapButton = this.add.circle(centerX - buttonSpacing / 2, buttonY, buttonSize / 2, 0x3498db);
     mapButton.setStrokeStyle(2, 0x2980b9);
     mapButton.setInteractive({ useHandCursor: true });
-    mapButton.setScrollFactor(0); // Keep button fixed on screen
-    mapButton.setDepth(1000); // Ensure it's on top
+    mapButton.setScrollFactor(0);
+    mapButton.setDepth(1000);
 
-    const mapText = this.add.text(width - 80, 30, '← Map', {
-      fontSize: '18px',
+    const mapText = this.add.text(centerX - buttonSpacing / 2, buttonY, '←', {
+      fontSize: '24px',
       color: '#ffffff',
       fontStyle: 'bold'
     }).setOrigin(0.5);
     mapText.setScrollFactor(0);
     mapText.setDepth(1001);
 
-    // Main Menu button (below map button)
-    const menuButton = this.add.rectangle(width - 80, 80, 140, 40, 0x95a5a6);
+    // Main Menu button (right)
+    const menuButton = this.add.circle(centerX + buttonSpacing / 2, buttonY, buttonSize / 2, 0x95a5a6);
     menuButton.setStrokeStyle(2, 0x7f8c8d);
     menuButton.setInteractive({ useHandCursor: true });
     menuButton.setScrollFactor(0);
     menuButton.setDepth(1000);
 
-    const menuText = this.add.text(width - 80, 80, '⌂ Menu', {
-      fontSize: '18px',
+    const menuText = this.add.text(centerX + buttonSpacing / 2, buttonY, '⌂', {
+      fontSize: '24px',
       color: '#ffffff',
       fontStyle: 'bold'
     }).setOrigin(0.5);
@@ -373,14 +383,14 @@ export class LevelScene extends Phaser.Scene {
     if (this.selectedGem === null) {
       this.selectedGem = clickedPos;
       this.showSelection(row, col);
-      this.updateStatus(`Selected cell ${row},${col}. Click an adjacent gem to swap!`);
+      this.updateStatus('');
       return;
     }
 
     // If clicking the same gem, deselect
     if (this.selectedGem.row === row && this.selectedGem.col === col) {
       this.clearSelection();
-      this.updateStatus('Selection cleared. Click a gem to select it.');
+      this.updateStatus('');
       return;
     }
 
@@ -765,7 +775,8 @@ export class LevelScene extends Phaser.Scene {
           score: this.score,
           status: status,
           movesRemaining: this.objectives.getMovesRemaining(),
-          levelNumber: this.levelNumber
+          levelNumber: this.levelNumber,
+          continuationAttempts: this.continuationAttempts
         });
       });
     }

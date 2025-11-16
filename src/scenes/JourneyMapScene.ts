@@ -176,8 +176,8 @@ export class JourneyMapScene extends Phaser.Scene {
   private createInfoPanel(x: number, y: number, levelSettings: any): Phaser.GameObjects.Container {
     const panel = this.add.container(x, y);
 
-    // Background
-    const bg = this.add.rectangle(0, 0, 200, 100, 0x2c3e50, 0.95);
+    // Background - smaller since we removed moves and goals
+    const bg = this.add.rectangle(0, 0, 180, 70, 0x2c3e50, 0.95);
     bg.setStrokeStyle(2, 0xf1c40f);
     panel.add(bg);
 
@@ -185,39 +185,18 @@ export class JourneyMapScene extends Phaser.Scene {
     const difficulty = levelSettings.difficulty.toUpperCase();
     const difficultyColor = LevelConfig.getDifficultyColor(levelSettings.difficulty);
 
-    const infoText = this.add.text(0, -30, `Level ${levelSettings.levelNumber}`, {
+    const infoText = this.add.text(0, -15, `Level ${levelSettings.levelNumber}`, {
       fontSize: '18px',
       color: '#ffffff',
       fontStyle: 'bold'
     }).setOrigin(0.5);
     panel.add(infoText);
 
-    const diffText = this.add.text(0, -5, difficulty, {
+    const diffText = this.add.text(0, 10, difficulty, {
       fontSize: '16px',
       color: `#${difficultyColor.toString(16).padStart(6, '0')}`
     }).setOrigin(0.5);
     panel.add(diffText);
-
-    const movesText = this.add.text(0, 15, `Moves: ${levelSettings.moves}`, {
-      fontSize: '14px',
-      color: '#ecf0f1'
-    }).setOrigin(0.5);
-    panel.add(movesText);
-
-    // Display gem goals
-    const goalText = levelSettings.gemGoals.map((goal: any) => {
-      const emojiMap: Record<string, string> = {
-        red: '🔴', blue: '🔵', green: '🟢',
-        yellow: '🟡', purple: '🟣', orange: '🟠'
-      };
-      return `${emojiMap[goal.color]} ${goal.target}`;
-    }).join(' ');
-
-    const targetText = this.add.text(0, 32, `Goals: ${goalText}`, {
-      fontSize: '14px',
-      color: '#ecf0f1'
-    }).setOrigin(0.5);
-    panel.add(targetText);
 
     return panel;
   }
