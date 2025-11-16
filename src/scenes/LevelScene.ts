@@ -478,6 +478,9 @@ export class LevelScene extends Phaser.Scene {
         this.objectives.addGemsCleared(color, count);
       }
       this.updateObjectivesDisplay();
+
+      // Check if goals are met after updating
+      this.checkLevelCompletion();
     }
 
     // Animate explosion
@@ -575,6 +578,9 @@ export class LevelScene extends Phaser.Scene {
           this.objectives.addGemsCleared(color, count);
         }
         this.updateObjectivesDisplay();
+
+        // Check if goals are met after updating
+        this.checkLevelCompletion();
       }
 
       this.board.clearMatches(matches);
