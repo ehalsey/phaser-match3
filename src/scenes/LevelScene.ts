@@ -791,7 +791,11 @@ export class LevelScene extends Phaser.Scene {
           });
         } else {
           // On failure, sleep this scene and launch EndLevelScene as overlay
+          console.log('[LevelScene] Level failed - putting scene to sleep');
+          console.log('[LevelScene] Current moves:', this.objectives.getMovesRemaining());
+          console.log('[LevelScene] Continuation attempts:', this.continuationAttempts);
           this.scene.sleep();
+          console.log('[LevelScene] Scene is now sleeping, launching EndLevelScene overlay');
           this.scene.launch('EndLevelScene', {
             score: this.score,
             status: status,
@@ -808,8 +812,12 @@ export class LevelScene extends Phaser.Scene {
    * Called when player buys more turns - adds moves and resumes play
    */
   public addBonusMoves(count: number): void {
+    console.log('[LevelScene] addBonusMoves called with count:', count);
+    console.log('[LevelScene] Moves before:', this.objectives.getMovesRemaining());
     this.objectives.addMoves(count);
+    console.log('[LevelScene] Moves after:', this.objectives.getMovesRemaining());
     this.updateObjectivesDisplay();
+    console.log('[LevelScene] Objectives display updated');
   }
 
   private showAllCellIds(visible: boolean): void {

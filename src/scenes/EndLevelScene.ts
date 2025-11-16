@@ -226,22 +226,38 @@ export class EndLevelScene extends Phaser.Scene {
       });
 
       buyButton.on('pointerdown', () => {
+        console.log('[BuyTurns] Button clicked');
+        console.log('[BuyTurns] Current coins:', this.metaManager.getCoins());
+        console.log('[BuyTurns] Turns cost:', turnsCost);
+
         // Deduct coins
         const success = this.metaManager.spendCoins(turnsCost);
+        console.log('[BuyTurns] Coins deducted:', success);
+
         if (success) {
           // Get the sleeping LevelScene and add bonus moves
           const levelScene = this.scene.get('LevelScene') as any;
+          console.log('[BuyTurns] LevelScene found:', !!levelScene);
+          console.log('[BuyTurns] LevelScene is sleeping:', this.scene.isSleeping('LevelScene'));
+
           if (levelScene && levelScene.addBonusMoves) {
+            console.log('[BuyTurns] Adding 5 bonus moves');
             levelScene.addBonusMoves(5);
             // Increment continuation attempts for next purchase
             levelScene.continuationAttempts = this.continuationAttempts + 1;
+            console.log('[BuyTurns] Continuation attempts now:', levelScene.continuationAttempts);
           }
 
           // Stop this overlay scene first
+          console.log('[BuyTurns] Stopping EndLevelScene');
           this.scene.stop();
 
           // Wake the sleeping LevelScene
+          console.log('[BuyTurns] Waking LevelScene');
           this.scene.wake('LevelScene');
+          console.log('[BuyTurns] Scene wake called');
+        } else {
+          console.log('[BuyTurns] Failed to deduct coins - not enough coins!');
         }
       });
     }
