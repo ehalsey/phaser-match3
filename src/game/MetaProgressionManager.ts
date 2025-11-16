@@ -77,11 +77,17 @@ export class MetaProgressionManager {
    * Returns true if successful, false if no lives available
    */
   public consumeLife(): boolean {
+    console.log('[MetaProgression] consumeLife called');
+    console.log('[MetaProgression] Lives before:', this.lives);
+    console.trace('[MetaProgression] Stack trace:');
+
     if (!this.hasLives()) {
+      console.log('[MetaProgression] No lives available!');
       return false;
     }
 
     this.lives--;
+    console.log('[MetaProgression] Lives after:', this.lives);
     this.lastLifeRegenTime = Date.now();
     this.saveToStorage();
     return true;

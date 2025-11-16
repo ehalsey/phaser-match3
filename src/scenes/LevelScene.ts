@@ -63,6 +63,9 @@ export class LevelScene extends Phaser.Scene {
   }
 
   create(): void {
+    console.log('[LevelScene] create() called');
+    console.log('[LevelScene] Level number:', this.levelNumber);
+
     // Consume a life when starting the level
     const metaManager = MetaProgressionManager.getInstance();
     metaManager.consumeLife();
