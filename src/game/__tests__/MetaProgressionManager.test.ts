@@ -99,29 +99,30 @@ describe('MetaProgressionManager', () => {
   describe('Level Rewards', () => {
     it('should calculate base reward for low score', () => {
       const reward = manager.calculateLevelReward(500);
-      expect(reward).toBe(100); // Base reward
+      expect(reward).toBe(20); // 1 star
     });
 
-    it('should calculate bonus reward for decent score (1000+)', () => {
+    it('should calculate good reward for medium score (1500+)', () => {
       const reward = manager.calculateLevelReward(1500);
-      expect(reward).toBe(125); // Base 100 + 25 bonus
+      expect(reward).toBe(40); // 2 stars
     });
 
-    it('should calculate bonus reward for good score (2000+)', () => {
+    it('should calculate excellent reward for high score (3000+)', () => {
       const reward = manager.calculateLevelReward(3000);
-      expect(reward).toBe(150); // Base 100 + 50 bonus
+      expect(reward).toBe(60); // 3 stars
     });
 
-    it('should calculate bonus reward for excellent score (5000+)', () => {
+    it('should calculate excellent reward for very high score', () => {
       const reward = manager.calculateLevelReward(6000);
-      expect(reward).toBe(200); // Base 100 + 100 bonus
+      expect(reward).toBe(60); // Still 3 stars (max)
     });
 
     it('should reward level completion and add coins', () => {
-      const coinsEarned = manager.rewardLevelCompletion(3000);
+      const coinsEarned = manager.rewardLevelCompletion(3000, 1);
 
-      expect(coinsEarned).toBe(150); // Good score bonus
-      expect(manager.getCoins()).toBe(150);
+      expect(coinsEarned).toBe(60); // 3000 score = 60 coins (3 stars)
+      expect(manager.getCoins()).toBe(60);
+      expect(manager.getLevelStars(1)).toBe(3); // Should store 3 stars
     });
   });
 

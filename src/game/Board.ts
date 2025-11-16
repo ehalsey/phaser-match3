@@ -1,5 +1,10 @@
 export type GemType = 'red' | 'blue' | 'green' | 'yellow' | 'purple' | 'orange';
-export type SpecialGemType = 'bomb' | 'none';
+export type SpecialGemType = 'bomb' | 'vertical-rocket' | 'horizontal-rocket' | 'none';
+
+export interface TriggeredGem {
+  position: Position;
+  specialType: SpecialGemType;
+}
 
 export interface Gem {
   color: GemType;
@@ -20,6 +25,7 @@ export interface Match {
 export interface BombCreation {
   position: Position;
   color: GemType;
+  specialType: SpecialGemType; // Type of power-up to create
 }
 
 export interface SwapResult {
@@ -62,20 +68,79 @@ export class Board {
     this.grid[row][col] = gem;
   }
 
-  // Determine where bombs should be created based on matches
+  // Detect L-shaped matches (where horizontal and vertical match-3s intersect)
+  private detectLShapedMatches(matches: Match[]): BombCreation[] {
+    const lShapedBombs: BombCreation[] = [];
+
+    // Get all match-3 horizontal and vertical matches
+    const horizontalMatches = matches.filter(m => m.direction === 'horizontal' && m.positions.length === 3);
+    const verticalMatches = matches.filter(m => m.direction === 'vertical' && m.positions.length === 3);
+
+    // Check for intersections between horizontal and vertical matches
+    for (const hMatch of horizontalMatches) {
+      for (const vMatch of verticalMatches) {
+        // Check if they're the same color
+        if (hMatch.type !== vMatch.type) continue;
+
+        // Find intersection position
+        for (const hPos of hMatch.positions) {
+          for (const vPos of vMatch.positions) {
+            if (hPos.row === vPos.row && hPos.col === vPos.col) {
+              // Found an L-shaped match! Create bomb at intersection
+              lShapedBombs.push({
+                position: { row: hPos.row, col: hPos.col },
+                color: hMatch.type,
+                specialType: 'bomb'
+              });
+            }
+          }
+        }
+      }
+    }
+
+    return lShapedBombs;
+  }
+
+  // Determine where power-ups should be created based on matches
   private determineBombCreations(matches: Match[]): BombCreation[] {
     const bombsToCreate: BombCreation[] = [];
 
+    // First check for L-shaped matches (higher priority)
+    const lShapedBombs = this.detectLShapedMatches(matches);
+    bombsToCreate.push(...lShapedBombs);
+
+    // Track positions where L-shaped bombs will be created to avoid duplicates
+    const lShapedPositions = new Set(
+      lShapedBombs.map(b => `${b.position.row},${b.position.col}`)
+    );
+
     for (const match of matches) {
-      // Create a bomb if 4 or more gems matched
-      if (match.positions.length >= 4) {
-        // Place bomb at the center of the match
-        const centerIndex = Math.floor(match.positions.length / 2);
-        const bombPosition = match.positions[centerIndex];
+      const matchLength = match.positions.length;
+      const centerIndex = Math.floor(matchLength / 2);
+      const powerUpPosition = match.positions[centerIndex];
+      const posKey = `${powerUpPosition.row},${powerUpPosition.col}`;
+
+      // Skip if this position already has an L-shaped bomb
+      if (lShapedPositions.has(posKey)) continue;
+
+      // Match-4: Create rockets based on orientation
+      if (matchLength === 4) {
+        // Vertical match → vertical rocket (clears column)
+        // Horizontal match → horizontal rocket (clears row)
+        const specialType = match.direction === 'vertical' ? 'vertical-rocket' : 'horizontal-rocket';
 
         bombsToCreate.push({
-          position: bombPosition,
-          color: match.type
+          position: powerUpPosition,
+          color: match.type,
+          specialType: specialType
+        });
+      }
+      // Match-5+: Create bomb
+      else if (matchLength >= 5) {
+        bombsToCreate.push({
+          position: powerUpPosition,
+          color: match.type,
+          specialType: 'bomb'
         });
       }
     }
@@ -222,23 +287,23 @@ export class Board {
       throw new Error('Gems are not adjacent');
     }
 
-    // Check if either gem is a bomb BEFORE swapping
+    // Check if either gem is a special gem (bomb, rocket) BEFORE swapping
     const gem1 = this.grid[pos1.row][pos1.col];
     const gem2 = this.grid[pos2.row][pos2.col];
-    const hasBomb = (gem1 && gem1.special === 'bomb') || (gem2 && gem2.special === 'bomb');
+    const hasSpecialGem = (gem1 && gem1.special !== 'none') || (gem2 && gem2.special !== 'none');
 
     const temp = this.grid[pos1.row][pos1.col];
     this.grid[pos1.row][pos1.col] = this.grid[pos2.row][pos2.col];
     this.grid[pos2.row][pos2.col] = temp;
 
-    // If a bomb was swapped, it's always valid and triggers explosion
-    if (hasBomb) {
+    // If a special gem was swapped, it's always valid and triggers explosion
+    if (hasSpecialGem) {
       const bombExplosions: Position[] = [];
-      if (gem1 && gem1.special === 'bomb') {
-        bombExplosions.push(pos2); // Bomb moved to pos2
+      if (gem1 && gem1.special !== 'none') {
+        bombExplosions.push(pos2); // Special gem moved to pos2
       }
-      if (gem2 && gem2.special === 'bomb') {
-        bombExplosions.push(pos1); // Bomb moved to pos1
+      if (gem2 && gem2.special !== 'none') {
+        bombExplosions.push(pos1); // Special gem moved to pos1
       }
 
       return {
@@ -291,15 +356,21 @@ export class Board {
   }
 
   // Explode a bomb at the given position, clearing a 3x3 radius
-  explodeBomb(position: Position): Position[] {
+  explodeBomb(position: Position): { cleared: Position[], triggered: TriggeredGem[] } {
     const clearedPositions: Position[] = [];
+    const triggeredSpecialGems: TriggeredGem[] = [];
 
     // Clear a 3x3 area around the bomb
     for (let row = position.row - 1; row <= position.row + 1; row++) {
       for (let col = position.col - 1; col <= position.col + 1; col++) {
         // Check if position is within bounds
         if (row >= 0 && row < this.rows && col >= 0 && col < this.cols) {
-          if (this.grid[row][col] !== null) {
+          const gem = this.grid[row][col];
+          if (gem !== null) {
+            // Check if this gem is a special gem that should be triggered
+            if (gem.special !== 'none' && !(row === position.row && col === position.col)) {
+              triggeredSpecialGems.push({ position: { row, col }, specialType: gem.special });
+            }
             this.grid[row][col] = null;
             clearedPositions.push({ row, col });
           }
@@ -307,23 +378,63 @@ export class Board {
       }
     }
 
-    return clearedPositions;
+    return { cleared: clearedPositions, triggered: triggeredSpecialGems };
   }
 
-  // Check if there are any bombs in the matched positions
+  explodeVerticalRocket(position: Position): { cleared: Position[], triggered: TriggeredGem[] } {
+    const clearedPositions: Position[] = [];
+    const triggeredSpecialGems: TriggeredGem[] = [];
+
+    // Clear entire column
+    for (let row = 0; row < this.rows; row++) {
+      const gem = this.grid[row][position.col];
+      if (gem !== null) {
+        // Check if this gem is a special gem that should be triggered
+        if (gem.special !== 'none' && row !== position.row) {
+          triggeredSpecialGems.push({ position: { row, col: position.col }, specialType: gem.special });
+        }
+        this.grid[row][position.col] = null;
+        clearedPositions.push({ row, col: position.col });
+      }
+    }
+
+    return { cleared: clearedPositions, triggered: triggeredSpecialGems };
+  }
+
+  explodeHorizontalRocket(position: Position): { cleared: Position[], triggered: TriggeredGem[] } {
+    const clearedPositions: Position[] = [];
+    const triggeredSpecialGems: TriggeredGem[] = [];
+
+    // Clear entire row
+    for (let col = 0; col < this.cols; col++) {
+      const gem = this.grid[position.row][col];
+      if (gem !== null) {
+        // Check if this gem is a special gem that should be triggered
+        if (gem.special !== 'none' && col !== position.col) {
+          triggeredSpecialGems.push({ position: { row: position.row, col }, specialType: gem.special });
+        }
+        this.grid[position.row][col] = null;
+        clearedPositions.push({ row: position.row, col });
+      }
+    }
+
+    return { cleared: clearedPositions, triggered: triggeredSpecialGems };
+  }
+
+  // Check if there are any special gems (bombs, rockets) in the matched positions
   checkForBombsInMatches(matches: Match[]): Position[] {
-    const bombPositions: Position[] = [];
+    const specialGemPositions: Position[] = [];
 
     for (const match of matches) {
       for (const pos of match.positions) {
         const gem = this.grid[pos.row][pos.col];
-        if (gem && gem.special === 'bomb') {
-          bombPositions.push(pos);
+        if (gem && gem.special !== 'none') {
+          specialGemPositions.push(pos);
         }
       }
     }
 
-    return bombPositions;
+    return specialGemPositions;
   }
 
   applyGravity(): GemMove[] {

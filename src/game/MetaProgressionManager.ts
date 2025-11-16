@@ -12,6 +12,7 @@ export interface MetaProgressionState {
   coins: number;
   lastLifeRegenTime: number; // Timestamp in milliseconds
   currentLevel: number;
+  levelStars: Record<number, number>; // Level number -> stars earned (1-3)
 }
 
 export class MetaProgressionManager {
@@ -20,7 +21,6 @@ export class MetaProgressionManager {
   // Game constants
   private readonly MAX_LIVES = 5;
   private readonly LIFE_REGEN_TIME_MS = 30 * 60 * 1000; // 30 minutes in milliseconds
-  private readonly COINS_PER_LEVEL = 100;
   private readonly LIFE_COST_COINS = 50;
   private readonly STORAGE_KEY = 'match3_meta_progression';
 
@@ -29,6 +29,7 @@ export class MetaProgressionManager {
   private coins: number;
   private lastLifeRegenTime: number;
   private currentLevel: number;
+  private levelStars: Record<number, number>;
 
   // Singleton pattern
   private constructor() {
@@ -36,6 +37,7 @@ export class MetaProgressionManager {
     this.coins = 0;
     this.lastLifeRegenTime = Date.now();
     this.currentLevel = 1;
+    this.levelStars = {};
     this.loadFromStorage();
   }
 
@@ -75,11 +77,17 @@ export class MetaProgressionManager {
    * Returns true if successful, false if no lives available
    */
   public consumeLife(): boolean {
+    console.log('[MetaProgression] consumeLife called');
+    console.log('[MetaProgression] Lives before:', this.lives);
+    console.trace('[MetaProgression] Stack trace:');
+
     if (!this.hasLives()) {
+      console.log('[MetaProgression] No lives available!');
       return false;
     }
 
     this.lives--;
+    console.log('[MetaProgression] Lives after:', this.lives);
     this.lastLifeRegenTime = Date.now();
     this.saveToStorage();
     return true;
@@ -183,30 +191,59 @@ export class MetaProgressionManager {
 
   /**
    * Calculate coins earned from a level based on score
+   * Returns fixed amounts: 20, 40, or 60 coins
    */
   public calculateLevelReward(score: number): number {
-    // Base reward
-    let coins = this.COINS_PER_LEVEL;
-
-    // Bonus for high scores
-    if (score >= 5000) {
-      coins += 100; // +100 for excellent score
-    } else if (score >= 2000) {
-      coins += 50; // +50 for good score
-    } else if (score >= 1000) {
-      coins += 25; // +25 for decent score
+    // Fixed coin rewards based on score tiers
+    if (score >= 3000) {
+      return 60; // Excellent score
+    } else if (score >= 1500) {
+      return 40; // Good score
+    } else {
+      return 20; // Completed
     }
-
-    return coins;
   }
 
   /**
    * Reward player for completing a level
+   * Returns coins earned and updates star rating
    */
-  public rewardLevelCompletion(score: number): number {
+  public rewardLevelCompletion(score: number, levelNumber: number): number {
     const coinsEarned = this.calculateLevelReward(score);
     this.addCoins(coinsEarned);
+
+    // Calculate and store star rating
+    const stars = this.getStarsFromCoins(coinsEarned);
+    this.setLevelStars(levelNumber, stars);
+
     return coinsEarned;
+  }
+
+  /**
+   * Convert coins earned to star rating (1-3 stars)
+   */
+  private getStarsFromCoins(coins: number): number {
+    if (coins >= 60) return 3;
+    if (coins >= 40) return 2;
+    return 1;
+  }
+
+  /**
+   * Get star rating for a level (0 if not completed)
+   */
+  public getLevelStars(levelNumber: number): number {
+    return this.levelStars[levelNumber] || 0;
+  }
+
+  /**
+   * Set star rating for a level (only if better than current)
+   */
+  private setLevelStars(levelNumber: number, stars: number): void {
+    const currentStars = this.levelStars[levelNumber] || 0;
+    if (stars > currentStars) {
+      this.levelStars[levelNumber] = stars;
+      this.saveToStorage();
+    }
   }
 
   // === Level Progression ===
@@ -244,7 +281,8 @@ export class MetaProgressionManager {
       lives: this.lives,
       coins: this.coins,
       lastLifeRegenTime: this.lastLifeRegenTime,
-      currentLevel: this.currentLevel
+      currentLevel: this.currentLevel,
+      levelStars: this.levelStars
     };
 
     try {
@@ -266,6 +304,7 @@ export class MetaProgressionManager {
         this.coins = state.coins;
         this.lastLifeRegenTime = state.lastLifeRegenTime;
         this.currentLevel = state.currentLevel || 1; // Default to 1 if not present
+        this.levelStars = state.levelStars || {}; // Default to empty if not present
 
         // Update lives based on time elapsed
         this.updateLivesFromRegen();
@@ -283,6 +322,7 @@ export class MetaProgressionManager {
     this.coins = 0;
     this.lastLifeRegenTime = Date.now();
     this.currentLevel = 1;
+    this.levelStars = {};
     this.saveToStorage();
   }
 

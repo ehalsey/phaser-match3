@@ -1129,4 +1129,505 @@ describe('Board', () => {
       });
     });
   });
+
+  describe('Phase 7: Power-Ups and Special Gems', () => {
+    describe('Test 13: Vertical Rocket Creation', () => {
+      it('should create vertical rocket from 4-gem vertical match', () => {
+        const board = new Board(5, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green'],
+          ['yellow', 'purple', 'orange'],
+          ['red', 'orange', 'blue'],
+          ['red', 'green', 'purple'],
+          ['red', 'blue', 'orange']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Swap to create a vertical match of 4 reds (rows 1,2,3,4 after swap)
+        const result = board.swap({ row: 0, col: 0 }, { row: 1, col: 0 });
+
+        expect(result.valid).toBe(true);
+        expect(result.bombsToCreate).toBeDefined();
+        expect(result.bombsToCreate!.length).toBe(1);
+        expect(result.bombsToCreate![0].specialType).toBe('vertical-rocket');
+        expect(result.bombsToCreate![0].color).toBe('red');
+      });
+
+      it('should place vertical rocket at center of match', () => {
+        const board = new Board(5, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green'],
+          ['yellow', 'purple', 'orange'],
+          ['red', 'orange', 'blue'],
+          ['red', 'green', 'purple'],
+          ['red', 'blue', 'orange']
+        ];
+
+        board.initializeWithConfig(testConfig);
+        const result = board.swap({ row: 0, col: 0 }, { row: 1, col: 0 });
+
+        // For 4-gem match at rows 1,2,3,4, center position is at index 2 (row 3)
+        const rocketPos = result.bombsToCreate![0].position;
+        expect(rocketPos.row).toBe(3);
+        expect(rocketPos.col).toBe(0);
+      });
+    });
+
+    describe('Test 14: Horizontal Rocket Creation', () => {
+      it('should create horizontal rocket from 4-gem horizontal match', () => {
+        const board = new Board(4, 5);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'yellow', 'red', 'red', 'red'],
+          ['blue', 'green', 'yellow', 'purple', 'orange'],
+          ['orange', 'blue', 'green', 'blue', 'yellow'],
+          ['yellow', 'purple', 'orange', 'blue', 'green']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Swap to create a horizontal match of 4 reds (cols 1,2,3,4 after swap)
+        const result = board.swap({ row: 0, col: 0 }, { row: 0, col: 1 });
+
+        expect(result.valid).toBe(true);
+        expect(result.bombsToCreate).toBeDefined();
+        expect(result.bombsToCreate!.length).toBe(1);
+        expect(result.bombsToCreate![0].specialType).toBe('horizontal-rocket');
+        expect(result.bombsToCreate![0].color).toBe('red');
+      });
+
+      it('should place horizontal rocket at center of match', () => {
+        const board = new Board(4, 5);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'yellow', 'red', 'red', 'red'],
+          ['blue', 'green', 'yellow', 'purple', 'orange'],
+          ['orange', 'blue', 'green', 'blue', 'yellow'],
+          ['yellow', 'purple', 'orange', 'blue', 'green']
+        ];
+
+        board.initializeWithConfig(testConfig);
+        const result = board.swap({ row: 0, col: 0 }, { row: 0, col: 1 });
+
+        // For 4-gem match at cols 1,2,3,4, center should be at col 3
+        const rocketPos = result.bombsToCreate![0].position;
+        expect(rocketPos.row).toBe(0);
+        expect(rocketPos.col).toBe(3);
+      });
+    });
+
+    describe('Test 15: L-Shaped Match Detection', () => {
+      it('should create bomb for L-shaped match (horizontal + vertical intersection)', () => {
+        const board = new Board(5, 5);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'yellow', 'blue', 'green', 'purple'],
+          ['red', 'red', 'red', 'green', 'orange'],  // Will be horizontal match after swap
+          ['orange', 'red', 'yellow', 'blue', 'green'], // Will be vertical match after swap
+          ['purple', 'green', 'green', 'orange', 'blue'],
+          ['yellow', 'blue', 'orange', 'purple', 'green']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Swap to create L-shaped match: horizontal at row 1 (cols 0-2) + vertical at col 1 (rows 0-2)
+        const result = board.swap({ row: 0, col: 0 }, { row: 0, col: 1 });
+
+        expect(result.valid).toBe(true);
+        expect(result.bombsToCreate).toBeDefined();
+        // Should create bomb at intersection (row 1, col 1)
+        const bomb = result.bombsToCreate!.find(b => b.specialType === 'bomb');
+        expect(bomb).toBeDefined();
+        expect(bomb!.position.row).toBe(1);
+        expect(bomb!.position.col).toBe(1);
+      });
+
+      it('should prioritize L-shaped bomb over rocket creation', () => {
+        const board = new Board(5, 5);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'yellow', 'blue', 'green', 'purple'],
+          ['red', 'red', 'red', 'green', 'orange'],
+          ['orange', 'red', 'yellow', 'blue', 'green'],
+          ['purple', 'green', 'green', 'orange', 'blue'],
+          ['yellow', 'blue', 'orange', 'purple', 'green']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // This creates both horizontal and vertical match-3s that intersect
+        // Should create bomb at intersection, not rockets
+        const result = board.swap({ row: 0, col: 0 }, { row: 0, col: 1 });
+
+        const bombs = result.bombsToCreate!.filter(b => b.specialType === 'bomb');
+
+        // Should have at least 1 bomb from the L-shaped match
+        expect(bombs.length).toBeGreaterThan(0);
+      });
+    });
+
+    describe('Test 16: Vertical Rocket Explosion', () => {
+      it('should clear entire column when vertical rocket explodes', () => {
+        const board = new Board(5, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green'],
+          ['yellow', 'purple', 'orange'],
+          ['blue', 'green', 'red'],
+          ['purple', 'orange', 'yellow'],
+          ['green', 'red', 'blue']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Manually place a vertical rocket
+        board.setGemAt(2, 1, { color: 'red', special: 'vertical-rocket' });
+
+        // Explode the rocket
+        const result = board.explodeVerticalRocket({ row: 2, col: 1 });
+
+        // Should clear all 5 positions in column 1
+        expect(result.cleared.length).toBe(5);
+        expect(result.cleared).toContainEqual({ row: 0, col: 1 });
+        expect(result.cleared).toContainEqual({ row: 1, col: 1 });
+        expect(result.cleared).toContainEqual({ row: 2, col: 1 });
+        expect(result.cleared).toContainEqual({ row: 3, col: 1 });
+        expect(result.cleared).toContainEqual({ row: 4, col: 1 });
+
+        // Verify all gems in column 1 are cleared
+        for (let row = 0; row < 5; row++) {
+          expect(board.getGemAt(row, 1)).toBeNull();
+        }
+      });
+
+      it('should not affect other columns', () => {
+        const board = new Board(5, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green'],
+          ['yellow', 'purple', 'orange'],
+          ['blue', 'green', 'red'],
+          ['purple', 'orange', 'yellow'],
+          ['green', 'red', 'blue']
+        ];
+
+        board.initializeWithConfig(testConfig);
+        board.setGemAt(2, 1, { color: 'red', special: 'vertical-rocket' });
+
+        board.explodeVerticalRocket({ row: 2, col: 1 });
+
+        // Columns 0 and 2 should remain unchanged
+        expect(getColor(board.getGemAt(0, 0))).toBe('red');
+        expect(getColor(board.getGemAt(0, 2))).toBe('green');
+        expect(getColor(board.getGemAt(4, 0))).toBe('green');
+        expect(getColor(board.getGemAt(4, 2))).toBe('blue');
+      });
+    });
+
+    describe('Test 17: Horizontal Rocket Explosion', () => {
+      it('should clear entire row when horizontal rocket explodes', () => {
+        const board = new Board(5, 5);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green', 'yellow', 'purple'],
+          ['blue', 'green', 'red', 'orange', 'yellow'],
+          ['yellow', 'purple', 'orange', 'blue', 'green'],
+          ['purple', 'orange', 'yellow', 'red', 'blue'],
+          ['green', 'red', 'blue', 'purple', 'orange']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Manually place a horizontal rocket
+        board.setGemAt(2, 2, { color: 'red', special: 'horizontal-rocket' });
+
+        // Explode the rocket
+        const result = board.explodeHorizontalRocket({ row: 2, col: 2 });
+
+        // Should clear all 5 positions in row 2
+        expect(result.cleared.length).toBe(5);
+        expect(result.cleared).toContainEqual({ row: 2, col: 0 });
+        expect(result.cleared).toContainEqual({ row: 2, col: 1 });
+        expect(result.cleared).toContainEqual({ row: 2, col: 2 });
+        expect(result.cleared).toContainEqual({ row: 2, col: 3 });
+        expect(result.cleared).toContainEqual({ row: 2, col: 4 });
+
+        // Verify all gems in row 2 are cleared
+        for (let col = 0; col < 5; col++) {
+          expect(board.getGemAt(2, col)).toBeNull();
+        }
+      });
+
+      it('should not affect other rows', () => {
+        const board = new Board(5, 5);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green', 'yellow', 'purple'],
+          ['blue', 'green', 'red', 'orange', 'yellow'],
+          ['yellow', 'purple', 'orange', 'blue', 'green'],
+          ['purple', 'orange', 'yellow', 'red', 'blue'],
+          ['green', 'red', 'blue', 'purple', 'orange']
+        ];
+
+        board.initializeWithConfig(testConfig);
+        board.setGemAt(2, 2, { color: 'red', special: 'horizontal-rocket' });
+
+        board.explodeHorizontalRocket({ row: 2, col: 2 });
+
+        // Rows 0, 1, 3, 4 should remain unchanged
+        expect(getColor(board.getGemAt(0, 0))).toBe('red');
+        expect(getColor(board.getGemAt(1, 0))).toBe('blue');
+        expect(getColor(board.getGemAt(3, 0))).toBe('purple');
+        expect(getColor(board.getGemAt(4, 0))).toBe('green');
+      });
+    });
+
+    describe('Test 18: Swapping Special Gems', () => {
+      it('should trigger vertical rocket explosion when swapped', () => {
+        const board = new Board(5, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green'],
+          ['yellow', 'purple', 'orange'],
+          ['blue', 'green', 'red'],
+          ['purple', 'orange', 'yellow'],
+          ['green', 'red', 'blue']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Place vertical rocket
+        board.setGemAt(2, 1, { color: 'red', special: 'vertical-rocket' });
+
+        // Swap the rocket with an adjacent gem
+        const result = board.swap({ row: 2, col: 1 }, { row: 2, col: 0 });
+
+        // Should be valid and trigger explosion
+        expect(result.valid).toBe(true);
+        expect(result.bombExplosions).toBeDefined();
+        expect(result.bombExplosions!.length).toBe(1);
+        // Rocket moved to (2, 0) after swap
+        expect(result.bombExplosions![0]).toEqual({ row: 2, col: 0 });
+      });
+
+      it('should trigger horizontal rocket explosion when swapped', () => {
+        const board = new Board(5, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green'],
+          ['yellow', 'purple', 'orange'],
+          ['blue', 'green', 'red'],
+          ['purple', 'orange', 'yellow'],
+          ['green', 'red', 'blue']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Place horizontal rocket
+        board.setGemAt(2, 1, { color: 'red', special: 'horizontal-rocket' });
+
+        // Swap the rocket with an adjacent gem
+        const result = board.swap({ row: 2, col: 1 }, { row: 2, col: 2 });
+
+        // Should be valid and trigger explosion
+        expect(result.valid).toBe(true);
+        expect(result.bombExplosions).toBeDefined();
+        expect(result.bombExplosions!.length).toBe(1);
+        // Rocket moved to (2, 2) after swap
+        expect(result.bombExplosions![0]).toEqual({ row: 2, col: 2 });
+      });
+
+      it('should trigger bomb explosion when swapped', () => {
+        const board = new Board(5, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green'],
+          ['yellow', 'purple', 'orange'],
+          ['blue', 'green', 'red'],
+          ['purple', 'orange', 'yellow'],
+          ['green', 'red', 'blue']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Place bomb
+        board.setGemAt(2, 1, { color: 'red', special: 'bomb' });
+
+        // Swap the bomb with an adjacent gem
+        const result = board.swap({ row: 2, col: 1 }, { row: 2, col: 0 });
+
+        // Should be valid and trigger explosion
+        expect(result.valid).toBe(true);
+        expect(result.bombExplosions).toBeDefined();
+        expect(result.bombExplosions!.length).toBe(1);
+        // Bomb moved to (2, 0) after swap
+        expect(result.bombExplosions![0]).toEqual({ row: 2, col: 0 });
+      });
+    });
+
+    describe('Test 19: Special Gem Detection in Matches', () => {
+      it('should detect rockets in matched positions', () => {
+        const board = new Board(5, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'red', 'red'],
+          ['yellow', 'purple', 'orange'],
+          ['blue', 'green', 'red'],
+          ['purple', 'orange', 'yellow'],
+          ['green', 'red', 'blue']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Place a vertical rocket in the match
+        board.setGemAt(0, 1, { color: 'red', special: 'vertical-rocket' });
+
+        const matches = board.findMatches();
+        const specialGems = board.checkForBombsInMatches(matches);
+
+        // Should detect the rocket
+        expect(specialGems.length).toBe(1);
+        expect(specialGems[0]).toEqual({ row: 0, col: 1 });
+      });
+
+      it('should detect bombs in matched positions', () => {
+        const board = new Board(5, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'red', 'red'],
+          ['yellow', 'purple', 'orange'],
+          ['blue', 'green', 'red'],
+          ['purple', 'orange', 'yellow'],
+          ['green', 'red', 'blue']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Place a bomb in the match
+        board.setGemAt(0, 2, { color: 'red', special: 'bomb' });
+
+        const matches = board.findMatches();
+        const specialGems = board.checkForBombsInMatches(matches);
+
+        // Should detect the bomb
+        expect(specialGems.length).toBe(1);
+        expect(specialGems[0]).toEqual({ row: 0, col: 2 });
+      });
+
+      it('should detect multiple special gems in matches', () => {
+        const board = new Board(5, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'red', 'red'],
+          ['yellow', 'purple', 'orange'],
+          ['blue', 'green', 'red'],
+          ['purple', 'orange', 'yellow'],
+          ['green', 'red', 'blue']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Place rocket and bomb in the match
+        board.setGemAt(0, 0, { color: 'red', special: 'horizontal-rocket' });
+        board.setGemAt(0, 2, { color: 'red', special: 'bomb' });
+
+        const matches = board.findMatches();
+        const specialGems = board.checkForBombsInMatches(matches);
+
+        // Should detect both special gems
+        expect(specialGems.length).toBe(2);
+      });
+    });
+
+    describe('Test 20: Chain Reaction Explosions', () => {
+      it('should trigger rocket when bomb explodes it', () => {
+        const board = new Board(5, 5);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green', 'yellow', 'purple'],
+          ['blue', 'green', 'red', 'orange', 'yellow'],
+          ['yellow', 'purple', 'orange', 'blue', 'green'],
+          ['purple', 'orange', 'yellow', 'red', 'blue'],
+          ['green', 'red', 'blue', 'purple', 'orange']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Place a bomb at (2, 2) and a vertical rocket at (2, 3)
+        board.setGemAt(2, 2, { color: 'red', special: 'bomb' });
+        board.setGemAt(2, 3, { color: 'blue', special: 'vertical-rocket' });
+
+        // Explode the bomb - should trigger the rocket
+        const result = board.explodeBomb({ row: 2, col: 2 });
+
+        // Bomb clears 3x3, rocket should be in triggered list
+        expect(result.triggered.length).toBe(1);
+        expect(result.triggered[0].position).toEqual({ row: 2, col: 3 });
+        expect(result.triggered[0].specialType).toBe('vertical-rocket');
+      });
+
+      it('should trigger bomb when rocket explodes it', () => {
+        const board = new Board(5, 5);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green', 'yellow', 'purple'],
+          ['blue', 'green', 'red', 'orange', 'yellow'],
+          ['yellow', 'purple', 'orange', 'blue', 'green'],
+          ['purple', 'orange', 'yellow', 'red', 'blue'],
+          ['green', 'red', 'blue', 'purple', 'orange']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Place a vertical rocket at (2, 2) and a bomb at (0, 2)
+        board.setGemAt(2, 2, { color: 'red', special: 'vertical-rocket' });
+        board.setGemAt(0, 2, { color: 'blue', special: 'bomb' });
+
+        // Explode the rocket - should trigger the bomb
+        const result = board.explodeVerticalRocket({ row: 2, col: 2 });
+
+        // Rocket clears column, bomb should be in triggered list
+        expect(result.triggered.length).toBe(1);
+        expect(result.triggered[0].position).toEqual({ row: 0, col: 2 });
+        expect(result.triggered[0].specialType).toBe('bomb');
+      });
+
+      it('should trigger multiple special gems in one explosion', () => {
+        const board = new Board(5, 5);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green', 'yellow', 'purple'],
+          ['blue', 'green', 'red', 'orange', 'yellow'],
+          ['yellow', 'purple', 'orange', 'blue', 'green'],
+          ['purple', 'orange', 'yellow', 'red', 'blue'],
+          ['green', 'red', 'blue', 'purple', 'orange']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Place a bomb at (2, 2), rocket at (2, 3), and another rocket at (3, 2)
+        board.setGemAt(2, 2, { color: 'red', special: 'bomb' });
+        board.setGemAt(2, 3, { color: 'blue', special: 'vertical-rocket' });
+        board.setGemAt(3, 2, { color: 'green', special: 'horizontal-rocket' });
+
+        // Explode the bomb - should trigger both rockets
+        const result = board.explodeBomb({ row: 2, col: 2 });
+
+        // Both rockets should be triggered
+        expect(result.triggered.length).toBe(2);
+        const triggeredPositions = result.triggered.map(t => t.position);
+        expect(triggeredPositions).toContainEqual({ row: 2, col: 3 });
+        expect(triggeredPositions).toContainEqual({ row: 3, col: 2 });
+      });
+
+      it('should not trigger itself', () => {
+        const board = new Board(5, 5);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green', 'yellow', 'purple'],
+          ['blue', 'green', 'red', 'orange', 'yellow'],
+          ['yellow', 'purple', 'orange', 'blue', 'green'],
+          ['purple', 'orange', 'yellow', 'red', 'blue'],
+          ['green', 'red', 'blue', 'purple', 'orange']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Place a bomb
+        board.setGemAt(2, 2, { color: 'red', special: 'bomb' });
+
+        // Explode it - should not trigger itself
+        const result = board.explodeBomb({ row: 2, col: 2 });
+
+        // Should not include itself in triggered list
+        const selfTriggered = result.triggered.find(t =>
+          t.position.row === 2 && t.position.col === 2
+        );
+        expect(selfTriggered).toBeUndefined();
+      });
+    });
+  });
 });

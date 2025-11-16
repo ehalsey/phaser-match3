@@ -1,8 +1,9 @@
 import Phaser from 'phaser';
-import { Board, BombCreation, Gem, GemType, Position } from '../game/Board';
+import { Board, BombCreation, Gem, GemType, Position, TriggeredGem, SpecialGemType } from '../game/Board';
 import { BoardConfig } from '../game/BoardConfig';
-import { LevelObjectives } from '../game/LevelObjectives';
+import { LevelObjectives, LevelStatus } from '../game/LevelObjectives';
 import { LevelSettings } from '../game/LevelConfig';
+import { MetaProgressionManager } from '../game/MetaProgressionManager';
 
 interface GemSprite {
   circle: any; // Phaser.GameObjects.Circle type not exported correctly
@@ -22,6 +23,7 @@ export class LevelScene extends Phaser.Scene {
   private objectivesEnabled: boolean = true;
   private levelNumber: number = 1;
   private levelSettings!: LevelSettings;
+  public continuationAttempts: number = 0;
 
   private readonly CELL_SIZE = 80;
   private readonly BOARD_OFFSET_X = 50;  // Match main.ts
@@ -43,11 +45,14 @@ export class LevelScene extends Phaser.Scene {
 
   init(data: { levelNumber?: number, levelSettings?: LevelSettings }): void {
     this.levelNumber = data.levelNumber || 1;
+    this.continuationAttempts = 0; // Reset for new level
     this.levelSettings = data.levelSettings || {
       levelNumber: 1,
       difficulty: 'medium' as any,
       moves: 20,
-      targetScore: 5000,
+      gemGoals: [
+        { color: 'red', target: 30, current: 0 }
+      ],
       boardRows: 8,
       boardCols: 8,
       colorCount: 5
@@ -58,6 +63,13 @@ export class LevelScene extends Phaser.Scene {
   }
 
   create(): void {
+    console.log('[LevelScene] create() called');
+    console.log('[LevelScene] Level number:', this.levelNumber);
+
+    // Consume a life when starting the level
+    const metaManager = MetaProgressionManager.getInstance();
+    metaManager.consumeLife();
+
     // Show objectives UI (hidden by default in HTML)
     const objectivesDiv = document.getElementById('game-objectives');
     const progressDiv = document.getElementById('game-progress-container');
@@ -120,7 +132,7 @@ export class LevelScene extends Phaser.Scene {
     if (this.objectivesEnabled) {
       this.objectives = new LevelObjectives(
         this.levelSettings.moves,
-        this.levelSettings.targetScore
+        this.levelSettings.gemGoals
       );
       this.updateObjectivesDisplay();
     }
@@ -142,37 +154,43 @@ export class LevelScene extends Phaser.Scene {
     const domStatus = document.getElementById('game-status');
     if (domStatus) {
       domStatus.setAttribute('data-scene-ready', 'true');
-      domStatus.textContent = 'Click a gem to select it!';
+      domStatus.textContent = '';
     }
   }
 
   private createNavigationButtons(): void {
     const { width } = this.scale;
+    const centerX = width / 2;
 
-    // Back to Map button (top-right)
-    const mapButton = this.add.rectangle(width - 80, 30, 140, 40, 0x3498db);
+    // Small icon buttons positioned below title (centered, side by side)
+    const buttonSize = 35;
+    const buttonSpacing = 50;
+    const buttonY = 30; // Top of canvas, below HTML title
+
+    // Back to Map button (left)
+    const mapButton = this.add.circle(centerX - buttonSpacing / 2, buttonY, buttonSize / 2, 0x3498db);
     mapButton.setStrokeStyle(2, 0x2980b9);
     mapButton.setInteractive({ useHandCursor: true });
-    mapButton.setScrollFactor(0); // Keep button fixed on screen
-    mapButton.setDepth(1000); // Ensure it's on top
+    mapButton.setScrollFactor(0);
+    mapButton.setDepth(1000);
 
-    const mapText = this.add.text(width - 80, 30, '← Map', {
-      fontSize: '18px',
+    const mapText = this.add.text(centerX - buttonSpacing / 2, buttonY, '←', {
+      fontSize: '24px',
       color: '#ffffff',
       fontStyle: 'bold'
     }).setOrigin(0.5);
     mapText.setScrollFactor(0);
     mapText.setDepth(1001);
 
-    // Main Menu button (below map button)
-    const menuButton = this.add.rectangle(width - 80, 80, 140, 40, 0x95a5a6);
+    // Main Menu button (right)
+    const menuButton = this.add.circle(centerX + buttonSpacing / 2, buttonY, buttonSize / 2, 0x95a5a6);
     menuButton.setStrokeStyle(2, 0x7f8c8d);
     menuButton.setInteractive({ useHandCursor: true });
     menuButton.setScrollFactor(0);
     menuButton.setDepth(1000);
 
-    const menuText = this.add.text(width - 80, 80, '⌂ Menu', {
-      fontSize: '18px',
+    const menuText = this.add.text(centerX + buttonSpacing / 2, buttonY, '⌂', {
+      fontSize: '24px',
       color: '#ffffff',
       fontStyle: 'bold'
     }).setOrigin(0.5);
@@ -229,8 +247,28 @@ export class LevelScene extends Phaser.Scene {
   private generateRandomBoard(): void {
     const rows = this.board.getRows();
     const cols = this.board.getCols();
-    // Level 1 uses 5 colors (orange reserved for later levels)
-    const gemTypes: GemType[] = ['red', 'blue', 'green', 'yellow', 'purple'];
+
+    // Determine which colors to use based on level settings
+    let gemTypes: GemType[] = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
+
+    // If objectives are enabled, ensure goal colors are included
+    if (this.objectivesEnabled && this.levelSettings.gemGoals) {
+      const goalColors = this.levelSettings.gemGoals.map(goal => goal.color);
+
+      // Start with goal colors, then add other colors up to colorCount
+      const otherColors = gemTypes.filter(c => !goalColors.includes(c));
+      const colorsToUse = [...goalColors];
+
+      // Add additional colors to reach the desired colorCount
+      while (colorsToUse.length < this.levelSettings.colorCount && otherColors.length > 0) {
+        colorsToUse.push(otherColors.shift()!);
+      }
+
+      gemTypes = colorsToUse;
+    } else {
+      // Use the first N colors based on colorCount
+      gemTypes = gemTypes.slice(0, this.levelSettings.colorCount);
+    }
 
     const config: (GemType | null)[][] = [];
 
@@ -298,14 +336,15 @@ export class LevelScene extends Phaser.Scene {
   }
 
   private createGemSprite(x: number, y: number, gem: Gem, row: number, col: number, cellId: number): GemSprite {
-    // Create clickable gem circle - bombs get neutral gray color
-    const gemColor = gem.special === 'bomb' ? 0x808080 : this.GEM_COLORS[gem.color];
+    // Create clickable gem circle - special gems get neutral gray color
+    const gemColor = gem.special !== 'none' ? 0x808080 : this.GEM_COLORS[gem.color];
     const gemCircle = this.add.circle(x, y, 30, gemColor);
     gemCircle.setStrokeStyle(3, 0xffffff, 0.5);
     gemCircle.setInteractive({ useHandCursor: true });
     gemCircle.setData('row', row);
     gemCircle.setData('col', col);
     gemCircle.setData('cellId', cellId);
+    gemCircle.setData('gemColor', gem.color);
 
     // Add DOM attributes for Playwright
     (gemCircle as any).setDataEnabled();
@@ -331,7 +370,7 @@ export class LevelScene extends Phaser.Scene {
       gemCircle.setScale(1.0);
     });
 
-    // Add bomb indicator if this is a bomb gem
+    // Add special gem indicator based on type
     let bombIndicator: Phaser.GameObjects.Text | undefined;
     if (gem.special === 'bomb') {
       bombIndicator = this.add.text(x, y, '⭐', {
@@ -339,6 +378,18 @@ export class LevelScene extends Phaser.Scene {
         color: '#ffffff'
       }).setOrigin(0.5);
       bombIndicator.setDepth(1); // Ensure it's above the circle
+    } else if (gem.special === 'vertical-rocket') {
+      bombIndicator = this.add.text(x, y, '↕', {
+        fontSize: '40px',
+        color: '#ffffff'
+      }).setOrigin(0.5);
+      bombIndicator.setDepth(1);
+    } else if (gem.special === 'horizontal-rocket') {
+      bombIndicator = this.add.text(x, y, '↔', {
+        fontSize: '40px',
+        color: '#ffffff'
+      }).setOrigin(0.5);
+      bombIndicator.setDepth(1);
     }
 
     return { circle: gemCircle, text, bombIndicator, row, col };
@@ -351,14 +402,14 @@ export class LevelScene extends Phaser.Scene {
     if (this.selectedGem === null) {
       this.selectedGem = clickedPos;
       this.showSelection(row, col);
-      this.updateStatus(`Selected cell ${row},${col}. Click an adjacent gem to swap!`);
+      this.updateStatus('');
       return;
     }
 
     // If clicking the same gem, deselect
     if (this.selectedGem.row === row && this.selectedGem.col === col) {
       this.clearSelection();
-      this.updateStatus('Selection cleared. Click a gem to select it.');
+      this.updateStatus('');
       return;
     }
 
@@ -405,24 +456,94 @@ export class LevelScene extends Phaser.Scene {
 
   private handleBombExplosions(bombPositions: Position[]): void {
     const spritesToClear: GemSprite[] = [];
+    const gemCounts = new Map<GemType, number>();
+    const processedPositions = new Set<string>();
 
-    // Explode each bomb and collect sprites to clear
-    for (const bombPos of bombPositions) {
-      const explodedPositions = this.board.explodeBomb(bombPos);
+    // Store gem info before clearing
+    interface SpecialGemInfo {
+      position: Position;
+      specialType: SpecialGemType;
+    }
 
-      // Add bonus points for bomb explosion
-      const explosionBonus = explodedPositions.length * 50;
+    // Get initial special gem info
+    const toProcess: SpecialGemInfo[] = bombPositions.map(pos => {
+      const gem = this.board.getGemAt(pos.row, pos.col);
+      return {
+        position: pos,
+        specialType: gem?.special || 'none'
+      };
+    }).filter(info => info.specialType !== 'none');
+
+    while (toProcess.length > 0) {
+      const gemInfo = toProcess.shift()!;
+      const bombPos = gemInfo.position;
+      const posKey = `${bombPos.row},${bombPos.col}`;
+
+      // Skip if already processed
+      if (processedPositions.has(posKey)) continue;
+      processedPositions.add(posKey);
+
+      let result: { cleared: Position[], triggered: TriggeredGem[] } = { cleared: [], triggered: [] };
+
+      if (gemInfo.specialType === 'bomb') {
+        result = this.board.explodeBomb(bombPos);
+        this.updateStatus('💥 BOMB EXPLOSION!');
+      } else if (gemInfo.specialType === 'vertical-rocket') {
+        result = this.board.explodeVerticalRocket(bombPos);
+        this.updateStatus('🚀 VERTICAL ROCKET!');
+      } else if (gemInfo.specialType === 'horizontal-rocket') {
+        result = this.board.explodeHorizontalRocket(bombPos);
+        this.updateStatus('🚀 HORIZONTAL ROCKET!');
+      }
+
+      // Add bonus points for special gem explosion
+      const explosionBonus = result.cleared.length * 50;
       this.score += explosionBonus;
       this.updateScore();
 
+      // Track cleared gems by color for objectives
+      if (this.objectivesEnabled) {
+        for (const pos of result.cleared) {
+          const key = `${pos.row},${pos.col}`;
+          const sprite = this.gemSprites.get(key);
+          if (sprite && sprite.circle.getData('gemColor')) {
+            const color = sprite.circle.getData('gemColor') as GemType;
+            const count = gemCounts.get(color) || 0;
+            gemCounts.set(color, count + 1);
+          }
+        }
+      }
+
       // Collect sprites for animation
-      for (const pos of explodedPositions) {
+      for (const pos of result.cleared) {
         const key = `${pos.row},${pos.col}`;
         const sprite = this.gemSprites.get(key);
         if (sprite && !spritesToClear.includes(sprite)) {
           spritesToClear.push(sprite);
         }
       }
+
+      // Add triggered special gems to be processed next
+      for (const triggered of result.triggered) {
+        const triggeredKey = `${triggered.position.row},${triggered.position.col}`;
+        if (!processedPositions.has(triggeredKey)) {
+          toProcess.push({
+            position: triggered.position,
+            specialType: triggered.specialType
+          });
+        }
+      }
+    }
+
+    // Update objectives with cleared gem counts
+    if (this.objectivesEnabled && gemCounts.size > 0) {
+      for (const [color, count] of gemCounts.entries()) {
+        this.objectives.addGemsCleared(color, count);
+      }
+      this.updateObjectivesDisplay();
+
+      // Check if goals are met after updating
+      this.checkLevelCompletion();
     }
 
     // Animate explosion
@@ -473,13 +594,13 @@ export class LevelScene extends Phaser.Scene {
     // If there are bombs in the matches, explode them
     if (bombPositions.length > 0) {
       for (const bombPos of bombPositions) {
-        const explodedPositions = this.board.explodeBomb(bombPos);
+        const result = this.board.explodeBomb(bombPos);
         // Add bonus points for bomb explosion
-        this.score += explodedPositions.length * 50;
+        this.score += result.cleared.length * 50;
         this.updateScore();
 
         // Add exploded sprites to clearing list
-        for (const pos of explodedPositions) {
+        for (const pos of result.cleared) {
           const key = pos.row + ',' + pos.col;
           const sprite = this.gemSprites.get(key);
           if (sprite && !spritesToClear.includes(sprite)) {
@@ -501,14 +622,38 @@ export class LevelScene extends Phaser.Scene {
     });
 
     this.time.delayedCall(450, () => {
+      // Track cleared gems by color for objectives
+      if (this.objectivesEnabled && matches.length > 0) {
+        const gemCounts = new Map<GemType, number>();
+
+        for (const match of matches) {
+          for (const pos of match.positions) {
+            const gem = this.board.getGemAt(pos.row, pos.col);
+            if (gem) {
+              const count = gemCounts.get(gem.color) || 0;
+              gemCounts.set(gem.color, count + 1);
+            }
+          }
+        }
+
+        // Update objectives with cleared gem counts
+        for (const [color, count] of gemCounts.entries()) {
+          this.objectives.addGemsCleared(color, count);
+        }
+        this.updateObjectivesDisplay();
+
+        // Check if goals are met after updating
+        this.checkLevelCompletion();
+      }
+
       this.board.clearMatches(matches);
 
-      // Create bombs at specified positions (from 4+ matches)
+      // Create power-ups at specified positions (rockets or bombs from 4+ matches)
       for (const bombCreation of bombsToCreate) {
         this.board.setGemAt(
           bombCreation.position.row,
           bombCreation.position.col,
-          { color: bombCreation.color, special: 'bomb' }
+          { color: bombCreation.color, special: bombCreation.specialType }
         );
       }
 
@@ -629,14 +774,22 @@ export class LevelScene extends Phaser.Scene {
       domScore.textContent = `Score: ${this.score}`;
     }
 
-    // Update objectives with new score (if objectives enabled)
+    // Check if level is complete (if objectives enabled)
     if (this.objectivesEnabled) {
-      this.objectives.updateScore(this.score);
-      this.updateObjectivesDisplay();
-
-      // Check if level is complete
       this.checkLevelCompletion();
     }
+  }
+
+  private getGemEmoji(color: GemType): string {
+    const emojiMap: Record<GemType, string> = {
+      red: '🔴',
+      blue: '🔵',
+      green: '🟢',
+      yellow: '🟡',
+      purple: '🟣',
+      orange: '🟠'
+    };
+    return emojiMap[color];
   }
 
   private updateObjectivesDisplay(): void {
@@ -658,10 +811,16 @@ export class LevelScene extends Phaser.Scene {
       }
     }
 
-    // Update target display
+    // Update gem goals display
     const targetElement = document.getElementById('game-target');
     if (targetElement) {
-      targetElement.textContent = `Target: ${this.objectives.getTargetScore()}`;
+      const goals = this.objectives.getGemGoals();
+      const goalTexts = goals.map(goal => {
+        const colorEmoji = this.getGemEmoji(goal.color);
+        const progress = `${goal.current}/${goal.target}`;
+        return `${colorEmoji} ${progress}`;
+      });
+      targetElement.textContent = goalTexts.join('  ');
     }
 
     // Update progress bar
@@ -680,19 +839,56 @@ export class LevelScene extends Phaser.Scene {
 
   private checkLevelCompletion(): void {
     if (this.objectives.isComplete()) {
-      const status = this.objectives.getStatus();
-
       // Delay transition to show final score/animation
       this.time.delayedCall(1000, () => {
-        this.scene.start('EndLevelScene', {
-          score: this.score,
-          status: status,
-          movesRemaining: this.objectives.getMovesRemaining(),
-          targetScore: this.objectives.getTargetScore(),
-          levelNumber: this.levelNumber
-        });
+        // Re-check status in case player bought more turns
+        const currentStatus = this.objectives.getStatus();
+        console.log('[LevelScene] Delayed completion check - status:', currentStatus);
+
+        // Only proceed if still complete (not IN_PROGRESS due to bought turns)
+        if (!this.objectives.isComplete()) {
+          console.log('[LevelScene] Level no longer complete (bought turns?) - aborting transition');
+          return;
+        }
+
+        if (currentStatus === LevelStatus.PASSED) {
+          // On success, stop this scene and start EndLevelScene
+          this.scene.start('EndLevelScene', {
+            score: this.score,
+            status: currentStatus,
+            movesRemaining: this.objectives.getMovesRemaining(),
+            levelNumber: this.levelNumber,
+            continuationAttempts: this.continuationAttempts
+          });
+        } else {
+          // On failure, sleep this scene and launch EndLevelScene as overlay
+          console.log('[LevelScene] Level failed - putting scene to sleep');
+          console.log('[LevelScene] Current moves:', this.objectives.getMovesRemaining());
+          console.log('[LevelScene] Continuation attempts:', this.continuationAttempts);
+          this.scene.sleep();
+          console.log('[LevelScene] Scene is now sleeping, launching EndLevelScene overlay');
+          this.scene.launch('EndLevelScene', {
+            score: this.score,
+            status: currentStatus,
+            movesRemaining: this.objectives.getMovesRemaining(),
+            levelNumber: this.levelNumber,
+            continuationAttempts: this.continuationAttempts
+          });
+        }
       });
     }
+  }
+
+  /**
+   * Called when player buys more turns - adds moves and resumes play
+   */
+  public addBonusMoves(count: number): void {
+    console.log('[LevelScene] addBonusMoves called with count:', count);
+    console.log('[LevelScene] Moves before:', this.objectives.getMovesRemaining());
+    this.objectives.addMoves(count);
+    console.log('[LevelScene] Moves after:', this.objectives.getMovesRemaining());
+    this.updateObjectivesDisplay();
+    console.log('[LevelScene] Objectives display updated');
   }
 
   private showAllCellIds(visible: boolean): void {
