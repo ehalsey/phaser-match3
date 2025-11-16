@@ -130,23 +130,26 @@ export class JourneyMapScene extends Phaser.Scene {
     }
 
     // Level number
-    this.add.text(x, y - 8, level.toString(), {
-      fontSize: '28px',
+    this.add.text(x, y - 12, level.toString(), {
+      fontSize: '24px',
       color: '#ffffff',
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
     // Status indicator
     if (isCompleted) {
-      // Checkmark for completed levels
-      this.add.text(x, y + 12, '✓', {
-        fontSize: '24px',
-        color: '#ffffff'
+      // Star rating for completed levels
+      const metaManager = MetaProgressionManager.getInstance();
+      const stars = metaManager.getLevelStars(level);
+      const starText = '★'.repeat(stars);
+      this.add.text(x, y + 10, starText, {
+        fontSize: '18px',
+        color: '#f1c40f'
       }).setOrigin(0.5);
     } else if (isCurrent) {
-      // Star for current level
-      this.add.text(x, y + 12, '⭐', {
-        fontSize: '20px',
+      // Indicator for current level
+      this.add.text(x, y + 12, '▶', {
+        fontSize: '16px',
         color: '#ffffff'
       }).setOrigin(0.5);
     }

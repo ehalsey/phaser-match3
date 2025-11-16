@@ -7,7 +7,9 @@ export class EndLevelScene extends Phaser.Scene {
   private coinsEarned: number = 0;
   private metaManager!: MetaProgressionManager;
   private levelStatus: LevelStatus = LevelStatus.FAILED;
+  private levelNumber: number = 1;
   private continuationAttempts: number = 0;
+  private starsEarned: number = 0;
 
   constructor() {
     super({ key: 'EndLevelScene' });
@@ -16,17 +18,20 @@ export class EndLevelScene extends Phaser.Scene {
   init(data: { score: number, status: LevelStatus, movesRemaining: number, levelNumber: number, continuationAttempts?: number }): void {
     this.finalScore = data.score || 0;
     this.levelStatus = data.status || LevelStatus.FAILED;
+    this.levelNumber = data.levelNumber || 1;
     this.continuationAttempts = data.continuationAttempts || 0;
     this.metaManager = MetaProgressionManager.getInstance();
 
     // Handle level completion
     if (this.levelStatus === LevelStatus.PASSED) {
       // Award coins and advance to next level
-      this.coinsEarned = this.metaManager.rewardLevelCompletion(this.finalScore);
+      this.coinsEarned = this.metaManager.rewardLevelCompletion(this.finalScore, this.levelNumber);
+      this.starsEarned = this.metaManager.getLevelStars(this.levelNumber);
       this.metaManager.advanceToNextLevel();
     } else {
       // No coins on failure
       this.coinsEarned = 0;
+      this.starsEarned = 0;
     }
   }
 
@@ -79,6 +84,14 @@ export class EndLevelScene extends Phaser.Scene {
       this.add.circle(centerX - 40, centerY + 30, 12, 0xf1c40f);
       this.add.text(centerX, centerY + 25, `+${this.coinsEarned}`, {
         fontSize: '40px',
+        color: '#f1c40f',
+        fontStyle: 'bold'
+      }).setOrigin(0.5);
+
+      // Star rating display
+      const starText = '★'.repeat(this.starsEarned) + '☆'.repeat(3 - this.starsEarned);
+      this.add.text(centerX, centerY + 70, starText, {
+        fontSize: '48px',
         color: '#f1c40f',
         fontStyle: 'bold'
       }).setOrigin(0.5);
@@ -220,16 +233,15 @@ export class EndLevelScene extends Phaser.Scene {
           const levelScene = this.scene.get('LevelScene') as any;
           if (levelScene && levelScene.addBonusMoves) {
             levelScene.addBonusMoves(5);
+            // Increment continuation attempts for next purchase
+            levelScene.continuationAttempts = this.continuationAttempts + 1;
           }
 
-          // Increment continuation attempts for next purchase
-          levelScene.continuationAttempts = this.continuationAttempts + 1;
+          // Stop this overlay scene first
+          this.scene.stop();
 
           // Resume the paused LevelScene
           this.scene.resume('LevelScene');
-
-          // Stop this overlay scene
-          this.scene.stop('EndLevelScene');
         }
       });
     }

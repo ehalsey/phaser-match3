@@ -12,6 +12,7 @@ export interface MetaProgressionState {
   coins: number;
   lastLifeRegenTime: number; // Timestamp in milliseconds
   currentLevel: number;
+  levelStars: Record<number, number>; // Level number -> stars earned (1-3)
 }
 
 export class MetaProgressionManager {
@@ -28,6 +29,7 @@ export class MetaProgressionManager {
   private coins: number;
   private lastLifeRegenTime: number;
   private currentLevel: number;
+  private levelStars: Record<number, number>;
 
   // Singleton pattern
   private constructor() {
@@ -35,6 +37,7 @@ export class MetaProgressionManager {
     this.coins = 0;
     this.lastLifeRegenTime = Date.now();
     this.currentLevel = 1;
+    this.levelStars = {};
     this.loadFromStorage();
   }
 
@@ -197,11 +200,44 @@ export class MetaProgressionManager {
 
   /**
    * Reward player for completing a level
+   * Returns coins earned and updates star rating
    */
-  public rewardLevelCompletion(score: number): number {
+  public rewardLevelCompletion(score: number, levelNumber: number): number {
     const coinsEarned = this.calculateLevelReward(score);
     this.addCoins(coinsEarned);
+
+    // Calculate and store star rating
+    const stars = this.getStarsFromCoins(coinsEarned);
+    this.setLevelStars(levelNumber, stars);
+
     return coinsEarned;
+  }
+
+  /**
+   * Convert coins earned to star rating (1-3 stars)
+   */
+  private getStarsFromCoins(coins: number): number {
+    if (coins >= 60) return 3;
+    if (coins >= 40) return 2;
+    return 1;
+  }
+
+  /**
+   * Get star rating for a level (0 if not completed)
+   */
+  public getLevelStars(levelNumber: number): number {
+    return this.levelStars[levelNumber] || 0;
+  }
+
+  /**
+   * Set star rating for a level (only if better than current)
+   */
+  private setLevelStars(levelNumber: number, stars: number): void {
+    const currentStars = this.levelStars[levelNumber] || 0;
+    if (stars > currentStars) {
+      this.levelStars[levelNumber] = stars;
+      this.saveToStorage();
+    }
   }
 
   // === Level Progression ===
@@ -239,7 +275,8 @@ export class MetaProgressionManager {
       lives: this.lives,
       coins: this.coins,
       lastLifeRegenTime: this.lastLifeRegenTime,
-      currentLevel: this.currentLevel
+      currentLevel: this.currentLevel,
+      levelStars: this.levelStars
     };
 
     try {
@@ -261,6 +298,7 @@ export class MetaProgressionManager {
         this.coins = state.coins;
         this.lastLifeRegenTime = state.lastLifeRegenTime;
         this.currentLevel = state.currentLevel || 1; // Default to 1 if not present
+        this.levelStars = state.levelStars || {}; // Default to empty if not present
 
         // Update lives based on time elapsed
         this.updateLivesFromRegen();
@@ -278,6 +316,7 @@ export class MetaProgressionManager {
     this.coins = 0;
     this.lastLifeRegenTime = Date.now();
     this.currentLevel = 1;
+    this.levelStars = {};
     this.saveToStorage();
   }
 
