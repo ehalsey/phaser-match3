@@ -1,3 +1,6 @@
+import { GemType } from './Board';
+import { GemGoal } from './LevelObjectives';
+
 /**
  * Level difficulty settings
  */
@@ -11,7 +14,7 @@ export interface LevelSettings {
   levelNumber: number;
   difficulty: LevelDifficulty;
   moves: number;
-  targetScore: number;
+  gemGoals: GemGoal[];
   boardRows: number;
   boardCols: number;
   colorCount: number;
@@ -80,29 +83,45 @@ export class LevelConfig {
     // Gradually increase difficulty as levels progress
     const progressionMultiplier = 1 + Math.floor((levelNumber - 1) / 15) * 0.1;
 
+    // Available colors for goals (rotate through them deterministically)
+    const availableColors: GemType[] = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
+    const getColor = (index: number): GemType => availableColors[(levelNumber + index) % availableColors.length];
+
     switch (difficulty) {
       case LevelDifficulty.EASY:
+        // Easy: 30 of one color
         return {
           moves: 25,
-          targetScore: Math.floor(3500 * progressionMultiplier),
+          gemGoals: [
+            { color: getColor(0), target: Math.floor(30 * progressionMultiplier), current: 0 }
+          ],
           boardRows: 8,
           boardCols: 8,
           colorCount: 5 // Fewer colors = easier matches
         };
 
       case LevelDifficulty.MEDIUM:
+        // Medium: 30 of one color + 20 of another
         return {
           moves: 20,
-          targetScore: Math.floor(5000 * progressionMultiplier),
+          gemGoals: [
+            { color: getColor(0), target: Math.floor(30 * progressionMultiplier), current: 0 },
+            { color: getColor(1), target: Math.floor(20 * progressionMultiplier), current: 0 }
+          ],
           boardRows: 8,
           boardCols: 8,
           colorCount: 5
         };
 
       case LevelDifficulty.HARD:
+        // Hard: 30 + 20 + 20 of three colors
         return {
           moves: 15,
-          targetScore: Math.floor(6000 * progressionMultiplier),
+          gemGoals: [
+            { color: getColor(0), target: Math.floor(30 * progressionMultiplier), current: 0 },
+            { color: getColor(1), target: Math.floor(20 * progressionMultiplier), current: 0 },
+            { color: getColor(2), target: Math.floor(20 * progressionMultiplier), current: 0 }
+          ],
           boardRows: 8,
           boardCols: 8,
           colorCount: 6 // More colors = harder to match

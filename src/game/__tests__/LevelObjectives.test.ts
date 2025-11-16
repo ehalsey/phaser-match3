@@ -1,27 +1,37 @@
-import { LevelObjectives, LevelStatus } from '../LevelObjectives';
+import { LevelObjectives, LevelStatus, GemGoal } from '../LevelObjectives';
 
 describe('LevelObjectives', () => {
   describe('Initialization', () => {
-    it('should initialize with correct moves and target score', () => {
-      const objectives = new LevelObjectives(20, 1000);
+    it('should initialize with correct moves and gem goals', () => {
+      const goals: GemGoal[] = [
+        { color: 'red', target: 30, current: 0 }
+      ];
+      const objectives = new LevelObjectives(20, goals);
 
       expect(objectives.getMovesRemaining()).toBe(20);
-      expect(objectives.getTargetScore()).toBe(1000);
-      expect(objectives.getCurrentScore()).toBe(0);
+      expect(objectives.getGemGoals()).toHaveLength(1);
+      expect(objectives.getGemGoal('red')).toEqual({ color: 'red', target: 30, current: 0 });
       expect(objectives.getStatus()).toBe(LevelStatus.IN_PROGRESS);
     });
 
-    it('should initialize with different values', () => {
-      const objectives = new LevelObjectives(15, 2500);
+    it('should initialize with multiple gem goals', () => {
+      const goals: GemGoal[] = [
+        { color: 'red', target: 30, current: 0 },
+        { color: 'blue', target: 20, current: 0 }
+      ];
+      const objectives = new LevelObjectives(15, goals);
 
       expect(objectives.getMovesRemaining()).toBe(15);
-      expect(objectives.getTargetScore()).toBe(2500);
+      expect(objectives.getGemGoals()).toHaveLength(2);
+      expect(objectives.getGemGoal('red')).toEqual({ color: 'red', target: 30, current: 0 });
+      expect(objectives.getGemGoal('blue')).toEqual({ color: 'blue', target: 20, current: 0 });
     });
   });
 
   describe('Move Management', () => {
     it('should decrement moves when a move is made', () => {
-      const objectives = new LevelObjectives(20, 1000);
+      const goals: GemGoal[] = [{ color: 'red', target: 30, current: 0 }];
+      const objectives = new LevelObjectives(20, goals);
 
       objectives.makeMove();
 
@@ -29,7 +39,8 @@ describe('LevelObjectives', () => {
     });
 
     it('should not go below 0 moves', () => {
-      const objectives = new LevelObjectives(1, 1000);
+      const goals: GemGoal[] = [{ color: 'red', target: 30, current: 0 }];
+      const objectives = new LevelObjectives(1, goals);
 
       objectives.makeMove();
       objectives.makeMove();
@@ -38,7 +49,8 @@ describe('LevelObjectives', () => {
     });
 
     it('should track multiple moves', () => {
-      const objectives = new LevelObjectives(20, 1000);
+      const goals: GemGoal[] = [{ color: 'red', target: 30, current: 0 }];
+      const objectives = new LevelObjectives(20, goals);
 
       objectives.makeMove();
       objectives.makeMove();
@@ -48,52 +60,108 @@ describe('LevelObjectives', () => {
     });
   });
 
-  describe('Score Management', () => {
-    it('should update current score', () => {
-      const objectives = new LevelObjectives(20, 1000);
+  describe('Gem Clearing Tracking', () => {
+    it('should track gems cleared for a goal', () => {
+      const goals: GemGoal[] = [{ color: 'red', target: 30, current: 0 }];
+      const objectives = new LevelObjectives(20, goals);
 
-      objectives.updateScore(500);
+      objectives.addGemsCleared('red', 5);
 
-      expect(objectives.getCurrentScore()).toBe(500);
+      const redGoal = objectives.getGemGoal('red');
+      expect(redGoal?.current).toBe(5);
     });
 
-    it('should update score multiple times', () => {
-      const objectives = new LevelObjectives(20, 1000);
+    it('should accumulate gems cleared across multiple calls', () => {
+      const goals: GemGoal[] = [{ color: 'red', target: 30, current: 0 }];
+      const objectives = new LevelObjectives(20, goals);
 
-      objectives.updateScore(300);
-      objectives.updateScore(800);
+      objectives.addGemsCleared('red', 5);
+      objectives.addGemsCleared('red', 10);
+      objectives.addGemsCleared('red', 3);
 
-      expect(objectives.getCurrentScore()).toBe(800);
+      const redGoal = objectives.getGemGoal('red');
+      expect(redGoal?.current).toBe(18);
+    });
+
+    it('should track multiple gem colors independently', () => {
+      const goals: GemGoal[] = [
+        { color: 'red', target: 30, current: 0 },
+        { color: 'blue', target: 20, current: 0 }
+      ];
+      const objectives = new LevelObjectives(20, goals);
+
+      objectives.addGemsCleared('red', 10);
+      objectives.addGemsCleared('blue', 5);
+      objectives.addGemsCleared('red', 5);
+
+      expect(objectives.getGemGoal('red')?.current).toBe(15);
+      expect(objectives.getGemGoal('blue')?.current).toBe(5);
+    });
+
+    it('should not exceed target when clearing gems', () => {
+      const goals: GemGoal[] = [{ color: 'red', target: 30, current: 0 }];
+      const objectives = new LevelObjectives(20, goals);
+
+      objectives.addGemsCleared('red', 25);
+      objectives.addGemsCleared('red', 10);
+
+      expect(objectives.getGemGoal('red')?.current).toBe(30);
+    });
+
+    it('should ignore gems cleared for colors not in goals', () => {
+      const goals: GemGoal[] = [{ color: 'red', target: 30, current: 0 }];
+      const objectives = new LevelObjectives(20, goals);
+
+      objectives.addGemsCleared('blue', 10);
+
+      expect(objectives.getGemGoal('blue')).toBeUndefined();
     });
   });
 
   describe('Progress Calculation', () => {
-    it('should calculate 0% progress when score is 0', () => {
-      const objectives = new LevelObjectives(20, 1000);
+    it('should calculate 0% progress when no gems cleared', () => {
+      const goals: GemGoal[] = [{ color: 'red', target: 30, current: 0 }];
+      const objectives = new LevelObjectives(20, goals);
 
       expect(objectives.getProgress()).toBe(0);
     });
 
-    it('should calculate 50% progress when score is half of target', () => {
-      const objectives = new LevelObjectives(20, 1000);
+    it('should calculate 50% progress when half of single goal met', () => {
+      const goals: GemGoal[] = [{ color: 'red', target: 30, current: 0 }];
+      const objectives = new LevelObjectives(20, goals);
 
-      objectives.updateScore(500);
+      objectives.addGemsCleared('red', 15);
 
       expect(objectives.getProgress()).toBe(0.5);
     });
 
-    it('should calculate 100% progress when score reaches target', () => {
-      const objectives = new LevelObjectives(20, 1000);
+    it('should calculate 100% progress when goal is met', () => {
+      const goals: GemGoal[] = [{ color: 'red', target: 30, current: 0 }];
+      const objectives = new LevelObjectives(20, goals);
 
-      objectives.updateScore(1000);
+      objectives.addGemsCleared('red', 30);
 
       expect(objectives.getProgress()).toBe(1.0);
     });
 
-    it('should cap progress at 100% even if score exceeds target', () => {
-      const objectives = new LevelObjectives(20, 1000);
+    it('should calculate average progress across multiple goals', () => {
+      const goals: GemGoal[] = [
+        { color: 'red', target: 30, current: 0 },
+        { color: 'blue', target: 20, current: 0 }
+      ];
+      const objectives = new LevelObjectives(20, goals);
 
-      objectives.updateScore(1500);
+      objectives.addGemsCleared('red', 30); // 100%
+      objectives.addGemsCleared('blue', 10); // 50%
+
+      expect(objectives.getProgress()).toBe(0.75); // (100% + 50%) / 2
+    });
+
+    it('should cap progress at 100% even if goals exceeded', () => {
+      const goals: GemGoal[] = [{ color: 'red', target: 30, current: 0 }];
+      const objectives = new LevelObjectives(20, goals);
+
+      objectives.addGemsCleared('red', 50);
 
       expect(objectives.getProgress()).toBe(1.0);
     });
@@ -101,52 +169,73 @@ describe('LevelObjectives', () => {
 
   describe('Level Status', () => {
     it('should be IN_PROGRESS when level starts', () => {
-      const objectives = new LevelObjectives(20, 1000);
+      const goals: GemGoal[] = [{ color: 'red', target: 30, current: 0 }];
+      const objectives = new LevelObjectives(20, goals);
 
       expect(objectives.getStatus()).toBe(LevelStatus.IN_PROGRESS);
     });
 
-    it('should be PASSED when target score is reached', () => {
-      const objectives = new LevelObjectives(20, 1000);
+    it('should be PASSED when all goals are met', () => {
+      const goals: GemGoal[] = [{ color: 'red', target: 30, current: 0 }];
+      const objectives = new LevelObjectives(20, goals);
 
-      objectives.updateScore(1000);
-      objectives.makeMove();
-
-      expect(objectives.getStatus()).toBe(LevelStatus.PASSED);
-    });
-
-    it('should be PASSED even if score exceeds target', () => {
-      const objectives = new LevelObjectives(20, 1000);
-
-      objectives.updateScore(1500);
-      objectives.makeMove();
+      objectives.addGemsCleared('red', 30);
 
       expect(objectives.getStatus()).toBe(LevelStatus.PASSED);
     });
 
-    it('should be FAILED when moves run out without reaching target', () => {
-      const objectives = new LevelObjectives(2, 1000);
+    it('should be PASSED when all multiple goals are met', () => {
+      const goals: GemGoal[] = [
+        { color: 'red', target: 30, current: 0 },
+        { color: 'blue', target: 20, current: 0 }
+      ];
+      const objectives = new LevelObjectives(20, goals);
 
-      objectives.updateScore(500);
+      objectives.addGemsCleared('red', 30);
+      objectives.addGemsCleared('blue', 20);
+
+      expect(objectives.getStatus()).toBe(LevelStatus.PASSED);
+    });
+
+    it('should be FAILED when moves run out without meeting goals', () => {
+      const goals: GemGoal[] = [{ color: 'red', target: 30, current: 0 }];
+      const objectives = new LevelObjectives(2, goals);
+
+      objectives.addGemsCleared('red', 15);
       objectives.makeMove();
       objectives.makeMove();
 
       expect(objectives.getStatus()).toBe(LevelStatus.FAILED);
     });
 
-    it('should be IN_PROGRESS when there are moves left and target not reached', () => {
-      const objectives = new LevelObjectives(20, 1000);
+    it('should be IN_PROGRESS when there are moves left and goals not met', () => {
+      const goals: GemGoal[] = [{ color: 'red', target: 30, current: 0 }];
+      const objectives = new LevelObjectives(20, goals);
 
-      objectives.updateScore(500);
+      objectives.addGemsCleared('red', 15);
       objectives.makeMove();
 
       expect(objectives.getStatus()).toBe(LevelStatus.IN_PROGRESS);
     });
 
-    it('should be PASSED when target reached on last move', () => {
-      const objectives = new LevelObjectives(1, 1000);
+    it('should be IN_PROGRESS when only some goals met', () => {
+      const goals: GemGoal[] = [
+        { color: 'red', target: 30, current: 0 },
+        { color: 'blue', target: 20, current: 0 }
+      ];
+      const objectives = new LevelObjectives(20, goals);
 
-      objectives.updateScore(1000);
+      objectives.addGemsCleared('red', 30);
+      objectives.addGemsCleared('blue', 10);
+
+      expect(objectives.getStatus()).toBe(LevelStatus.IN_PROGRESS);
+    });
+
+    it('should be PASSED when goals met on last move', () => {
+      const goals: GemGoal[] = [{ color: 'red', target: 30, current: 0 }];
+      const objectives = new LevelObjectives(1, goals);
+
+      objectives.addGemsCleared('red', 30);
       objectives.makeMove();
 
       expect(objectives.getStatus()).toBe(LevelStatus.PASSED);
@@ -155,32 +244,35 @@ describe('LevelObjectives', () => {
 
   describe('Level Completion Check', () => {
     it('should not be complete at start', () => {
-      const objectives = new LevelObjectives(20, 1000);
+      const goals: GemGoal[] = [{ color: 'red', target: 30, current: 0 }];
+      const objectives = new LevelObjectives(20, goals);
 
       expect(objectives.isComplete()).toBe(false);
     });
 
-    it('should be complete when target is reached', () => {
-      const objectives = new LevelObjectives(20, 1000);
+    it('should be complete when all goals are met', () => {
+      const goals: GemGoal[] = [{ color: 'red', target: 30, current: 0 }];
+      const objectives = new LevelObjectives(20, goals);
 
-      objectives.updateScore(1000);
-      objectives.makeMove();
+      objectives.addGemsCleared('red', 30);
 
       expect(objectives.isComplete()).toBe(true);
     });
 
     it('should be complete when moves run out', () => {
-      const objectives = new LevelObjectives(1, 1000);
+      const goals: GemGoal[] = [{ color: 'red', target: 30, current: 0 }];
+      const objectives = new LevelObjectives(1, goals);
 
       objectives.makeMove();
 
       expect(objectives.isComplete()).toBe(true);
     });
 
-    it('should not be complete if moves remain and target not reached', () => {
-      const objectives = new LevelObjectives(20, 1000);
+    it('should not be complete if moves remain and goals not met', () => {
+      const goals: GemGoal[] = [{ color: 'red', target: 30, current: 0 }];
+      const objectives = new LevelObjectives(20, goals);
 
-      objectives.updateScore(500);
+      objectives.addGemsCleared('red', 15);
       objectives.makeMove();
 
       expect(objectives.isComplete()).toBe(false);

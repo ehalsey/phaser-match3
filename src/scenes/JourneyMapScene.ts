@@ -204,7 +204,16 @@ export class JourneyMapScene extends Phaser.Scene {
     }).setOrigin(0.5);
     panel.add(movesText);
 
-    const targetText = this.add.text(0, 32, `Target: ${levelSettings.targetScore}`, {
+    // Display gem goals
+    const goalText = levelSettings.gemGoals.map((goal: any) => {
+      const emojiMap: Record<string, string> = {
+        red: '🔴', blue: '🔵', green: '🟢',
+        yellow: '🟡', purple: '🟣', orange: '🟠'
+      };
+      return `${emojiMap[goal.color]} ${goal.target}`;
+    }).join(' ');
+
+    const targetText = this.add.text(0, 32, `Goals: ${goalText}`, {
       fontSize: '14px',
       color: '#ecf0f1'
     }).setOrigin(0.5);

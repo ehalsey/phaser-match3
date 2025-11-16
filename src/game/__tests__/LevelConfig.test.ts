@@ -8,7 +8,8 @@ describe('LevelConfig', () => {
       expect(level.levelNumber).toBe(1);
       expect(level.difficulty).toBe(LevelDifficulty.EASY);
       expect(level.moves).toBeGreaterThan(0);
-      expect(level.targetScore).toBeGreaterThan(0);
+      expect(level.gemGoals).toBeDefined();
+      expect(level.gemGoals.length).toBeGreaterThan(0);
       expect(level.boardRows).toBeGreaterThan(0);
       expect(level.boardCols).toBeGreaterThan(0);
       expect(level.colorCount).toBeGreaterThan(0);
@@ -108,18 +109,23 @@ describe('LevelConfig', () => {
       expect(medium.moves).toBeGreaterThan(hard.moves);
     });
 
-    it('should give easy levels lower target score than medium', () => {
+    it('should give easy levels fewer gem goals than hard', () => {
       const easy = LevelConfig.getLevel(1);
-      const medium = LevelConfig.getLevel(2);
-
-      expect(easy.targetScore).toBeLessThan(medium.targetScore);
-    });
-
-    it('should give medium levels lower target score than hard', () => {
-      const medium = LevelConfig.getLevel(2);
       const hard = LevelConfig.getLevel(5);
 
-      expect(medium.targetScore).toBeLessThan(hard.targetScore);
+      expect(easy.gemGoals.length).toBeLessThanOrEqual(hard.gemGoals.length);
+    });
+
+    it('should give easy levels one gem goal', () => {
+      const easy = LevelConfig.getLevel(1);
+
+      expect(easy.gemGoals.length).toBe(1);
+    });
+
+    it('should give hard levels three gem goals', () => {
+      const hard = LevelConfig.getLevel(5);
+
+      expect(hard.gemGoals.length).toBe(3);
     });
 
     it('should use fewer colors for easy levels', () => {
@@ -131,14 +137,18 @@ describe('LevelConfig', () => {
   });
 
   describe('Progressive Difficulty', () => {
-    it('should increase target score as player progresses through level sets', () => {
+    it('should increase gem goal targets as player progresses through level sets', () => {
       const level1 = LevelConfig.getLevel(1);
       const level16 = LevelConfig.getLevel(16); // Same difficulty, next cycle
       const level31 = LevelConfig.getLevel(31); // Same difficulty, two cycles later
 
-      // Same difficulty type, but later levels should have higher scores
-      expect(level16.targetScore).toBeGreaterThan(level1.targetScore);
-      expect(level31.targetScore).toBeGreaterThan(level16.targetScore);
+      // Same difficulty type, but later levels should have higher gem targets
+      const level1Total = level1.gemGoals.reduce((sum, goal) => sum + goal.target, 0);
+      const level16Total = level16.gemGoals.reduce((sum, goal) => sum + goal.target, 0);
+      const level31Total = level31.gemGoals.reduce((sum, goal) => sum + goal.target, 0);
+
+      expect(level16Total).toBeGreaterThan(level1Total);
+      expect(level31Total).toBeGreaterThan(level16Total);
     });
   });
 

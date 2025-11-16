@@ -7,16 +7,14 @@ export class EndLevelScene extends Phaser.Scene {
   private coinsEarned: number = 0;
   private metaManager!: MetaProgressionManager;
   private levelStatus: LevelStatus = LevelStatus.FAILED;
-  private targetScore: number = 0;
 
   constructor() {
     super({ key: 'EndLevelScene' });
   }
 
-  init(data: { score: number, status: LevelStatus, movesRemaining: number, targetScore: number, levelNumber: number }): void {
+  init(data: { score: number, status: LevelStatus, movesRemaining: number, levelNumber: number }): void {
     this.finalScore = data.score || 0;
     this.levelStatus = data.status || LevelStatus.FAILED;
-    this.targetScore = data.targetScore || 0;
     this.metaManager = MetaProgressionManager.getInstance();
 
     // Handle level completion
@@ -50,9 +48,9 @@ export class EndLevelScene extends Phaser.Scene {
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
-    // Show target score info
+    // Show gem goals message
     if (!isPassed) {
-      this.add.text(centerX, centerY - 140, `Target: ${this.targetScore}`, {
+      this.add.text(centerX, centerY - 140, `Goals not met!`, {
         fontSize: '20px',
         color: '#95a5a6'
       }).setOrigin(0.5);

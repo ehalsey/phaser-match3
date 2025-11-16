@@ -47,7 +47,9 @@ export class LevelScene extends Phaser.Scene {
       levelNumber: 1,
       difficulty: 'medium' as any,
       moves: 20,
-      targetScore: 5000,
+      gemGoals: [
+        { color: 'red', target: 30, current: 0 }
+      ],
       boardRows: 8,
       boardCols: 8,
       colorCount: 5
@@ -120,7 +122,7 @@ export class LevelScene extends Phaser.Scene {
     if (this.objectivesEnabled) {
       this.objectives = new LevelObjectives(
         this.levelSettings.moves,
-        this.levelSettings.targetScore
+        this.levelSettings.gemGoals
       );
       this.updateObjectivesDisplay();
     }
@@ -229,8 +231,28 @@ export class LevelScene extends Phaser.Scene {
   private generateRandomBoard(): void {
     const rows = this.board.getRows();
     const cols = this.board.getCols();
-    // Level 1 uses 5 colors (orange reserved for later levels)
-    const gemTypes: GemType[] = ['red', 'blue', 'green', 'yellow', 'purple'];
+
+    // Determine which colors to use based on level settings
+    let gemTypes: GemType[] = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
+
+    // If objectives are enabled, ensure goal colors are included
+    if (this.objectivesEnabled && this.levelSettings.gemGoals) {
+      const goalColors = this.levelSettings.gemGoals.map(goal => goal.color);
+
+      // Start with goal colors, then add other colors up to colorCount
+      const otherColors = gemTypes.filter(c => !goalColors.includes(c));
+      const colorsToUse = [...goalColors];
+
+      // Add additional colors to reach the desired colorCount
+      while (colorsToUse.length < this.levelSettings.colorCount && otherColors.length > 0) {
+        colorsToUse.push(otherColors.shift()!);
+      }
+
+      gemTypes = colorsToUse;
+    } else {
+      // Use the first N colors based on colorCount
+      gemTypes = gemTypes.slice(0, this.levelSettings.colorCount);
+    }
 
     const config: (GemType | null)[][] = [];
 
@@ -405,6 +427,7 @@ export class LevelScene extends Phaser.Scene {
 
   private handleBombExplosions(bombPositions: Position[]): void {
     const spritesToClear: GemSprite[] = [];
+    const gemCounts = new Map<GemType, number>();
 
     // Explode each bomb and collect sprites to clear
     for (const bombPos of bombPositions) {
@@ -415,6 +438,17 @@ export class LevelScene extends Phaser.Scene {
       this.score += explosionBonus;
       this.updateScore();
 
+      // Track cleared gems by color for objectives (before they're removed from board)
+      if (this.objectivesEnabled) {
+        for (const pos of explodedPositions) {
+          const gem = this.board.getGemAt(pos.row, pos.col);
+          if (gem && gem.special !== 'bomb') { // Don't count bombs themselves
+            const count = gemCounts.get(gem.color) || 0;
+            gemCounts.set(gem.color, count + 1);
+          }
+        }
+      }
+
       // Collect sprites for animation
       for (const pos of explodedPositions) {
         const key = `${pos.row},${pos.col}`;
@@ -423,6 +457,14 @@ export class LevelScene extends Phaser.Scene {
           spritesToClear.push(sprite);
         }
       }
+    }
+
+    // Update objectives with cleared gem counts
+    if (this.objectivesEnabled && gemCounts.size > 0) {
+      for (const [color, count] of gemCounts.entries()) {
+        this.objectives.addGemsCleared(color, count);
+      }
+      this.updateObjectivesDisplay();
     }
 
     // Animate explosion
@@ -501,6 +543,27 @@ export class LevelScene extends Phaser.Scene {
     });
 
     this.time.delayedCall(450, () => {
+      // Track cleared gems by color for objectives
+      if (this.objectivesEnabled && matches.length > 0) {
+        const gemCounts = new Map<GemType, number>();
+
+        for (const match of matches) {
+          for (const pos of match.positions) {
+            const gem = this.board.getGemAt(pos.row, pos.col);
+            if (gem) {
+              const count = gemCounts.get(gem.color) || 0;
+              gemCounts.set(gem.color, count + 1);
+            }
+          }
+        }
+
+        // Update objectives with cleared gem counts
+        for (const [color, count] of gemCounts.entries()) {
+          this.objectives.addGemsCleared(color, count);
+        }
+        this.updateObjectivesDisplay();
+      }
+
       this.board.clearMatches(matches);
 
       // Create bombs at specified positions (from 4+ matches)
@@ -629,14 +692,22 @@ export class LevelScene extends Phaser.Scene {
       domScore.textContent = `Score: ${this.score}`;
     }
 
-    // Update objectives with new score (if objectives enabled)
+    // Check if level is complete (if objectives enabled)
     if (this.objectivesEnabled) {
-      this.objectives.updateScore(this.score);
-      this.updateObjectivesDisplay();
-
-      // Check if level is complete
       this.checkLevelCompletion();
     }
+  }
+
+  private getGemEmoji(color: GemType): string {
+    const emojiMap: Record<GemType, string> = {
+      red: '🔴',
+      blue: '🔵',
+      green: '🟢',
+      yellow: '🟡',
+      purple: '🟣',
+      orange: '🟠'
+    };
+    return emojiMap[color];
   }
 
   private updateObjectivesDisplay(): void {
@@ -658,10 +729,16 @@ export class LevelScene extends Phaser.Scene {
       }
     }
 
-    // Update target display
+    // Update gem goals display
     const targetElement = document.getElementById('game-target');
     if (targetElement) {
-      targetElement.textContent = `Target: ${this.objectives.getTargetScore()}`;
+      const goals = this.objectives.getGemGoals();
+      const goalTexts = goals.map(goal => {
+        const colorEmoji = this.getGemEmoji(goal.color);
+        const progress = `${goal.current}/${goal.target}`;
+        return `${colorEmoji} ${progress}`;
+      });
+      targetElement.textContent = goalTexts.join('  ');
     }
 
     // Update progress bar
@@ -688,7 +765,6 @@ export class LevelScene extends Phaser.Scene {
           score: this.score,
           status: status,
           movesRemaining: this.objectives.getMovesRemaining(),
-          targetScore: this.objectives.getTargetScore(),
           levelNumber: this.levelNumber
         });
       });

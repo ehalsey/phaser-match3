@@ -69,7 +69,16 @@ export class LevelJourneyScene extends Phaser.Scene {
       color: '#3498db'
     }).setOrigin(0.5);
 
-    this.add.text(centerX, detailsY + 75, `Target Score: ${levelSettings.targetScore}`, {
+    // Display gem goals
+    const gemGoalsText = levelSettings.gemGoals.map(goal => {
+      const emojiMap: Record<string, string> = {
+        red: '🔴', blue: '🔵', green: '🟢',
+        yellow: '🟡', purple: '🟣', orange: '🟠'
+      };
+      return `${emojiMap[goal.color]} ${goal.target}`;
+    }).join(' ');
+
+    this.add.text(centerX, detailsY + 75, `Goals: ${gemGoalsText}`, {
       fontSize: '22px',
       color: '#2ecc71'
     }).setOrigin(0.5);
