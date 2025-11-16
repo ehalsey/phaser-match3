@@ -237,11 +237,11 @@ export class EndLevelScene extends Phaser.Scene {
             levelScene.continuationAttempts = this.continuationAttempts + 1;
           }
 
-          // Stop this overlay scene first
-          this.scene.stop();
-
-          // Resume the paused LevelScene
+          // Resume the paused LevelScene FIRST
           this.scene.resume('LevelScene');
+
+          // Then stop this overlay scene (use 'EndLevelScene' explicitly)
+          this.scene.stop('EndLevelScene');
         }
       });
     }
