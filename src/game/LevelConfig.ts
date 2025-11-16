@@ -101,12 +101,12 @@ export class LevelConfig {
         };
 
       case LevelDifficulty.MEDIUM:
-        // Medium: 30 of one color + 20 of another
+        // Medium: 20 of one color + 13 of another (reduced by 1/3 from easy)
         return {
           moves: 20,
           gemGoals: [
-            { color: getColor(0), target: Math.floor(30 * progressionMultiplier), current: 0 },
-            { color: getColor(1), target: Math.floor(20 * progressionMultiplier), current: 0 }
+            { color: getColor(0), target: Math.floor(20 * progressionMultiplier), current: 0 },
+            { color: getColor(1), target: Math.floor(13 * progressionMultiplier), current: 0 }
           ],
           boardRows: 8,
           boardCols: 8,

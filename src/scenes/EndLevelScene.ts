@@ -87,12 +87,16 @@ export class EndLevelScene extends Phaser.Scene {
         fontSize: '24px',
         color: '#ecf0f1'
       }).setOrigin(0.5);
+
+      // Add Buy Life button for failed levels
+      this.createBuyLifeButton(centerX, centerY + 60);
     }
 
-    // Next Level / Try Again button
-    const nextButton = this.add.rectangle(centerX, centerY + 100, 250, 70, 0x3498db);
+    // Next Level / Try Again button (shifted down if failed)
+    const nextButtonY = isPassed ? centerY + 100 : centerY + 135;
+    const nextButton = this.add.rectangle(centerX, nextButtonY, 250, 70, 0x3498db);
     const buttonText = isPassed ? 'Next Level' : 'Try Again';
-    const nextText = this.add.text(centerX, centerY + 100, buttonText, {
+    const nextText = this.add.text(centerX, nextButtonY, buttonText, {
       fontSize: '28px',
       color: '#ffffff',
       fontStyle: 'bold'
@@ -106,11 +110,12 @@ export class EndLevelScene extends Phaser.Scene {
       nextText.setText('No Lives!');
     }
 
-    // Main Menu button
-    const menuButton = this.add.rectangle(centerX, centerY + 190, 250, 70, 0x95a5a6);
+    // Main Menu button (shifted down if failed)
+    const menuButtonY = isPassed ? centerY + 190 : centerY + 225;
+    const menuButton = this.add.rectangle(centerX, menuButtonY, 250, 70, 0x95a5a6);
     menuButton.setInteractive({ useHandCursor: true });
 
-    const menuText = this.add.text(centerX, centerY + 190, 'Main Menu', {
+    const menuText = this.add.text(centerX, menuButtonY, 'Main Menu', {
       fontSize: '28px',
       color: '#ffffff',
       fontStyle: 'bold'
@@ -149,5 +154,68 @@ export class EndLevelScene extends Phaser.Scene {
     menuButton.on('pointerdown', () => {
       this.scene.start('JourneyMapScene');
     });
+  }
+
+  private createBuyLifeButton(x: number, y: number): void {
+    const lifeCost = this.metaManager.getLifeCost();
+    const currentCoins = this.metaManager.getCoins();
+    const canAfford = currentCoins >= lifeCost;
+    const hasMaxLives = this.metaManager.getLives() >= this.metaManager.getMaxLives();
+
+    // Buy Life button
+    const buyButton = this.add.rectangle(x, y, 250, 60, 0x27ae60);
+    const buyText = this.add.text(x, y - 8, 'Buy Life', {
+      fontSize: '24px',
+      color: '#ffffff',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    // Cost display
+    this.add.circle(x - 40, y + 12, 8, 0xf1c40f);
+    const costText = this.add.text(x, y + 10, `-${lifeCost}`, {
+      fontSize: '18px',
+      color: '#f1c40f',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    // Disable if can't afford or at max lives
+    if (!canAfford || hasMaxLives) {
+      buyButton.setFillStyle(0x7f8c8d);
+      buyButton.setAlpha(0.5);
+      buyText.setAlpha(0.5);
+      costText.setAlpha(0.5);
+
+      if (!canAfford) {
+        buyText.setText('Not enough coins');
+        costText.setVisible(false);
+      } else if (hasMaxLives) {
+        buyText.setText('Max Lives');
+        costText.setVisible(false);
+      }
+    } else {
+      buyButton.setInteractive({ useHandCursor: true });
+
+      buyButton.on('pointerover', () => {
+        buyButton.setFillStyle(0x229954);
+        buyButton.setScale(1.05);
+        buyText.setScale(1.05);
+        costText.setScale(1.05);
+      });
+
+      buyButton.on('pointerout', () => {
+        buyButton.setFillStyle(0x27ae60);
+        buyButton.setScale(1.0);
+        buyText.setScale(1.0);
+        costText.setScale(1.0);
+      });
+
+      buyButton.on('pointerdown', () => {
+        const success = this.metaManager.buyLife();
+        if (success) {
+          // Refresh the scene to update button states
+          this.scene.restart({ score: this.finalScore, status: this.levelStatus, movesRemaining: 0, levelNumber: 0 });
+        }
+      });
+    }
   }
 }
