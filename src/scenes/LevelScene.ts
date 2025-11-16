@@ -3,6 +3,7 @@ import { Board, BombCreation, Gem, GemType, Position } from '../game/Board';
 import { BoardConfig } from '../game/BoardConfig';
 import { LevelObjectives, LevelStatus } from '../game/LevelObjectives';
 import { LevelSettings } from '../game/LevelConfig';
+import { MetaProgressionManager } from '../game/MetaProgressionManager';
 
 interface GemSprite {
   circle: any; // Phaser.GameObjects.Circle type not exported correctly
@@ -62,6 +63,10 @@ export class LevelScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Consume a life when starting the level
+    const metaManager = MetaProgressionManager.getInstance();
+    metaManager.consumeLife();
+
     // Show objectives UI (hidden by default in HTML)
     const objectivesDiv = document.getElementById('game-objectives');
     const progressDiv = document.getElementById('game-progress-container');

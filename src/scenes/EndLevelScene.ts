@@ -25,8 +25,7 @@ export class EndLevelScene extends Phaser.Scene {
       this.coinsEarned = this.metaManager.rewardLevelCompletion(this.finalScore);
       this.metaManager.advanceToNextLevel();
     } else {
-      // Consume a life on failure
-      this.metaManager.consumeLife();
+      // No coins on failure
       this.coinsEarned = 0;
     }
   }
