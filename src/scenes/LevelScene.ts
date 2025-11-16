@@ -776,15 +776,23 @@ export class LevelScene extends Phaser.Scene {
 
   private checkLevelCompletion(): void {
     if (this.objectives.isComplete()) {
-      const status = this.objectives.getStatus();
-
       // Delay transition to show final score/animation
       this.time.delayedCall(1000, () => {
-        if (status === LevelStatus.PASSED) {
+        // Re-check status in case player bought more turns
+        const currentStatus = this.objectives.getStatus();
+        console.log('[LevelScene] Delayed completion check - status:', currentStatus);
+
+        // Only proceed if still complete (not IN_PROGRESS due to bought turns)
+        if (!this.objectives.isComplete()) {
+          console.log('[LevelScene] Level no longer complete (bought turns?) - aborting transition');
+          return;
+        }
+
+        if (currentStatus === LevelStatus.PASSED) {
           // On success, stop this scene and start EndLevelScene
           this.scene.start('EndLevelScene', {
             score: this.score,
-            status: status,
+            status: currentStatus,
             movesRemaining: this.objectives.getMovesRemaining(),
             levelNumber: this.levelNumber,
             continuationAttempts: this.continuationAttempts
@@ -798,7 +806,7 @@ export class LevelScene extends Phaser.Scene {
           console.log('[LevelScene] Scene is now sleeping, launching EndLevelScene overlay');
           this.scene.launch('EndLevelScene', {
             score: this.score,
-            status: status,
+            status: currentStatus,
             movesRemaining: this.objectives.getMovesRemaining(),
             levelNumber: this.levelNumber,
             continuationAttempts: this.continuationAttempts
