@@ -7,7 +7,6 @@ export class EndLevelScene extends Phaser.Scene {
   private coinsEarned: number = 0;
   private metaManager!: MetaProgressionManager;
   private levelStatus: LevelStatus = LevelStatus.FAILED;
-  private levelNumber: number = 1;
   private continuationAttempts: number = 0;
 
   constructor() {
@@ -17,7 +16,6 @@ export class EndLevelScene extends Phaser.Scene {
   init(data: { score: number, status: LevelStatus, movesRemaining: number, levelNumber: number, continuationAttempts?: number }): void {
     this.finalScore = data.score || 0;
     this.levelStatus = data.status || LevelStatus.FAILED;
-    this.levelNumber = data.levelNumber || 1;
     this.continuationAttempts = data.continuationAttempts || 0;
     this.metaManager = MetaProgressionManager.getInstance();
 
@@ -139,6 +137,10 @@ export class EndLevelScene extends Phaser.Scene {
     });
 
     nextButton.on('pointerdown', () => {
+      // If level failed, LevelScene is paused - stop it first
+      if (!isPassed && this.scene.isActive('LevelScene')) {
+        this.scene.stop('LevelScene');
+      }
       this.scene.start('JourneyMapScene');
     });
 
@@ -156,6 +158,10 @@ export class EndLevelScene extends Phaser.Scene {
     });
 
     menuButton.on('pointerdown', () => {
+      // If level failed, LevelScene is paused - stop it first
+      if (!isPassed && this.scene.isActive('LevelScene')) {
+        this.scene.stop('LevelScene');
+      }
       this.scene.start('JourneyMapScene');
     });
   }
@@ -211,12 +217,20 @@ export class EndLevelScene extends Phaser.Scene {
         // Deduct coins
         const success = this.metaManager.spendCoins(turnsCost);
         if (success) {
-          // Restart the level with bonus moves
-          this.scene.start('LevelScene', {
-            levelNumber: this.levelNumber,
-            bonusMoves: 5,
-            continuationAttempts: this.continuationAttempts + 1
-          });
+          // Get the paused LevelScene and add bonus moves
+          const levelScene = this.scene.get('LevelScene') as any;
+          if (levelScene && levelScene.addBonusMoves) {
+            levelScene.addBonusMoves(5);
+          }
+
+          // Increment continuation attempts for next purchase
+          levelScene.continuationAttempts = this.continuationAttempts + 1;
+
+          // Resume the paused LevelScene
+          this.scene.resume('LevelScene');
+
+          // Stop this overlay scene
+          this.scene.stop('EndLevelScene');
         }
       });
     }

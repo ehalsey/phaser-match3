@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { Board, BombCreation, Gem, GemType, Position } from '../game/Board';
 import { BoardConfig } from '../game/BoardConfig';
-import { LevelObjectives } from '../game/LevelObjectives';
+import { LevelObjectives, LevelStatus } from '../game/LevelObjectives';
 import { LevelSettings } from '../game/LevelConfig';
 
 interface GemSprite {
@@ -22,8 +22,7 @@ export class LevelScene extends Phaser.Scene {
   private objectivesEnabled: boolean = true;
   private levelNumber: number = 1;
   private levelSettings!: LevelSettings;
-  private bonusMoves: number = 0;
-  private continuationAttempts: number = 0;
+  public continuationAttempts: number = 0;
 
   private readonly CELL_SIZE = 80;
   private readonly BOARD_OFFSET_X = 50;  // Match main.ts
@@ -43,10 +42,9 @@ export class LevelScene extends Phaser.Scene {
     super({ key: 'LevelScene' });
   }
 
-  init(data: { levelNumber?: number, levelSettings?: LevelSettings, bonusMoves?: number, continuationAttempts?: number }): void {
+  init(data: { levelNumber?: number, levelSettings?: LevelSettings }): void {
     this.levelNumber = data.levelNumber || 1;
-    this.bonusMoves = data.bonusMoves || 0;
-    this.continuationAttempts = data.continuationAttempts || 0;
+    this.continuationAttempts = 0; // Reset for new level
     this.levelSettings = data.levelSettings || {
       levelNumber: 1,
       difficulty: 'medium' as any,
@@ -125,7 +123,7 @@ export class LevelScene extends Phaser.Scene {
     // Initialize level objectives only if enabled (use level settings)
     if (this.objectivesEnabled) {
       this.objectives = new LevelObjectives(
-        this.levelSettings.moves + this.bonusMoves,
+        this.levelSettings.moves,
         this.levelSettings.gemGoals
       );
       this.updateObjectivesDisplay();
@@ -771,15 +769,36 @@ export class LevelScene extends Phaser.Scene {
 
       // Delay transition to show final score/animation
       this.time.delayedCall(1000, () => {
-        this.scene.start('EndLevelScene', {
-          score: this.score,
-          status: status,
-          movesRemaining: this.objectives.getMovesRemaining(),
-          levelNumber: this.levelNumber,
-          continuationAttempts: this.continuationAttempts
-        });
+        if (status === LevelStatus.PASSED) {
+          // On success, stop this scene and start EndLevelScene
+          this.scene.start('EndLevelScene', {
+            score: this.score,
+            status: status,
+            movesRemaining: this.objectives.getMovesRemaining(),
+            levelNumber: this.levelNumber,
+            continuationAttempts: this.continuationAttempts
+          });
+        } else {
+          // On failure, pause this scene and launch EndLevelScene as overlay
+          this.scene.pause();
+          this.scene.launch('EndLevelScene', {
+            score: this.score,
+            status: status,
+            movesRemaining: this.objectives.getMovesRemaining(),
+            levelNumber: this.levelNumber,
+            continuationAttempts: this.continuationAttempts
+          });
+        }
       });
     }
+  }
+
+  /**
+   * Called when player buys more turns - adds moves and resumes play
+   */
+  public addBonusMoves(count: number): void {
+    this.objectives.addMoves(count);
+    this.updateObjectivesDisplay();
   }
 
   private showAllCellIds(visible: boolean): void {

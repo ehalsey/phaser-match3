@@ -50,6 +50,14 @@ export class LevelObjectives {
   }
 
   /**
+   * Adds additional moves (used for buy turns feature)
+   * @param count - Number of moves to add
+   */
+  addMoves(count: number): void {
+    this.movesRemaining += count;
+  }
+
+  /**
    * Adds cleared gems to the goal tracker
    * @param color - The color of gems cleared
    * @param count - Number of gems cleared
