@@ -790,8 +790,8 @@ export class LevelScene extends Phaser.Scene {
             continuationAttempts: this.continuationAttempts
           });
         } else {
-          // On failure, pause this scene and launch EndLevelScene as overlay
-          this.scene.pause();
+          // On failure, sleep this scene and launch EndLevelScene as overlay
+          this.scene.sleep();
           this.scene.launch('EndLevelScene', {
             score: this.score,
             status: status,

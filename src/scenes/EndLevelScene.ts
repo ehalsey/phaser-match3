@@ -149,8 +149,8 @@ export class EndLevelScene extends Phaser.Scene {
     });
 
     nextButton.on('pointerdown', () => {
-      // If level failed, LevelScene is paused - stop it first
-      if (!isPassed && this.scene.isActive('LevelScene')) {
+      // If level failed, LevelScene is sleeping - stop it first
+      if (!isPassed && this.scene.isSleeping('LevelScene')) {
         this.scene.stop('LevelScene');
       }
       this.scene.start('JourneyMapScene');
@@ -170,8 +170,8 @@ export class EndLevelScene extends Phaser.Scene {
     });
 
     menuButton.on('pointerdown', () => {
-      // If level failed, LevelScene is paused - stop it first
-      if (!isPassed && this.scene.isActive('LevelScene')) {
+      // If level failed, LevelScene is sleeping - stop it first
+      if (!isPassed && this.scene.isSleeping('LevelScene')) {
         this.scene.stop('LevelScene');
       }
       this.scene.start('JourneyMapScene');
@@ -229,7 +229,7 @@ export class EndLevelScene extends Phaser.Scene {
         // Deduct coins
         const success = this.metaManager.spendCoins(turnsCost);
         if (success) {
-          // Get the paused LevelScene and add bonus moves
+          // Get the sleeping LevelScene and add bonus moves
           const levelScene = this.scene.get('LevelScene') as any;
           if (levelScene && levelScene.addBonusMoves) {
             levelScene.addBonusMoves(5);
@@ -237,11 +237,11 @@ export class EndLevelScene extends Phaser.Scene {
             levelScene.continuationAttempts = this.continuationAttempts + 1;
           }
 
-          // Resume the paused LevelScene FIRST
-          this.scene.resume('LevelScene');
+          // Stop this overlay scene first
+          this.scene.stop();
 
-          // Then stop this overlay scene (use 'EndLevelScene' explicitly)
-          this.scene.stop('EndLevelScene');
+          // Wake the sleeping LevelScene
+          this.scene.wake('LevelScene');
         }
       });
     }
