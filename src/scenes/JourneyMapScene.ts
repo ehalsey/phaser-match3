@@ -5,8 +5,11 @@ import { MetaProgressionManager } from '../game/MetaProgressionManager';
 export class JourneyMapScene extends Phaser.Scene {
   private metaManager!: MetaProgressionManager;
   private currentLevel: number = 1;
-  private readonly LEVELS_TO_SHOW = 10; // Show current + 9 more
   private readonly LEVEL_NODE_SIZE = 60;
+  private readonly MAX_LEVELS_TO_SHOW = 50; // Show up to 50 levels total
+  private levelContainer!: Phaser.GameObjects.Container;
+  private scrollY: number = 0;
+  private readonly SCROLL_SPEED = 30;
 
   constructor() {
     super({ key: 'JourneyMapScene' });
@@ -19,36 +22,106 @@ export class JourneyMapScene extends Phaser.Scene {
     this.metaManager = MetaProgressionManager.getInstance();
     this.currentLevel = this.metaManager.getCurrentLevel();
 
-    // Background
+    // Background (fixed, doesn't scroll)
     this.add.rectangle(0, 0, width, height, 0x1a1a2e).setOrigin(0);
 
-    // Title
+    // Title (fixed, doesn't scroll)
     this.add.text(centerX, 60, 'Level Journey', {
       fontSize: '48px',
       color: '#f1c40f',
       fontStyle: 'bold'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(1000);
 
-    // Subtitle with current level
+    // Subtitle with current level (fixed, doesn't scroll)
     this.add.text(centerX, 110, `Your Progress: Level ${this.currentLevel}`, {
       fontSize: '20px',
       color: '#95a5a6'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setDepth(1000);
+
+    // Create scrollable container for level map
+    this.levelContainer = this.add.container(0, 0);
 
     // Draw level path/map
     this.createLevelMap(centerX, 180);
 
-    // Back to menu button (top-left)
+    // Scroll to current level
+    this.scrollToCurrentLevel();
+
+    // Enable mouse wheel scrolling
+    this.input.on('wheel', (_pointer: any, _gameObjects: any, _deltaX: number, deltaY: number) => {
+      this.scroll(deltaY > 0 ? this.SCROLL_SPEED : -this.SCROLL_SPEED);
+    });
+
+    // Enable touch/drag scrolling
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (pointer.isDown && pointer.getDuration() > 50) {
+        this.scroll(-pointer.velocity.y! / 10);
+      }
+    });
+
+    // Scroll indicators
+    this.createScrollIndicators(width, height);
+
+    // Back to menu button (top-left, fixed)
     this.createBackButton(20, 20);
   }
 
-  private createLevelMap(startX: number, startY: number): void {
-    const startLevel = Math.max(1, this.currentLevel - 2); // Show 2 previous levels
-    const endLevel = startLevel + this.LEVELS_TO_SHOW - 1;
+  private scroll(deltaY: number): void {
+    this.scrollY += deltaY;
+
+    // Calculate bounds
+    const { height } = this.scale;
+    const contentHeight = this.levelContainer.getBounds().height;
+    const minScroll = 0;
+    const maxScroll = Math.max(0, contentHeight - height + 200);
+
+    // Clamp scroll position
+    this.scrollY = Phaser.Math.Clamp(this.scrollY, minScroll, maxScroll);
+
+    // Update container position
+    this.levelContainer.y = 180 - this.scrollY;
+  }
+
+  private scrollToCurrentLevel(): void {
+    // Scroll to show current level in the middle of the screen
+    const { height } = this.scale;
+    const verticalGap = 100;
+    const currentLevelY = (this.currentLevel - 1) * verticalGap;
+    const targetScroll = currentLevelY - (height / 2) + 180;
+
+    this.scrollY = Math.max(0, targetScroll);
+    this.levelContainer.y = 180 - this.scrollY;
+  }
+
+  private createScrollIndicators(width: number, height: number): void {
+    // Scroll hint text at bottom
+    const scrollHint = this.add.text(width / 2, height - 30, '↕ Scroll to view all levels', {
+      fontSize: '16px',
+      color: '#95a5a6'
+    }).setOrigin(0.5).setDepth(1000);
+
+    // Fade in/out based on scroll position
+    this.time.addEvent({
+      delay: 100,
+      loop: true,
+      callback: () => {
+        const contentHeight = this.levelContainer.getBounds().height;
+        const maxScroll = Math.max(0, contentHeight - height + 200);
+
+        if (maxScroll > 0) {
+          scrollHint.setAlpha(1);
+        } else {
+          scrollHint.setAlpha(0);
+        }
+      }
+    });
+  }
+
+  private createLevelMap(startX: number, _startY: number): void {
+    const startLevel = 1; // Always start from level 1
+    const endLevel = Math.min(this.currentLevel + 5, this.MAX_LEVELS_TO_SHOW); // Show current + 5 upcoming
 
     // Create path with alternating left/right layout
-    let x = startX;
-    let y = startY;
     const verticalGap = 100;
     const horizontalOffset = 150;
 
@@ -60,23 +133,26 @@ export class JourneyMapScene extends Phaser.Scene {
       // Alternate left and right
       const row = level - startLevel;
       const offsetX = (row % 2 === 0) ? -horizontalOffset : horizontalOffset;
-      const nodeX = x + offsetX;
-      const nodeY = y + (row * verticalGap);
+      const nodeX = startX + offsetX;
+      const nodeY = (row * verticalGap);
 
       // Draw connecting line to previous level (if not first)
       if (level > startLevel) {
         const prevRow = row - 1;
         const prevOffsetX = (prevRow % 2 === 0) ? -horizontalOffset : horizontalOffset;
-        const prevX = x + prevOffsetX;
-        const prevY = y + (prevRow * verticalGap);
+        const prevX = startX + prevOffsetX;
+        const prevY = (prevRow * verticalGap);
 
         const lineColor = isCompleted ? 0x2ecc71 : 0x7f8c8d;
         const line = this.add.line(0, 0, prevX, prevY, nodeX, nodeY, lineColor, 0.5);
         line.setOrigin(0, 0);
         line.setLineWidth(4);
+
+        // Add line to scrollable container
+        this.levelContainer.add(line);
       }
 
-      // Create level node
+      // Create level node (will be added to container inside)
       this.createLevelNode(nodeX, nodeY, level, isCompleted, isCurrent, isUpcoming);
     }
   }
@@ -100,6 +176,9 @@ export class JourneyMapScene extends Phaser.Scene {
 
     const circle = this.add.circle(x, y, this.LEVEL_NODE_SIZE / 2, nodeColor, alpha);
     circle.setStrokeStyle(4, 0xffffff, 0.8);
+
+    // Add to scrollable container
+    this.levelContainer.add(circle);
 
     // Add pulsing animation to current level
     if (isCurrent) {
@@ -130,11 +209,12 @@ export class JourneyMapScene extends Phaser.Scene {
     }
 
     // Level number
-    this.add.text(x, y - 12, level.toString(), {
+    const levelText = this.add.text(x, y - 12, level.toString(), {
       fontSize: '24px',
       color: '#ffffff',
       fontStyle: 'bold'
     }).setOrigin(0.5);
+    this.levelContainer.add(levelText);
 
     // Status indicator
     if (isCompleted) {
@@ -142,27 +222,31 @@ export class JourneyMapScene extends Phaser.Scene {
       const metaManager = MetaProgressionManager.getInstance();
       const stars = metaManager.getLevelStars(level);
       const starText = '★'.repeat(stars);
-      this.add.text(x, y + 10, starText, {
+      const starsDisplay = this.add.text(x, y + 10, starText, {
         fontSize: '18px',
         color: '#f1c40f'
       }).setOrigin(0.5);
+      this.levelContainer.add(starsDisplay);
     } else if (isCurrent) {
       // Indicator for current level
-      this.add.text(x, y + 12, '▶', {
+      const currentIndicator = this.add.text(x, y + 12, '▶', {
         fontSize: '16px',
         color: '#ffffff'
       }).setOrigin(0.5);
+      this.levelContainer.add(currentIndicator);
     }
 
     // Difficulty badge (small colored circle next to node)
     const badgeX = x + this.LEVEL_NODE_SIZE / 2 + 15;
     const badge = this.add.circle(badgeX, y, 8, difficultyColor);
     badge.setStrokeStyle(2, 0xffffff, 0.8);
+    this.levelContainer.add(badge);
 
     // Info panel on hover (for current, completed, and upcoming levels)
     if (isCurrent || isCompleted || isUpcoming) {
       const infoPanel = this.createInfoPanel(x, y - 100, levelSettings);
       infoPanel.setVisible(false);
+      this.levelContainer.add(infoPanel);
 
       if (isCurrent || isCompleted) {
         circle.on('pointerover', () => {
@@ -208,11 +292,13 @@ export class JourneyMapScene extends Phaser.Scene {
     const button = this.add.rectangle(x + 60, y + 20, 120, 40, 0x34495e);
     button.setStrokeStyle(2, 0x7f8c8d);
     button.setInteractive({ useHandCursor: true });
+    button.setDepth(1000); // Keep button on top
 
     const text = this.add.text(x + 60, y + 20, '← Menu', {
       fontSize: '18px',
       color: '#ffffff'
     }).setOrigin(0.5);
+    text.setDepth(1000); // Keep text on top
 
     button.on('pointerover', () => {
       button.setFillStyle(0x4a5f7f);

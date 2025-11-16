@@ -6,3 +6,4 @@
 ✅ We should have an indicator for the number of coins won per level. We can use stars for now 1, 2 or 3 depending on the number of coins won. should also be displayed on the journey map.
 ✅ Clicking on buy 5 moves does not take the user back to the board.  You have to buy 5 more and then it goes back to the board.
 ✅ Using a bomb should apply blown up gems to the goal
+✅ We should change the match 4 from bomb to a vertical rocket when matching 4 vertical tiles, and to a horizontal rocket when matching 4 horizontal tiles.  Vertical rocket should blow up the whole column that the rocket is dropped on and the horizontal rocket should blow up the whole row the horizontal rocket is dropped on. Bomb's should be created when matching L 2x3 or 3x2

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { Board, BombCreation, Gem, GemType, Position } from '../game/Board';
+import { Board, BombCreation, Gem, GemType, Position, TriggeredGem, SpecialGemType } from '../game/Board';
 import { BoardConfig } from '../game/BoardConfig';
 import { LevelObjectives, LevelStatus } from '../game/LevelObjectives';
 import { LevelSettings } from '../game/LevelConfig';
@@ -336,14 +336,15 @@ export class LevelScene extends Phaser.Scene {
   }
 
   private createGemSprite(x: number, y: number, gem: Gem, row: number, col: number, cellId: number): GemSprite {
-    // Create clickable gem circle - bombs get neutral gray color
-    const gemColor = gem.special === 'bomb' ? 0x808080 : this.GEM_COLORS[gem.color];
+    // Create clickable gem circle - special gems get neutral gray color
+    const gemColor = gem.special !== 'none' ? 0x808080 : this.GEM_COLORS[gem.color];
     const gemCircle = this.add.circle(x, y, 30, gemColor);
     gemCircle.setStrokeStyle(3, 0xffffff, 0.5);
     gemCircle.setInteractive({ useHandCursor: true });
     gemCircle.setData('row', row);
     gemCircle.setData('col', col);
     gemCircle.setData('cellId', cellId);
+    gemCircle.setData('gemColor', gem.color);
 
     // Add DOM attributes for Playwright
     (gemCircle as any).setDataEnabled();
@@ -369,7 +370,7 @@ export class LevelScene extends Phaser.Scene {
       gemCircle.setScale(1.0);
     });
 
-    // Add bomb indicator if this is a bomb gem
+    // Add special gem indicator based on type
     let bombIndicator: Phaser.GameObjects.Text | undefined;
     if (gem.special === 'bomb') {
       bombIndicator = this.add.text(x, y, '⭐', {
@@ -377,6 +378,18 @@ export class LevelScene extends Phaser.Scene {
         color: '#ffffff'
       }).setOrigin(0.5);
       bombIndicator.setDepth(1); // Ensure it's above the circle
+    } else if (gem.special === 'vertical-rocket') {
+      bombIndicator = this.add.text(x, y, '↕', {
+        fontSize: '40px',
+        color: '#ffffff'
+      }).setOrigin(0.5);
+      bombIndicator.setDepth(1);
+    } else if (gem.special === 'horizontal-rocket') {
+      bombIndicator = this.add.text(x, y, '↔', {
+        fontSize: '40px',
+        color: '#ffffff'
+      }).setOrigin(0.5);
+      bombIndicator.setDepth(1);
     }
 
     return { circle: gemCircle, text, bombIndicator, row, col };
@@ -444,33 +457,80 @@ export class LevelScene extends Phaser.Scene {
   private handleBombExplosions(bombPositions: Position[]): void {
     const spritesToClear: GemSprite[] = [];
     const gemCounts = new Map<GemType, number>();
+    const processedPositions = new Set<string>();
 
-    // Explode each bomb and collect sprites to clear
-    for (const bombPos of bombPositions) {
-      const explodedPositions = this.board.explodeBomb(bombPos);
+    // Store gem info before clearing
+    interface SpecialGemInfo {
+      position: Position;
+      specialType: SpecialGemType;
+    }
 
-      // Add bonus points for bomb explosion
-      const explosionBonus = explodedPositions.length * 50;
+    // Get initial special gem info
+    const toProcess: SpecialGemInfo[] = bombPositions.map(pos => {
+      const gem = this.board.getGemAt(pos.row, pos.col);
+      return {
+        position: pos,
+        specialType: gem?.special || 'none'
+      };
+    }).filter(info => info.specialType !== 'none');
+
+    while (toProcess.length > 0) {
+      const gemInfo = toProcess.shift()!;
+      const bombPos = gemInfo.position;
+      const posKey = `${bombPos.row},${bombPos.col}`;
+
+      // Skip if already processed
+      if (processedPositions.has(posKey)) continue;
+      processedPositions.add(posKey);
+
+      let result: { cleared: Position[], triggered: TriggeredGem[] } = { cleared: [], triggered: [] };
+
+      if (gemInfo.specialType === 'bomb') {
+        result = this.board.explodeBomb(bombPos);
+        this.updateStatus('💥 BOMB EXPLOSION!');
+      } else if (gemInfo.specialType === 'vertical-rocket') {
+        result = this.board.explodeVerticalRocket(bombPos);
+        this.updateStatus('🚀 VERTICAL ROCKET!');
+      } else if (gemInfo.specialType === 'horizontal-rocket') {
+        result = this.board.explodeHorizontalRocket(bombPos);
+        this.updateStatus('🚀 HORIZONTAL ROCKET!');
+      }
+
+      // Add bonus points for special gem explosion
+      const explosionBonus = result.cleared.length * 50;
       this.score += explosionBonus;
       this.updateScore();
 
-      // Track cleared gems by color for objectives (before they're removed from board)
+      // Track cleared gems by color for objectives
       if (this.objectivesEnabled) {
-        for (const pos of explodedPositions) {
-          const gem = this.board.getGemAt(pos.row, pos.col);
-          if (gem && gem.special !== 'bomb') { // Don't count bombs themselves
-            const count = gemCounts.get(gem.color) || 0;
-            gemCounts.set(gem.color, count + 1);
+        for (const pos of result.cleared) {
+          const key = `${pos.row},${pos.col}`;
+          const sprite = this.gemSprites.get(key);
+          if (sprite && sprite.circle.getData('gemColor')) {
+            const color = sprite.circle.getData('gemColor') as GemType;
+            const count = gemCounts.get(color) || 0;
+            gemCounts.set(color, count + 1);
           }
         }
       }
 
       // Collect sprites for animation
-      for (const pos of explodedPositions) {
+      for (const pos of result.cleared) {
         const key = `${pos.row},${pos.col}`;
         const sprite = this.gemSprites.get(key);
         if (sprite && !spritesToClear.includes(sprite)) {
           spritesToClear.push(sprite);
+        }
+      }
+
+      // Add triggered special gems to be processed next
+      for (const triggered of result.triggered) {
+        const triggeredKey = `${triggered.position.row},${triggered.position.col}`;
+        if (!processedPositions.has(triggeredKey)) {
+          toProcess.push({
+            position: triggered.position,
+            specialType: triggered.specialType
+          });
         }
       }
     }
@@ -534,13 +594,13 @@ export class LevelScene extends Phaser.Scene {
     // If there are bombs in the matches, explode them
     if (bombPositions.length > 0) {
       for (const bombPos of bombPositions) {
-        const explodedPositions = this.board.explodeBomb(bombPos);
+        const result = this.board.explodeBomb(bombPos);
         // Add bonus points for bomb explosion
-        this.score += explodedPositions.length * 50;
+        this.score += result.cleared.length * 50;
         this.updateScore();
 
         // Add exploded sprites to clearing list
-        for (const pos of explodedPositions) {
+        for (const pos of result.cleared) {
           const key = pos.row + ',' + pos.col;
           const sprite = this.gemSprites.get(key);
           if (sprite && !spritesToClear.includes(sprite)) {
@@ -588,12 +648,12 @@ export class LevelScene extends Phaser.Scene {
 
       this.board.clearMatches(matches);
 
-      // Create bombs at specified positions (from 4+ matches)
+      // Create power-ups at specified positions (rockets or bombs from 4+ matches)
       for (const bombCreation of bombsToCreate) {
         this.board.setGemAt(
           bombCreation.position.row,
           bombCreation.position.col,
-          { color: bombCreation.color, special: 'bomb' }
+          { color: bombCreation.color, special: bombCreation.specialType }
         );
       }
 
