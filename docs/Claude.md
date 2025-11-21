@@ -122,3 +122,45 @@ Row 3: [yellow(9), blue(10),  orange(11)]
 - **TDD approach** - tests first, then implementation
 - **Accurate documentation** - wrong instructions waste time and break trust
 - **Incremental development** - build and validate one feature at a time
+
+## Estimation & Tracking Process
+
+### 7. **ALWAYS Follow Estimation Process for Issues**
+
+Before starting ANY GitHub issue implementation:
+
+1. **Review `docs/estimation-tracking.md`** for the issue
+2. **Verify the initial estimate** is documented with:
+   - Detailed task breakdown
+   - Explicit assumptions
+   - Risk factors identified
+   - Confidence level stated
+3. **Record start time** in issue comment
+4. **Track actual time** throughout implementation
+5. **Update actuals** in `estimation-tracking.md` when complete
+6. **Analyze variance** and document lessons learned
+
+**Critical Rule:** AI estimates are often off by **10-100x**. The estimation-tracking process helps:
+- Identify what causes variance
+- Improve future estimates
+- Set realistic expectations
+- Learn from past mistakes
+
+**Red Flags in Estimates:**
+- 🚩 "Should be quick"
+- 🚩 "Just copy the code"
+- 🚩 "Straightforward implementation"
+- 🚩 "Similar to X we did before"
+
+When you see these phrases, **multiply the estimate by 2-3x minimum**.
+
+**Process Checklist:**
+- [ ] Before starting: Review estimate in `estimation-tracking.md`
+- [ ] Record start time in GitHub issue comment
+- [ ] Note unexpected complexity as you encounter it
+- [ ] Record completion time when done
+- [ ] Update actuals in `estimation-tracking.md`
+- [ ] Document variance causes
+- [ ] Update lessons learned section
+
+See `docs/estimation-tracking.md` for complete process and historical tracking.
