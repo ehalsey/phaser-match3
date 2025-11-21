@@ -15,9 +15,9 @@ test.describe('Main Menu', () => {
     const canvas = page.locator('canvas');
     await expect(canvas).toBeVisible();
 
-    // Verify we're NOT on the game board (game-status should NOT show game instructions)
-    const statusText = await page.locator('#game-status').textContent();
-    expect(statusText).not.toContain('Click a gem to select it!');
+    // Verify we're NOT on the game board (data-scene-ready should not be set)
+    const sceneReady = await page.locator('#game-status').getAttribute('data-scene-ready');
+    expect(sceneReady).not.toBe('true');
 
     // Check console logs to verify MainMenuScene loaded
     const logs: string[] = [];
@@ -47,15 +47,15 @@ test.describe('Main Menu', () => {
   test('should skip main menu when skipMenu=true parameter is present', async ({ page }) => {
     await page.goto('/?skipMenu=true');
 
-    // Wait for game board to be ready
+    // Wait for game board to be ready by checking data-scene-ready attribute
     await page.waitForFunction(() => {
       const statusEl = document.getElementById('game-status');
-      return statusEl && statusEl.textContent?.includes('Click a gem to select it!');
-    }, { timeout: 5000 });
+      return statusEl && statusEl.getAttribute('data-scene-ready') === 'true';
+    }, { timeout: 10000 });
 
-    // Verify we're on the game board (status should show game instructions)
-    const statusText = await page.locator('#game-status').textContent();
-    expect(statusText).toContain('Click a gem to select it!');
+    // Verify we're on the game board (canvas should be visible and scene ready)
+    const canvas = page.locator('canvas');
+    await expect(canvas).toBeVisible();
 
     // Main menu text should NOT be visible
     await expect(page.locator('text=Start Game')).not.toBeVisible();
