@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { MetaProgressionManager } from '../game/MetaProgressionManager';
 import { LevelStatus } from '../game/LevelObjectives';
+import { LocalScores } from '../services/LocalScores';
 
 export class EndLevelScene extends Phaser.Scene {
   private finalScore: number = 0;
@@ -27,11 +28,28 @@ export class EndLevelScene extends Phaser.Scene {
       // Award coins and advance to next level
       this.coinsEarned = this.metaManager.rewardLevelCompletion(this.finalScore, this.levelNumber);
       this.starsEarned = this.metaManager.getLevelStars(this.levelNumber);
+
+      // Save to local scores (track personal bests per level)
+      const isNewBest = LocalScores.saveIfLevelBest(
+        this.levelNumber,
+        this.finalScore,
+        this.starsEarned,
+        this.coinsEarned,
+        0 // movesUsed - we don't track this yet, but structure supports it
+      );
+
+      if (isNewBest) {
+        console.log(`New personal best for level ${this.levelNumber}! Score: ${this.finalScore}`);
+      }
+
       this.metaManager.advanceToNextLevel();
     } else {
       // No coins on failure
       this.coinsEarned = 0;
       this.starsEarned = 0;
+
+      // Still track failed attempts in history
+      LocalScores.addToHistory(this.levelNumber, this.finalScore, 0, false);
     }
   }
 
