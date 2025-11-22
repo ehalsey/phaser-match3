@@ -10,6 +10,8 @@ export class JourneyMapScene extends Phaser.Scene {
   private levelContainer!: Phaser.GameObjects.Container;
   private scrollY: number = 0;
   private readonly SCROLL_SPEED = 30;
+  private livesText!: Phaser.GameObjects.Text;
+  private timerText!: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: 'JourneyMapScene' });
@@ -64,6 +66,9 @@ export class JourneyMapScene extends Phaser.Scene {
 
     // Back to menu button (top-left, fixed)
     this.createBackButton(20, 20);
+
+    // Lives and timer display (top-right, fixed)
+    this.createLivesDisplay(width - 20, 20);
   }
 
   private scroll(deltaY: number): void {
@@ -315,5 +320,52 @@ export class JourneyMapScene extends Phaser.Scene {
     button.on('pointerdown', () => {
       this.scene.start('MainMenuScene');
     });
+  }
+
+  private createLivesDisplay(x: number, y: number): void {
+    const lives = this.metaManager.getLives();
+    const maxLives = this.metaManager.getMaxLives();
+
+    // Lives counter
+    this.livesText = this.add.text(x, y, `♥ ${lives}/${maxLives}`, {
+      fontSize: '20px',
+      color: '#e74c3c',
+      fontStyle: 'bold'
+    }).setOrigin(1, 0).setDepth(1000);
+
+    // Timer text (shown only when lives < max)
+    this.timerText = this.add.text(x, y + 30, '', {
+      fontSize: '16px',
+      color: '#95a5a6'
+    }).setOrigin(1, 0).setDepth(1000);
+
+    // Update timer every second
+    this.time.addEvent({
+      delay: 1000,
+      loop: true,
+      callback: () => {
+        this.updateLivesDisplay();
+      }
+    });
+
+    // Initial update
+    this.updateLivesDisplay();
+  }
+
+  private updateLivesDisplay(): void {
+    const lives = this.metaManager.getLives();
+    const maxLives = this.metaManager.getMaxLives();
+
+    // Update lives counter
+    this.livesText.setText(`♥ ${lives}/${maxLives}`);
+
+    // Update timer
+    if (lives < maxLives) {
+      const timeStr = this.metaManager.getTimeUntilNextLifeFormatted();
+      this.timerText.setText(`Next life: ${timeStr}`);
+      this.timerText.setVisible(true);
+    } else {
+      this.timerText.setVisible(false);
+    }
   }
 }
