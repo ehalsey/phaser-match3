@@ -20,7 +20,7 @@ export class MetaProgressionManager {
 
   // Game constants
   private readonly MAX_LIVES = 5;
-  private readonly LIFE_REGEN_TIME_MS = 30 * 60 * 1000; // 30 minutes in milliseconds
+  private readonly LIFE_REGEN_TIME_MS = 20 * 60 * 1000; // 20 minutes in milliseconds
   private readonly LIFE_COST_COINS = 50;
   private readonly STORAGE_KEY = 'match3_meta_progression';
 
@@ -77,17 +77,11 @@ export class MetaProgressionManager {
    * Returns true if successful, false if no lives available
    */
   public consumeLife(): boolean {
-    console.log('[MetaProgression] consumeLife called');
-    console.log('[MetaProgression] Lives before:', this.lives);
-    console.trace('[MetaProgression] Stack trace:');
-
     if (!this.hasLives()) {
-      console.log('[MetaProgression] No lives available!');
       return false;
     }
 
     this.lives--;
-    console.log('[MetaProgression] Lives after:', this.lives);
     this.lastLifeRegenTime = Date.now();
     this.saveToStorage();
     return true;

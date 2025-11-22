@@ -200,7 +200,7 @@ describe('MetaProgressionManager', () => {
     });
 
     it('should return correct life regen time', () => {
-      expect(manager.getLifeRegenTimeMs()).toBe(30 * 60 * 1000); // 30 minutes
+      expect(manager.getLifeRegenTimeMs()).toBe(20 * 60 * 1000); // 20 minutes
     });
   });
 
@@ -209,6 +209,169 @@ describe('MetaProgressionManager', () => {
       const formatted = manager.getTimeUntilNextLifeFormatted();
       // Should be in MM:SS format
       expect(formatted).toMatch(/^\d{2}:\d{2}$/);
+    });
+  });
+
+  describe('Lives Regeneration', () => {
+    it('should return 0 time until next life when at max lives', () => {
+      expect(manager.getLives()).toBe(5);
+      expect(manager.getTimeUntilNextLife()).toBe(0);
+    });
+
+    it('should calculate time until next life correctly', () => {
+      manager.consumeLife(); // Go to 4 lives
+      const timeUntilNext = manager.getTimeUntilNextLife();
+
+      // Should be approximately 20 minutes (allowing for test execution time)
+      const twentyMinutes = 20 * 60 * 1000;
+      expect(timeUntilNext).toBeGreaterThan(twentyMinutes - 100); // Within 100ms
+      expect(timeUntilNext).toBeLessThanOrEqual(twentyMinutes);
+    });
+
+    it('should regenerate one life after 20 minutes', () => {
+      // Consume a life
+      manager.consumeLife();
+      expect(manager.getLives()).toBe(4);
+
+      // Mock time passing (20 minutes)
+      const now = Date.now();
+      const twentyMinutesLater = now + (20 * 60 * 1000);
+      jest.spyOn(Date, 'now').mockReturnValue(twentyMinutesLater);
+
+      // Get lives should trigger regeneration
+      expect(manager.getLives()).toBe(5);
+
+      jest.restoreAllMocks();
+    });
+
+    it('should regenerate multiple lives after long offline period', () => {
+      // Consume 4 lives (down to 1)
+      for (let i = 0; i < 4; i++) {
+        manager.consumeLife();
+      }
+      expect(manager.getLives()).toBe(1);
+
+      // Mock time passing (80 minutes = 4 lives worth)
+      const now = Date.now();
+      const eightyMinutesLater = now + (80 * 60 * 1000);
+      jest.spyOn(Date, 'now').mockReturnValue(eightyMinutesLater);
+
+      // Should regenerate all 4 lives
+      expect(manager.getLives()).toBe(5);
+
+      jest.restoreAllMocks();
+    });
+
+    it('should not exceed max lives when regenerating', () => {
+      // Consume 3 lives (down to 2)
+      for (let i = 0; i < 3; i++) {
+        manager.consumeLife();
+      }
+      expect(manager.getLives()).toBe(2);
+
+      // Mock time passing (100 minutes = 5 lives worth, more than needed)
+      const now = Date.now();
+      const hundredMinutesLater = now + (100 * 60 * 1000);
+      jest.spyOn(Date, 'now').mockReturnValue(hundredMinutesLater);
+
+      // Should cap at max lives (5)
+      expect(manager.getLives()).toBe(5);
+
+      jest.restoreAllMocks();
+    });
+
+    it('should partially regenerate if not enough time has passed', () => {
+      // Consume 2 lives (down to 3)
+      manager.consumeLife();
+      manager.consumeLife();
+      expect(manager.getLives()).toBe(3);
+
+      // Mock time passing (15 minutes = not enough for 1 life)
+      const now = Date.now();
+      const fifteenMinutesLater = now + (15 * 60 * 1000);
+      jest.spyOn(Date, 'now').mockReturnValue(fifteenMinutesLater);
+
+      // Should not regenerate yet
+      expect(manager.getLives()).toBe(3);
+
+      jest.restoreAllMocks();
+    });
+
+    it('should preserve unused time after regeneration', () => {
+      // Consume 2 lives (down to 3)
+      manager.consumeLife();
+      manager.consumeLife();
+      expect(manager.getLives()).toBe(3);
+
+      // Mock time passing (25 minutes = 1 life + 5 minutes extra)
+      const now = Date.now();
+      const twentyFiveMinutesLater = now + (25 * 60 * 1000);
+      jest.spyOn(Date, 'now').mockReturnValue(twentyFiveMinutesLater);
+
+      // Should regenerate 1 life (from 3 to 4)
+      expect(manager.getLives()).toBe(4);
+
+      // Time until next should be approximately 15 minutes (20 - 5 extra)
+      const timeUntilNext = manager.getTimeUntilNextLife();
+      const fifteenMinutes = 15 * 60 * 1000;
+      expect(timeUntilNext).toBeGreaterThan(fifteenMinutes - 100);
+      expect(timeUntilNext).toBeLessThanOrEqual(fifteenMinutes);
+
+      jest.restoreAllMocks();
+    });
+
+    it('should persist regeneration state across reloads', () => {
+      // Consume a life
+      manager.consumeLife();
+      expect(manager.getLives()).toBe(4);
+
+      // Mock time passing (20 minutes)
+      const now = Date.now();
+      const twentyMinutesLater = now + (20 * 60 * 1000);
+      jest.spyOn(Date, 'now').mockReturnValue(twentyMinutesLater);
+
+      // Create new instance (simulates reload)
+      MetaProgressionManager.resetInstance();
+      const newManager = MetaProgressionManager.getInstance();
+
+      // Should have regenerated on load
+      expect(newManager.getLives()).toBe(5);
+
+      jest.restoreAllMocks();
+    });
+
+    it('should handle system clock going backwards gracefully', () => {
+      manager.consumeLife();
+      expect(manager.getLives()).toBe(4);
+
+      // Mock time going backwards (clock adjustment)
+      const now = Date.now();
+      const tenMinutesAgo = now - (10 * 60 * 1000);
+      jest.spyOn(Date, 'now').mockReturnValue(tenMinutesAgo);
+
+      // Should not regenerate or break
+      expect(manager.getLives()).toBe(4);
+      expect(manager.getTimeUntilNextLife()).toBeGreaterThan(0);
+
+      jest.restoreAllMocks();
+    });
+
+    it('should format time string correctly at different intervals', () => {
+      manager.consumeLife();
+
+      // Just consumed, should be ~20 minutes
+      let formatted = manager.getTimeUntilNextLifeFormatted();
+      expect(formatted).toMatch(/^(19|20):\d{2}$/);
+
+      // Mock 10 minutes passing
+      const now = Date.now();
+      const tenMinutesLater = now + (10 * 60 * 1000);
+      jest.spyOn(Date, 'now').mockReturnValue(tenMinutesLater);
+
+      formatted = manager.getTimeUntilNextLifeFormatted();
+      expect(formatted).toMatch(/^(09|10):\d{2}$/);
+
+      jest.restoreAllMocks();
     });
   });
 });
