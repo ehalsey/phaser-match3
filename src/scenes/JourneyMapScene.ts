@@ -67,6 +67,9 @@ export class JourneyMapScene extends Phaser.Scene {
     // Back to menu button (top-left, fixed)
     this.createBackButton(20, 20);
 
+    // Shop button (top-left, below back button)
+    this.createShopButton(20, 70);
+
     // Lives and timer display (top-right, fixed)
     this.createLivesDisplay(width - 20, 20);
   }
@@ -319,6 +322,35 @@ export class JourneyMapScene extends Phaser.Scene {
 
     button.on('pointerdown', () => {
       this.scene.start('MainMenuScene');
+    });
+  }
+
+  private createShopButton(x: number, y: number): void {
+    const button = this.add.rectangle(x + 60, y + 20, 120, 40, 0x27ae60);
+    button.setStrokeStyle(2, 0x229954);
+    button.setInteractive({ useHandCursor: true });
+    button.setDepth(1000); // Keep button on top
+
+    const text = this.add.text(x + 60, y + 20, '🛒 Shop', {
+      fontSize: '18px',
+      color: '#ffffff'
+    }).setOrigin(0.5);
+    text.setDepth(1000); // Keep text on top
+
+    button.on('pointerover', () => {
+      button.setFillStyle(0x2ecc71);
+      button.setScale(1.05);
+      text.setScale(1.05);
+    });
+
+    button.on('pointerout', () => {
+      button.setFillStyle(0x27ae60);
+      button.setScale(1.0);
+      text.setScale(1.0);
+    });
+
+    button.on('pointerdown', () => {
+      this.scene.start('ShopScene');
     });
   }
 
