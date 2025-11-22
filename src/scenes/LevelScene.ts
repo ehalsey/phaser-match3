@@ -402,14 +402,15 @@ export class LevelScene extends Phaser.Scene {
     if (this.selectedGem === null) {
       this.selectedGem = clickedPos;
       this.showSelection(row, col);
-      this.updateStatus('');
+      const cellId = row * this.board.getCols() + col;
+      this.updateStatus(`Selected cell ${cellId} (${row},${col}). Click an adjacent gem to swap!`);
       return;
     }
 
     // If clicking the same gem, deselect
     if (this.selectedGem.row === row && this.selectedGem.col === col) {
       this.clearSelection();
-      this.updateStatus('');
+      this.updateStatus('Selection cleared. Click a gem to select it!');
       return;
     }
 

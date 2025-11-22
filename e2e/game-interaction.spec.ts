@@ -2,14 +2,17 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Match-3 Game Interactions', () => {
   test.beforeEach(async ({ page }) => {
-    // Skip main menu, objectives, and use test board (4x3) for E2E tests
-    await page.goto('/?skipMenu=true&skipObjectives=true&board=test');
+    // Skip main menu and use test board (4x3) for E2E tests
+    await page.goto('/?skipMenu=true&board=test');
 
-    // Wait for LevelScene to be ready by checking for the ready message
+    // Wait for LevelScene to be ready by checking for the data-scene-ready attribute
     await page.waitForFunction(() => {
       const statusEl = document.getElementById('game-status');
-      return statusEl && statusEl.textContent?.includes('Click a gem to select it!');
+      return statusEl && statusEl.getAttribute('data-scene-ready') === 'true';
     }, { timeout: 10000 });
+
+    // Give Phaser a moment to fully initialize
+    await page.waitForTimeout(500);
   });
 
   test('should display the game board with all gems', async ({ page }) => {
