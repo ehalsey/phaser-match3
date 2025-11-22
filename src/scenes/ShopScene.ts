@@ -1,11 +1,14 @@
 import Phaser from 'phaser';
 import { MetaProgressionManager } from '../game/MetaProgressionManager';
+import { ShopButton } from '../ui/ShopButton';
 
 export class ShopScene extends Phaser.Scene {
   private metaManager!: MetaProgressionManager;
   private livesText!: Phaser.GameObjects.Text;
   private coinsText!: Phaser.GameObjects.Text;
+  private hammersText!: Phaser.GameObjects.Text;
   private statusText!: Phaser.GameObjects.Text;
+  private shopButtons: ShopButton[] = [];
 
   constructor() {
     super({ key: 'ShopScene' });
@@ -14,162 +17,264 @@ export class ShopScene extends Phaser.Scene {
   create(): void {
     const { width, height } = this.scale;
     const centerX = width / 2;
-    const centerY = height / 2;
 
     this.metaManager = MetaProgressionManager.getInstance();
 
     // Background
-    this.add.rectangle(0, 0, width, height, 0x1a252f).setOrigin(0);
+    this.add.rectangle(0, 0, width, height, 0x1a1a2e).setOrigin(0);
 
     // Title
-    this.add.text(centerX, 80, 'Shop', {
-      fontSize: '64px',
+    this.add.text(centerX, 60, 'Shop', {
+      fontSize: '48px',
       color: '#ffffff',
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
     // Current resources display
-    this.createResourceDisplay(centerX, 160);
+    this.createResourceDisplay(centerX, 130);
 
-    // Shop items
-    this.createShopItems(centerX, centerY);
+    // Shop items grid
+    this.createShopItems(centerX, 240);
+
+    // Status message
+    this.statusText = this.add.text(centerX, height - 120, '', {
+      fontSize: '18px',
+      color: '#4CAF50',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
 
     // Back button
-    const backButton = this.add.rectangle(centerX, height - 80, 200, 60, 0x95a5a6);
+    const backButton = this.add.rectangle(centerX, height - 60, 160, 45, 0x7f8c8d);
     backButton.setInteractive({ useHandCursor: true });
 
-    const backText = this.add.text(centerX, height - 80, 'Back', {
-      fontSize: '28px',
+    this.add.text(centerX, height - 60, 'Back', {
+      fontSize: '24px',
       color: '#ffffff',
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
     backButton.on('pointerover', () => {
-      backButton.setFillStyle(0x7f8c8d);
-      backButton.setScale(1.05);
-      backText.setScale(1.05);
+      backButton.setFillStyle(0x95a5a6);
     });
 
     backButton.on('pointerout', () => {
-      backButton.setFillStyle(0x95a5a6);
-      backButton.setScale(1.0);
-      backText.setScale(1.0);
+      backButton.setFillStyle(0x7f8c8d);
     });
 
     backButton.on('pointerdown', () => {
-      this.scene.start('MainMenuScene');
+      this.scene.start('JourneyMapScene');
     });
 
-    // Status message
-    this.statusText = this.add.text(centerX, height - 140, '', {
-      fontSize: '20px',
-      color: '#e74c3c',
-      fontStyle: 'bold'
-    }).setOrigin(0.5);
+    // Initial update of button states
+    this.updateButtonStates();
   }
 
   private createResourceDisplay(x: number, y: number): void {
+    const spacing = 120;
+
     // Lives
-    this.add.circle(x - 120, y, 15, 0xe74c3c);
-    this.livesText = this.add.text(x - 95, y - 15, `${this.metaManager.getLives()}/${this.metaManager.getMaxLives()}`, {
-      fontSize: '28px',
-      color: '#ffffff',
-      fontStyle: 'bold'
-    });
-
-    // Coins
-    this.add.circle(x + 40, y, 15, 0xf1c40f);
-    this.coinsText = this.add.text(x + 65, y - 15, `${this.metaManager.getCoins()}`, {
-      fontSize: '28px',
-      color: '#ffffff',
-      fontStyle: 'bold'
-    });
-  }
-
-  private createShopItems(x: number, y: number): void {
-    // Shop item container
-    const itemBox = this.add.rectangle(x, y, 350, 180, 0x2c3e50);
-    itemBox.setStrokeStyle(3, 0x3498db);
-
-    // Life icon
-    this.add.circle(x - 140, y - 40, 25, 0xe74c3c);
-    this.add.text(x - 140, y - 42, '+1', {
+    this.add.text(x - spacing, y - 20, '❤️', { fontSize: '24px' }).setOrigin(0.5);
+    this.livesText = this.add.text(x - spacing, y + 10, `${this.metaManager.getLives()}/${this.metaManager.getMaxLives()}`, {
       fontSize: '20px',
       color: '#ffffff',
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
-    // Item title
-    this.add.text(x, y - 60, 'Buy 1 Life', {
-      fontSize: '32px',
+    // Coins
+    this.add.text(x, y - 20, '💰', { fontSize: '24px' }).setOrigin(0.5);
+    this.coinsText = this.add.text(x, y + 10, `${this.metaManager.getCoins()}`, {
+      fontSize: '20px',
       color: '#ffffff',
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
-    // Cost
-    this.add.circle(x - 40, y, 12, 0xf1c40f);
-    this.add.text(x - 20, y - 10, `${this.metaManager.getLifeCost()}`, {
-      fontSize: '28px',
-      color: '#f1c40f',
-      fontStyle: 'bold'
-    });
-
-    // Buy button
-    const buyButton = this.add.rectangle(x, y + 50, 200, 60, 0x27ae60);
-    buyButton.setInteractive({ useHandCursor: true });
-
-    const buyText = this.add.text(x, y + 50, 'Buy', {
-      fontSize: '32px',
+    // Hammers
+    this.add.text(x + spacing, y - 20, '🔨', { fontSize: '24px' }).setOrigin(0.5);
+    this.hammersText = this.add.text(x + spacing, y + 10, `${this.metaManager.getHammers()}`, {
+      fontSize: '20px',
       color: '#ffffff',
       fontStyle: 'bold'
     }).setOrigin(0.5);
+  }
 
-    // Buy button hover
-    buyButton.on('pointerover', () => {
-      buyButton.setFillStyle(0x229954);
-      buyButton.setScale(1.05);
-      buyText.setScale(1.05);
+  private createShopItems(centerX: number, startY: number): void {
+    const buttonWidth = 200;
+    const buttonHeight = 150;
+    const spacing = 20;
+
+    // Calculate positions for 2x2 grid
+    const col1X = centerX - buttonWidth / 2 - spacing / 2;
+    const col2X = centerX + buttonWidth / 2 + spacing / 2;
+    const row1Y = startY;
+    const row2Y = startY + buttonHeight + spacing;
+
+    // Single Life (10 coins)
+    const singleLifeButton = new ShopButton({
+      scene: this,
+      x: col1X,
+      y: row1Y,
+      width: buttonWidth,
+      height: buttonHeight,
+      title: 'Single Life',
+      description: '+1 Life',
+      price: this.metaManager.getShopSingleLifeCost(),
+      icon: '❤️',
+      onPurchase: () => this.purchaseSingleLife()
     });
+    this.shopButtons.push(singleLifeButton);
 
-    buyButton.on('pointerout', () => {
-      buyButton.setFillStyle(0x27ae60);
-      buyButton.setScale(1.0);
-      buyText.setScale(1.0);
+    // Refill All Lives (50 coins)
+    const refillLivesButton = new ShopButton({
+      scene: this,
+      x: col2X,
+      y: row1Y,
+      width: buttonWidth,
+      height: buttonHeight,
+      title: 'Refill Lives',
+      description: 'Fill to max (5)',
+      price: this.metaManager.getShopRefillLivesCost(),
+      icon: '💖',
+      onPurchase: () => this.purchaseRefillLives()
     });
+    this.shopButtons.push(refillLivesButton);
 
-    // Buy button click
-    buyButton.on('pointerdown', () => {
-      this.purchaseLife();
+    // Single Hammer (20 coins)
+    const singleHammerButton = new ShopButton({
+      scene: this,
+      x: col1X,
+      y: row2Y,
+      width: buttonWidth,
+      height: buttonHeight,
+      title: 'Hammer',
+      description: '+1 Hammer',
+      price: this.metaManager.getShopSingleHammerCost(),
+      icon: '🔨',
+      onPurchase: () => this.purchaseSingleHammer()
+    });
+    this.shopButtons.push(singleHammerButton);
+
+    // Hammer 3-Pack (50 coins)
+    const hammerPackButton = new ShopButton({
+      scene: this,
+      x: col2X,
+      y: row2Y,
+      width: buttonWidth,
+      height: buttonHeight,
+      title: 'Hammer Pack',
+      description: `+${this.metaManager.getShopHammerPackSize()} Hammers (save 10!)`,
+      price: this.metaManager.getShopHammerPackCost(),
+      icon: '🔨🔨🔨',
+      onPurchase: () => this.purchaseHammerPack()
+    });
+    this.shopButtons.push(hammerPackButton);
+  }
+
+  private purchaseSingleLife(): boolean {
+    const success = this.metaManager.buySingleLife();
+
+    if (success) {
+      this.showStatus('Life purchased! ❤️', '#4CAF50');
+      this.updateDisplays();
+      return true;
+    } else {
+      if (this.metaManager.getLives() >= this.metaManager.getMaxLives()) {
+        this.showStatus('Lives already full!', '#f39c12');
+      } else {
+        this.showStatus('Not enough coins!', '#e74c3c');
+      }
+      return false;
+    }
+  }
+
+  private purchaseRefillLives(): boolean {
+    const success = this.metaManager.buyAllLives();
+
+    if (success) {
+      this.showStatus('Lives refilled! 💖', '#4CAF50');
+      this.updateDisplays();
+      return true;
+    } else {
+      if (this.metaManager.getLives() >= this.metaManager.getMaxLives()) {
+        this.showStatus('Lives already full!', '#f39c12');
+      } else {
+        this.showStatus('Not enough coins!', '#e74c3c');
+      }
+      return false;
+    }
+  }
+
+  private purchaseSingleHammer(): boolean {
+    const success = this.metaManager.buySingleHammer();
+
+    if (success) {
+      this.showStatus('Hammer purchased! 🔨', '#4CAF50');
+      this.updateDisplays();
+      return true;
+    } else {
+      this.showStatus('Not enough coins!', '#e74c3c');
+      return false;
+    }
+  }
+
+  private purchaseHammerPack(): boolean {
+    const success = this.metaManager.buyHammerPack();
+
+    if (success) {
+      this.showStatus('Hammer pack purchased! 🔨🔨🔨', '#4CAF50');
+      this.updateDisplays();
+      return true;
+    } else {
+      this.showStatus('Not enough coins!', '#e74c3c');
+      return false;
+    }
+  }
+
+  private showStatus(message: string, color: string): void {
+    this.statusText.setText(message);
+    this.statusText.setColor(color);
+
+    // Clear status after 2 seconds
+    this.time.delayedCall(2000, () => {
+      this.statusText.setText('');
     });
   }
 
-  private purchaseLife(): void {
-    const success = this.metaManager.buyLife();
+  private updateDisplays(): void {
+    this.livesText.setText(`${this.metaManager.getLives()}/${this.metaManager.getMaxLives()}`);
+    this.coinsText.setText(`${this.metaManager.getCoins()}`);
+    this.hammersText.setText(`${this.metaManager.getHammers()}`);
+    this.updateButtonStates();
+  }
 
-    if (success) {
-      // Update displays
-      this.livesText.setText(`${this.metaManager.getLives()}/${this.metaManager.getMaxLives()}`);
-      this.coinsText.setText(`${this.metaManager.getCoins()}`);
-      this.statusText.setText('Purchase successful!');
-      this.statusText.setColor('#2ecc71');
+  private updateButtonStates(): void {
+    const coins = this.metaManager.getCoins();
+    const lives = this.metaManager.getLives();
+    const maxLives = this.metaManager.getMaxLives();
 
-      // Clear status after 2 seconds
-      this.time.delayedCall(2000, () => {
-        this.statusText.setText('');
-      });
-    } else {
-      // Show error
-      if (this.metaManager.getLives() >= this.metaManager.getMaxLives()) {
-        this.statusText.setText('Lives already full!');
-      } else {
-        this.statusText.setText('Not enough coins!');
+    // Update each button based on affordability
+    if (this.shopButtons.length >= 4) {
+      // Single Life
+      const canAffordSingleLife = coins >= this.metaManager.getShopSingleLifeCost();
+      const livesNotFull = lives < maxLives;
+      this.shopButtons[0].setEnabled(canAffordSingleLife && livesNotFull);
+      if (!livesNotFull) {
+        this.shopButtons[0].setButtonText('Full');
       }
-      this.statusText.setColor('#e74c3c');
 
-      // Clear status after 2 seconds
-      this.time.delayedCall(2000, () => {
-        this.statusText.setText('');
-      });
+      // Refill Lives
+      const canAffordRefill = coins >= this.metaManager.getShopRefillLivesCost();
+      this.shopButtons[1].setEnabled(canAffordRefill && livesNotFull);
+      if (!livesNotFull) {
+        this.shopButtons[1].setButtonText('Full');
+      }
+
+      // Single Hammer
+      const canAffordHammer = coins >= this.metaManager.getShopSingleHammerCost();
+      this.shopButtons[2].setEnabled(canAffordHammer);
+
+      // Hammer Pack
+      const canAffordPack = coins >= this.metaManager.getShopHammerPackCost();
+      this.shopButtons[3].setEnabled(canAffordPack);
     }
   }
 }

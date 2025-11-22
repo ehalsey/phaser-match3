@@ -374,4 +374,259 @@ describe('MetaProgressionManager', () => {
       jest.restoreAllMocks();
     });
   });
+
+  describe('Shop Purchase Methods', () => {
+    describe('buySingleLife', () => {
+      it('should purchase a single life for 10 coins', () => {
+        manager.addCoins(20);
+        manager.consumeLife(); // Start with 4 lives
+
+        const result = manager.buySingleLife();
+
+        expect(result).toBe(true);
+        expect(manager.getLives()).toBe(5);
+        expect(manager.getCoins()).toBe(10); // 20 - 10
+      });
+
+      it('should not purchase if insufficient coins', () => {
+        manager.addCoins(5); // Not enough
+        manager.consumeLife();
+
+        const result = manager.buySingleLife();
+
+        expect(result).toBe(false);
+        expect(manager.getLives()).toBe(4);
+        expect(manager.getCoins()).toBe(5); // Unchanged
+      });
+
+      it('should not purchase if lives are full', () => {
+        manager.addCoins(20);
+
+        const result = manager.buySingleLife();
+
+        expect(result).toBe(false);
+        expect(manager.getLives()).toBe(5);
+        expect(manager.getCoins()).toBe(20); // Unchanged
+      });
+
+      it('should return correct price', () => {
+        expect(manager.getShopSingleLifeCost()).toBe(10);
+      });
+    });
+
+    describe('buyAllLives', () => {
+      it('should refill all lives for 50 coins', () => {
+        manager.addCoins(100);
+        manager.consumeLife();
+        manager.consumeLife();
+        manager.consumeLife(); // 2 lives remaining
+
+        const result = manager.buyAllLives();
+
+        expect(result).toBe(true);
+        expect(manager.getLives()).toBe(5);
+        expect(manager.getCoins()).toBe(50); // 100 - 50
+      });
+
+      it('should not purchase if insufficient coins', () => {
+        manager.addCoins(30); // Not enough
+        manager.consumeLife();
+
+        const result = manager.buyAllLives();
+
+        expect(result).toBe(false);
+        expect(manager.getLives()).toBe(4);
+        expect(manager.getCoins()).toBe(30); // Unchanged
+      });
+
+      it('should not purchase if lives are full', () => {
+        manager.addCoins(100);
+
+        const result = manager.buyAllLives();
+
+        expect(result).toBe(false);
+        expect(manager.getLives()).toBe(5);
+        expect(manager.getCoins()).toBe(100); // Unchanged
+      });
+
+      it('should reset life regeneration timer', () => {
+        manager.addCoins(100);
+        manager.consumeLife();
+
+        // Simulate some time passing
+        const now = Date.now();
+        const tenMinutesLater = now + (10 * 60 * 1000);
+        jest.spyOn(Date, 'now').mockReturnValue(tenMinutesLater);
+
+        manager.buyAllLives();
+
+        // Lives are now at max (5), so timer should be 0
+        jest.restoreAllMocks();
+        const timeRemaining = manager.getTimeUntilNextLife();
+        expect(timeRemaining).toBe(0); // No timer when at max lives
+        expect(manager.getLives()).toBe(manager.getMaxLives());
+      });
+
+      it('should return correct price', () => {
+        expect(manager.getShopRefillLivesCost()).toBe(50);
+      });
+    });
+
+    describe('buySingleHammer', () => {
+      it('should purchase a single hammer for 20 coins', () => {
+        manager.addCoins(30);
+
+        const result = manager.buySingleHammer();
+
+        expect(result).toBe(true);
+        expect(manager.getHammers()).toBe(1);
+        expect(manager.getCoins()).toBe(10); // 30 - 20
+      });
+
+      it('should not purchase if insufficient coins', () => {
+        manager.addCoins(10); // Not enough
+
+        const result = manager.buySingleHammer();
+
+        expect(result).toBe(false);
+        expect(manager.getHammers()).toBe(0);
+        expect(manager.getCoins()).toBe(10); // Unchanged
+      });
+
+      it('should allow multiple hammer purchases', () => {
+        manager.addCoins(100);
+
+        manager.buySingleHammer();
+        manager.buySingleHammer();
+        manager.buySingleHammer();
+
+        expect(manager.getHammers()).toBe(3);
+        expect(manager.getCoins()).toBe(40); // 100 - 60
+      });
+
+      it('should return correct price', () => {
+        expect(manager.getShopSingleHammerCost()).toBe(20);
+      });
+    });
+
+    describe('buyHammerPack', () => {
+      it('should purchase 3 hammers for 50 coins', () => {
+        manager.addCoins(100);
+
+        const result = manager.buyHammerPack();
+
+        expect(result).toBe(true);
+        expect(manager.getHammers()).toBe(3);
+        expect(manager.getCoins()).toBe(50); // 100 - 50
+      });
+
+      it('should not purchase if insufficient coins', () => {
+        manager.addCoins(30); // Not enough
+
+        const result = manager.buyHammerPack();
+
+        expect(result).toBe(false);
+        expect(manager.getHammers()).toBe(0);
+        expect(manager.getCoins()).toBe(30); // Unchanged
+      });
+
+      it('should add to existing hammers', () => {
+        manager.addCoins(100);
+        manager.addHammers(2); // Start with 2
+
+        manager.buyHammerPack();
+
+        expect(manager.getHammers()).toBe(5); // 2 + 3
+      });
+
+      it('should return correct price and size', () => {
+        expect(manager.getShopHammerPackCost()).toBe(50);
+        expect(manager.getShopHammerPackSize()).toBe(3);
+      });
+    });
+
+    describe('Hammer Management', () => {
+      it('should track hammer inventory', () => {
+        expect(manager.getHammers()).toBe(0);
+
+        manager.addHammers(5);
+        expect(manager.getHammers()).toBe(5);
+      });
+
+      it('should use a hammer', () => {
+        manager.addHammers(3);
+
+        const result = manager.useHammer();
+
+        expect(result).toBe(true);
+        expect(manager.getHammers()).toBe(2);
+      });
+
+      it('should not use hammer if none available', () => {
+        const result = manager.useHammer();
+
+        expect(result).toBe(false);
+        expect(manager.getHammers()).toBe(0);
+      });
+
+      it('should persist hammers in localStorage', () => {
+        manager.addHammers(10);
+
+        // Create new instance (simulates page reload)
+        MetaProgressionManager.resetInstance();
+        const newManager = MetaProgressionManager.getInstance();
+
+        expect(newManager.getHammers()).toBe(10);
+      });
+
+      it('should reset hammers when resetting progress', () => {
+        manager.addHammers(10);
+        manager.resetProgress();
+
+        expect(manager.getHammers()).toBe(0);
+      });
+    });
+
+    describe('Shop Integration', () => {
+      it('should handle complete purchase flow', () => {
+        // Start scenario: 3 lives, 100 coins, 0 hammers
+        manager.addCoins(100);
+        manager.consumeLife();
+        manager.consumeLife();
+
+        // Buy single life
+        manager.buySingleLife();
+        expect(manager.getLives()).toBe(4);
+        expect(manager.getCoins()).toBe(90);
+
+        // Buy hammer pack
+        manager.buyHammerPack();
+        expect(manager.getHammers()).toBe(3);
+        expect(manager.getCoins()).toBe(40);
+
+        // Buy single hammer
+        manager.buySingleHammer();
+        expect(manager.getHammers()).toBe(4);
+        expect(manager.getCoins()).toBe(20);
+
+        // Use a hammer
+        manager.useHammer();
+        expect(manager.getHammers()).toBe(3);
+      });
+
+      it('should validate all purchases persist', () => {
+        manager.addCoins(200);
+        manager.consumeLife(); // Need to be below max to buy a life
+        manager.buySingleLife();
+        manager.buyHammerPack();
+
+        // Reload
+        MetaProgressionManager.resetInstance();
+        const newManager = MetaProgressionManager.getInstance();
+
+        expect(newManager.getCoins()).toBe(140); // 200 - 10 - 50
+        expect(newManager.getHammers()).toBe(3);
+      });
+    });
+  });
 });

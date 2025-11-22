@@ -13,6 +13,7 @@ export interface MetaProgressionState {
   lastLifeRegenTime: number; // Timestamp in milliseconds
   currentLevel: number;
   levelStars: Record<number, number>; // Level number -> stars earned (1-3)
+  hammers: number; // Power-up inventory
 }
 
 export class MetaProgressionManager {
@@ -24,12 +25,20 @@ export class MetaProgressionManager {
   private readonly LIFE_COST_COINS = 50;
   private readonly STORAGE_KEY = 'match3_meta_progression';
 
+  // Shop prices
+  private readonly SHOP_SINGLE_LIFE_COST = 10;
+  private readonly SHOP_REFILL_LIVES_COST = 50;
+  private readonly SHOP_SINGLE_HAMMER_COST = 20;
+  private readonly SHOP_HAMMER_PACK_COST = 50;
+  private readonly SHOP_HAMMER_PACK_SIZE = 3;
+
   // Current state
   private lives: number;
   private coins: number;
   private lastLifeRegenTime: number;
   private currentLevel: number;
   private levelStars: Record<number, number>;
+  private hammers: number;
 
   // Singleton pattern
   private constructor() {
@@ -38,6 +47,7 @@ export class MetaProgressionManager {
     this.lastLifeRegenTime = Date.now();
     this.currentLevel = 1;
     this.levelStars = {};
+    this.hammers = 0;
     this.loadFromStorage();
   }
 
@@ -151,6 +161,145 @@ export class MetaProgressionManager {
     this.lives++;
     this.saveToStorage();
     return true;
+  }
+
+  // === Shop Purchase Methods ===
+
+  /**
+   * Purchase a single life from shop (10 coins)
+   * Returns true if successful, false if insufficient coins or at max lives
+   */
+  public buySingleLife(): boolean {
+    if (this.coins < this.SHOP_SINGLE_LIFE_COST) {
+      return false; // Not enough coins
+    }
+
+    if (this.lives >= this.MAX_LIVES) {
+      return false; // Already at max lives
+    }
+
+    this.coins -= this.SHOP_SINGLE_LIFE_COST;
+    this.lives++;
+    this.saveToStorage();
+    return true;
+  }
+
+  /**
+   * Refill all lives from shop (50 coins)
+   * Returns true if successful, false if insufficient coins or already at max
+   */
+  public buyAllLives(): boolean {
+    if (this.coins < this.SHOP_REFILL_LIVES_COST) {
+      return false; // Not enough coins
+    }
+
+    if (this.lives >= this.MAX_LIVES) {
+      return false; // Already at max lives
+    }
+
+    this.coins -= this.SHOP_REFILL_LIVES_COST;
+    this.lives = this.MAX_LIVES;
+    this.lastLifeRegenTime = Date.now(); // Reset regen timer
+    this.saveToStorage();
+    return true;
+  }
+
+  /**
+   * Purchase a single hammer from shop (20 coins)
+   * Returns true if successful, false if insufficient coins
+   */
+  public buySingleHammer(): boolean {
+    if (this.coins < this.SHOP_SINGLE_HAMMER_COST) {
+      return false; // Not enough coins
+    }
+
+    this.coins -= this.SHOP_SINGLE_HAMMER_COST;
+    this.hammers++;
+    this.saveToStorage();
+    return true;
+  }
+
+  /**
+   * Purchase a 3-pack of hammers from shop (50 coins)
+   * Returns true if successful, false if insufficient coins
+   */
+  public buyHammerPack(): boolean {
+    if (this.coins < this.SHOP_HAMMER_PACK_COST) {
+      return false; // Not enough coins
+    }
+
+    this.coins -= this.SHOP_HAMMER_PACK_COST;
+    this.hammers += this.SHOP_HAMMER_PACK_SIZE;
+    this.saveToStorage();
+    return true;
+  }
+
+  // === Hammer Management ===
+
+  /**
+   * Get current number of hammers
+   */
+  public getHammers(): number {
+    return this.hammers;
+  }
+
+  /**
+   * Use a hammer (consumes one from inventory)
+   * Returns true if successful, false if no hammers available
+   */
+  public useHammer(): boolean {
+    if (this.hammers <= 0) {
+      return false;
+    }
+
+    this.hammers--;
+    this.saveToStorage();
+    return true;
+  }
+
+  /**
+   * Add hammers to inventory (from rewards, etc.)
+   */
+  public addHammers(amount: number): void {
+    this.hammers += amount;
+    this.saveToStorage();
+  }
+
+  // === Shop Price Getters ===
+
+  /**
+   * Get price for single life in shop
+   */
+  public getShopSingleLifeCost(): number {
+    return this.SHOP_SINGLE_LIFE_COST;
+  }
+
+  /**
+   * Get price for refilling all lives
+   */
+  public getShopRefillLivesCost(): number {
+    return this.SHOP_REFILL_LIVES_COST;
+  }
+
+  /**
+   * Get price for single hammer
+   */
+  public getShopSingleHammerCost(): number {
+    return this.SHOP_SINGLE_HAMMER_COST;
+  }
+
+  /**
+   * Get price for hammer 3-pack
+   */
+  public getShopHammerPackCost(): number {
+    return this.SHOP_HAMMER_PACK_COST;
+  }
+
+  /**
+   * Get number of hammers in pack
+   */
+  public getShopHammerPackSize(): number {
+    return this.SHOP_HAMMER_PACK_SIZE;
   }
 
   // === Currency Management ===
@@ -276,7 +425,8 @@ export class MetaProgressionManager {
       coins: this.coins,
       lastLifeRegenTime: this.lastLifeRegenTime,
       currentLevel: this.currentLevel,
-      levelStars: this.levelStars
+      levelStars: this.levelStars,
+      hammers: this.hammers
     };
 
     try {
@@ -299,6 +449,7 @@ export class MetaProgressionManager {
         this.lastLifeRegenTime = state.lastLifeRegenTime;
         this.currentLevel = state.currentLevel || 1; // Default to 1 if not present
         this.levelStars = state.levelStars || {}; // Default to empty if not present
+        this.hammers = state.hammers || 0; // Default to 0 if not present
 
         // Update lives based on time elapsed
         this.updateLivesFromRegen();
@@ -317,6 +468,7 @@ export class MetaProgressionManager {
     this.lastLifeRegenTime = Date.now();
     this.currentLevel = 1;
     this.levelStars = {};
+    this.hammers = 0;
     this.saveToStorage();
   }
 

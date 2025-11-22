@@ -506,9 +506,35 @@ For "add new E2E tests" tasks: **0.5x - 0.8x** (faster when patterns exist)
 
 **Confidence:** High (±25%)
 
-**Actual Time:** [TBD]
+**Actual Time:** [In Progress - Started 2025-11-22]
 
-**Variance:** [TBD]
+**Timeline:**
+- Branch created: 2025-11-22 (feature/shop-system)
+- Work started: 2025-11-22
+- Last commit: [TBD]
+- Wall-clock elapsed: [TBD]
+
+**Work Completed:**
+- Added hammer inventory to MetaProgressionState
+- Implemented shop purchase methods (buySingleLife, buyAllLives, buySingleHammer, buyHammerPack)
+- Added hammer management methods (getHammers, useHammer, addHammers)
+- Added shop price getter methods
+- Updated persistence (save/load/reset) to include hammers
+- Created ShopButton UI component (src/ui/ShopButton.ts)
+- Updated ShopScene with full shop UI (4 items in 2x2 grid)
+- Added shop button to JourneyMapScene
+- Wrote 24 new tests for shop functionality
+- All 221 tests passing
+
+**Test Coverage:**
+- buySingleLife: 4 tests (purchase, insufficient coins, lives full, price getter)
+- buyAllLives: 4 tests (purchase, insufficient coins, lives full, timer reset, price getter)
+- buySingleHammer: 4 tests (purchase, insufficient coins, multiple purchases, price getter)
+- buyHammerPack: 4 tests (purchase, insufficient coins, add to existing, price/size getters)
+- Hammer Management: 5 tests (inventory tracking, use hammer, no hammers, persistence, reset)
+- Shop Integration: 2 tests (complete flow, persistence validation)
+
+**Variance:** [TBD - Will calculate at commit time]
 
 **Lessons Learned:** [TBD]
 
