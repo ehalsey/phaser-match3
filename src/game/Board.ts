@@ -1,5 +1,5 @@
 export type GemType = 'red' | 'blue' | 'green' | 'yellow' | 'purple' | 'orange';
-export type SpecialGemType = 'bomb' | 'vertical-rocket' | 'horizontal-rocket' | 'color-clear' | 'none';
+export type SpecialGemType = 'bomb' | 'vertical-rocket' | 'horizontal-rocket' | 'color-clear' | 'disco-ball' | 'none';
 
 export interface TriggeredGem {
   position: Position;
@@ -73,6 +73,52 @@ export class Board {
     this.grid[row][col] = gem;
   }
 
+  // Detect 2x2 square matches
+  private detect2x2Squares(): BombCreation[] {
+    const discoBalls: BombCreation[] = [];
+    const usedPositions = new Set<string>();
+
+    // Check each possible 2x2 square position (top-left corner)
+    for (let row = 0; row < this.rows - 1; row++) {
+      for (let col = 0; col < this.cols - 1; col++) {
+        const topLeft = this.grid[row][col];
+        const topRight = this.grid[row][col + 1];
+        const bottomLeft = this.grid[row + 1][col];
+        const bottomRight = this.grid[row + 1][col + 1];
+
+        // Check if all 4 gems exist and have the same color
+        if (topLeft && topRight && bottomLeft && bottomRight &&
+            topLeft.color === topRight.color &&
+            topLeft.color === bottomLeft.color &&
+            topLeft.color === bottomRight.color) {
+
+          // Check if any of these positions are already used in another 2x2
+          const positions = [
+            `${row},${col}`,
+            `${row},${col + 1}`,
+            `${row + 1},${col}`,
+            `${row + 1},${col + 1}`
+          ];
+
+          const alreadyUsed = positions.some(pos => usedPositions.has(pos));
+          if (!alreadyUsed) {
+            // Mark all positions as used
+            positions.forEach(pos => usedPositions.add(pos));
+
+            // Create disco ball at center of the 2x2 (top-left position)
+            discoBalls.push({
+              position: { row, col },
+              color: topLeft.color,
+              specialType: 'disco-ball'
+            });
+          }
+        }
+      }
+    }
+
+    return discoBalls;
+  }
+
   // Detect L-shaped matches (where horizontal and vertical match-3s intersect)
   private detectLShapedMatches(matches: Match[]): BombCreation[] {
     const lShapedBombs: BombCreation[] = [];
@@ -110,7 +156,21 @@ export class Board {
   determineBombCreations(matches: Match[]): BombCreation[] {
     const bombsToCreate: BombCreation[] = [];
 
-    // First check for L-shaped matches (higher priority)
+    // First check for 2x2 square matches (highest priority)
+    const discoBalls = this.detect2x2Squares();
+    bombsToCreate.push(...discoBalls);
+
+    // Track all positions where disco balls will be created
+    const discoBallPositions = new Set<string>();
+    for (const db of discoBalls) {
+      // Mark all 4 positions of the 2x2 square as used
+      discoBallPositions.add(`${db.position.row},${db.position.col}`);
+      discoBallPositions.add(`${db.position.row},${db.position.col + 1}`);
+      discoBallPositions.add(`${db.position.row + 1},${db.position.col}`);
+      discoBallPositions.add(`${db.position.row + 1},${db.position.col + 1}`);
+    }
+
+    // Next check for L-shaped matches
     const lShapedBombs = this.detectLShapedMatches(matches);
     bombsToCreate.push(...lShapedBombs);
 
@@ -119,14 +179,17 @@ export class Board {
       lShapedBombs.map(b => `${b.position.row},${b.position.col}`)
     );
 
+    // Combine all reserved positions
+    const reservedPositions = new Set([...discoBallPositions, ...lShapedPositions]);
+
     for (const match of matches) {
       const matchLength = match.positions.length;
       const centerIndex = Math.floor(matchLength / 2);
       const powerUpPosition = match.positions[centerIndex];
       const posKey = `${powerUpPosition.row},${powerUpPosition.col}`;
 
-      // Skip if this position already has an L-shaped bomb
-      if (lShapedPositions.has(posKey)) continue;
+      // Skip if this position already has a disco ball or L-shaped bomb
+      if (reservedPositions.has(posKey)) continue;
 
       // Match-4: Create rockets based on orientation
       if (matchLength === 4) {
@@ -329,7 +392,10 @@ export class Board {
 
     const matches = this.findMatches();
 
-    if (matches.length === 0) {
+    // Also check for 2x2 squares (they don't create linear matches but should be valid)
+    const discoBalls = this.detect2x2Squares();
+
+    if (matches.length === 0 && discoBalls.length === 0) {
       const temp = this.grid[pos1.row][pos1.col];
       this.grid[pos1.row][pos1.col] = this.grid[pos2.row][pos2.col];
       this.grid[pos2.row][pos2.col] = temp;
@@ -450,6 +516,44 @@ export class Board {
           this.grid[row][col] = null;
           clearedPositions.push({ row, col });
         }
+      }
+    }
+
+    return { cleared: clearedPositions, triggered: triggeredSpecialGems };
+  }
+
+  explodeDiscoBall(position: Position): { cleared: Position[], triggered: TriggeredGem[] } {
+    const clearedPositions: Position[] = [];
+    const triggeredSpecialGems: TriggeredGem[] = [];
+    const clearedPositionKeys = new Set<string>();
+
+    // Clear entire row
+    for (let col = 0; col < this.cols; col++) {
+      const gem = this.grid[position.row][col];
+      const posKey = `${position.row},${col}`;
+      if (gem !== null && !clearedPositionKeys.has(posKey)) {
+        // Check if this gem is a special gem that should be triggered
+        if (gem.special !== 'none' && !(position.row === position.row && col === position.col)) {
+          triggeredSpecialGems.push({ position: { row: position.row, col }, specialType: gem.special });
+        }
+        this.grid[position.row][col] = null;
+        clearedPositions.push({ row: position.row, col });
+        clearedPositionKeys.add(posKey);
+      }
+    }
+
+    // Clear entire column
+    for (let row = 0; row < this.rows; row++) {
+      const gem = this.grid[row][position.col];
+      const posKey = `${row},${position.col}`;
+      if (gem !== null && !clearedPositionKeys.has(posKey)) {
+        // Check if this gem is a special gem that should be triggered
+        if (gem.special !== 'none' && !(row === position.row && position.col === position.col)) {
+          triggeredSpecialGems.push({ position: { row, col: position.col }, specialType: gem.special });
+        }
+        this.grid[row][position.col] = null;
+        clearedPositions.push({ row, col: position.col });
+        clearedPositionKeys.add(posKey);
       }
     }
 

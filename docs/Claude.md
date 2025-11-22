@@ -127,17 +127,22 @@ Row 3: [yellow(9), blue(10),  orange(11)]
 
 ### 7. **ALWAYS Follow Estimation Process for Issues**
 
+**CRITICAL REQUIREMENT:** Every GitHub issue worked on MUST have an entry in `c:\source\phaser-match3\docs\estimation-tracking.md`
+
 Before starting ANY GitHub issue implementation:
 
-1. **Review `docs/estimation-tracking.md`** for the issue
-2. **Verify the initial estimate** is documented with:
+1. **Create entry in `docs/estimation-tracking.md`** for the issue if it doesn't exist
+2. **Estimate and document** how long you think it will take to implement/fix BEFORE starting work:
    - Detailed task breakdown
    - Explicit assumptions
    - Risk factors identified
    - Confidence level stated
 3. **Record start time** in issue comment
 4. **Track actual time** throughout implementation
-5. **Update actuals** in `estimation-tracking.md` when complete
+5. **Update entry in `estimation-tracking.md`** when confirmed via tests and ready to merge to master branch:
+   - Record actual time taken
+   - Document variance from estimate
+   - Note unexpected complexity encountered
 6. **Analyze variance** and document lessons learned
 
 **Critical Rule:** AI estimates are often off by **10-100x**. The estimation-tracking process helps:
@@ -155,12 +160,12 @@ Before starting ANY GitHub issue implementation:
 When you see these phrases, **multiply the estimate by 2-3x minimum**.
 
 **Process Checklist:**
-- [ ] Before starting: Review estimate in `estimation-tracking.md`
+- [ ] Before starting: Create/review entry in `estimation-tracking.md` for this GH issue
+- [ ] Document initial time estimate BEFORE starting work
 - [ ] Record start time in GitHub issue comment
 - [ ] Note unexpected complexity as you encounter it
 - [ ] Record completion time when done
-- [ ] Update actuals in `estimation-tracking.md`
-- [ ] Document variance causes
-- [ ] Update lessons learned section
+- [ ] Update actuals in `estimation-tracking.md` when ready to merge to master
+- [ ] Document variance causes and lessons learned
 
 See `docs/estimation-tracking.md` for complete process and historical tracking.
