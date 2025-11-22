@@ -1,256 +1,245 @@
-# Left Off Here - Issue #6 E2E Tests
+# Left Off Here - Next Phase of Development
 
-**Date:** 2025-11-21 06:00
-**Branch:** `feature/playwright-e2e-tests`
-**Status:** 83% complete (34/41 tests passing)
+**Date:** 2025-11-22 05:00
+**Current Branch:** `master` (after merging PR #13)
+**Project Status:** Issue #5 and #6 complete ✅
 
-## Current Objective
+## What Was Just Completed ✅
 
-Fix remaining 7 failing E2E tests to reach 100% pass rate.
+### Issue #6: Playwright E2E Test Suite
+- **Status:** COMPLETE - PR #13 merged
+- **Achievement:** 100% pass rate (41/41 tests)
+- **Time:** ~4 hours (vs 16-24h estimate = 0.17-0.25x variance)
+- **Tests Added:** 27 new test cases across 5 files
+- **Key Learning:** Infrastructure already existed - fixing is faster than building from scratch
 
-## What Was Completed ✅
+### Issue #5: Local Score Storage System
+- **Status:** COMPLETE - PR #12 merged
+- **Achievement:** 169/169 unit tests passing
+- **Time:** 50 minutes (vs 4h estimate = 0.21x variance)
+- **Key Learning:** Clean source code with simple APIs can be 4-5x faster than estimated
 
-1. **Fixed all 12 broken existing tests** (14/14 now passing)
-   - Root cause: Missing DOM status messages
-   - Fixed LevelScene.ts to write descriptive status messages
-   - Added `&board=test` parameter for deterministic 4x3 board
+## Current State of the Project
 
-2. **Created 5 new test files** with 27 test cases
-   - journey-map.spec.ts (4 tests)
-   - level-completion.spec.ts (6 tests)
-   - rewards.spec.ts (5 tests)
-   - power-ups.spec.ts (6 placeholder tests)
-   - buy-turns.spec.ts (6 placeholder tests)
+### Test Coverage
+- ✅ **169 unit tests** - All passing
+- ✅ **41 E2E tests** - All passing (100% coverage)
 
-3. **Committed and pushed to GitHub**
-   - Commit 9a7e2a6: Main test fixes
-   - Commit 6c84418: Documentation updates
-   - Updated docs/estimation-tracking.md with actual time
+### Features Implemented
+- ✅ Local score storage (localStorage)
+- ✅ Level objectives and progression
+- ✅ Lives system (5 max, regeneration pending)
+- ✅ Coin system
+- ✅ Journey map with level selection
+- ✅ Power-ups (rockets, bombs)
+- ✅ Buy turns system (during level failure)
 
-## Remaining Work (7 failing tests)
+### Technical Debt / Known Issues
+- Power-up E2E tests are placeholders (need deterministic board state setup)
+- Buy turns E2E tests are placeholders (need level failure scenario setup)
+- No backend/leaderboard integration yet
+- No analytics tracking yet
 
-### 1. game-interaction.spec.ts (1 failure)
-**Test:** "should update score after matches"
-**Error:** Test timeout during beforeEach (browserContext.newPage exceeded 30s)
-**Issue:** Intermittent timeout, possibly resource contention
-**Fix:** Likely just needs a retry or is environmental
+## Next Steps - Recommended Order
 
-### 2. journey-map.spec.ts (2 failures)
+### Option A: High-Value Backend Work (Recommended for User Engagement)
 
-#### Test: "should display journey map when clicking Play button"
-**Error:** Test timeout during beforeEach (browserContext.newPage exceeded 30s)
-**Issue:** Browser initialization timeout
-**Fix:** May need increased timeout or retry logic
+**Issue #7: Implement High Score System with Backend**
+- **Priority:** HIGH
+- **Effort:** 24-32 hours base, 72-144 hours realistic (with Azure deployment risk)
+- **Why do this next:**
+  - Adds competitive/social element
+  - High user value
+  - Enables leaderboards
+- **Dependencies:** None
+- **Risks:**
+  - First time Azure deployment (2x multiplier)
+  - Backend integration (1.5x multiplier)
+  - CORS/connection issues
 
-#### Test: "should select level when clicking on level node"
-**Error:** `page.waitForFunction` timeout waiting for `data-scene-ready='true'`
-**Issue:** After clicking level node, game doesn't transition to LevelScene
-**Root Cause:** Click coordinates may be wrong, or level selection flow different
-**Fix Steps:**
-1. Check journey map click coordinates (currently `{x: 370, y: 450}`)
-2. Verify level node positions in JourneyMapScene.ts
-3. May need to wait for journey map to fully load before clicking
-4. Consider adding data attributes to level nodes for easier selection
+**Issue #8: Add Analytics Tracking System**
+- **Priority:** Medium
+- **Effort:** 8 hours base, 12-16 hours realistic
+- **Why do this next:** Builds on Issue #7
+- **Dependencies:** Requires Issue #7 complete
+- **Risks:** Offline sync complexity
 
-### 3. level-completion.spec.ts (2 failures)
+### Option B: Visual Variety & Game Mechanics
 
-#### Test: "should update gem goal progress after collecting gems"
-**Error:** `expect(updatedProgress).not.toBe(initialProgress)` failed
-**Values:** Both show "🔴 0/30"
-**Issue:** Progress not updating after valid swap
-**Root Cause:** Either gems not being collected or objectives not tracking correctly
-**Fix Steps:**
-1. Verify the swap is actually creating a match (check screenshots)
-2. Check if objectives are enabled for test board
-3. May need to use a different gem color that matches the goal
-4. Verify `board=test` includes the goal gem colors
+**Issue #9: Implement Variable Board Shapes**
+- **Priority:** Medium
+- **Effort:** 16-24 hours base, 31-47 hours realistic
+- **Why do this:** Visual variety, unique levels
+- **Dependencies:** None
+- **Risks:** Core board logic refactoring (2x multiplier)
 
-#### Test: "should update progress bar as goals are met"
-**Error:** `expect(updatedPercent).toBeGreaterThan(initialPercent)` failed
-**Values:** Both show 0%
-**Issue:** Progress bar not updating
-**Root Cause:** Same as above - gems not being counted toward goals
-**Fix:** Same as previous test
+**Issue #10: Add Shop System for Lives & Power-ups**
+- **Priority:** Medium
+- **Effort:** 16-24 hours base, 20-30 hours realistic
+- **Why do this:** Monetization potential, player retention
+- **Dependencies:** None
+- **Risks:** UI polish takes longer than expected
 
-### 4. rewards.spec.ts (2 failures)
+**Issue #11: Implement Lives Regeneration System**
+- **Priority:** Low
+- **Effort:** 8 hours base, 10-12 hours realistic
+- **Why do this:** Player retention, F2P mechanic
+- **Dependencies:** None
+- **Risks:** Timer edge cases (offline, clock changes)
 
-#### Test: "should display current coins and lives on main menu"
-**Error:** `locator.textContent` timeout waiting for `text=/💰\\s*\\d+/`
-**Issue:** Emoji-based text selector not finding elements
-**Root Cause:** May need different selector strategy or wait for DOM elements
-**Fix Steps:**
-1. Check if coins/lives are actually displayed on main menu
-2. Try alternative selectors (ID, class, or data attributes)
-3. May need to add data attributes to coins/lives display elements
-4. Check if elements are in canvas vs DOM
+## Quick Start Commands
 
-#### Test: "should display coin balance in journey map"
-**Error:** Same as above - emoji text selector timeout
-**Issue:** Same selector issue
-**Fix:** Same approach as previous test
-
-## Quick Start to Resume
-
+### Start Fresh Session
 ```bash
 cd C:\source\phaser-match3
 
-# Ensure you're on the right branch
-git checkout feature/playwright-e2e-tests
+# Ensure master branch is up to date
+git checkout master
+git pull origin master
 
-# Pull latest (in case of any changes)
-git pull origin feature/playwright-e2e-tests
+# Run tests to verify everything works
+npm test              # Unit tests: 169 passing
+npm run test:e2e      # E2E tests: 41 passing
 
-# Run tests to see current status
-npm run test:e2e
-
-# Run dev server in separate terminal for manual testing
-npm run dev
+# Pick next issue and create branch
+git checkout -b feature/issue-7-high-scores  # or whichever issue
 ```
 
-## Recommended Fix Order
+### If Starting Issue #7 (High Score System)
 
-### Phase 1: Quick Wins (30-45 min)
-1. **Fix rewards.spec.ts selectors** (2 tests)
-   - Replace emoji regex selectors with ID/class selectors
-   - Check `index.html` for actual coins/lives element structure
-   - May need to add data attributes if elements are in canvas
+**Before coding:**
+1. Read `docs/estimation-tracking.md` for Issue #7
+2. Review `C:\source\gem-match-wolf\HIGH-SCORE-SYSTEM.md` architecture
+3. Check Azure account access
+4. Post initial estimate in Issue #7 GitHub comment
+5. Record start time
 
-### Phase 2: Level Completion (30-45 min)
-2. **Fix level-completion.spec.ts progress tracking** (2 tests)
-   - Verify objectives are enabled with `board=test`
-   - Check if test board gem colors match objective colors
-   - May need to adjust test board configuration
-   - Verify swap coordinates are creating actual matches
+**Key files to review:**
+- `gem-match-wolf/src/backend/` - Azure Functions
+- `gem-match-wolf/src/services/HighScoreAPI.ts` - API client
+- `gem-match-wolf/src/scenes/LeaderboardScene.ts` - UI
 
-### Phase 3: Journey Map (30-45 min)
-3. **Fix journey-map.spec.ts navigation** (2 tests)
-   - Increase timeout for browser initialization
-   - Fix level node click coordinates
-   - Add proper waits for journey map loading
-   - Consider using data attributes for level nodes
+**Architecture overview:**
+- Azure Functions for backend API
+- Azure Table Storage for high scores
+- Anti-cheat via GameSession tracking
+- Rate limiting (10 requests/minute per IP)
+- Top 100 scores cached
 
-### Phase 4: Intermittent Issues (15 min)
-4. **Fix game-interaction.spec.ts timeout** (1 test)
-   - Likely just needs retry or is environmental
-   - May resolve itself or need increased timeout
+### If Starting Issue #9 (Variable Board Shapes)
 
-## Key Files to Check
+**Before coding:**
+1. Read `docs/estimation-tracking.md` for Issue #9
+2. Review how gem-match-wolf handles missing cells
+3. Understand Board class architecture
 
-### For Rewards Tests
-- `index.html` - Check DOM structure for coins/lives display
-- `src/scenes/MainMenuScene.ts` - How coins/lives are rendered
-- `src/scenes/JourneyMapScene.ts` - How coins are displayed in journey map
+**Key files to review:**
+- `gem-match-wolf/src/LevelConfig.ts` - Board shape definitions
+- `src/game/Board.ts` - Match detection logic
+- `src/scenes/LevelScene.ts` - Rendering logic
 
-### For Level Completion Tests
-- `e2e/level-completion.spec.ts` - The failing tests
-- `src/scenes/LevelScene.ts` - Verify objectives tracking (lines 505-543)
-- `src/game/LevelObjectives.ts` - Check objective update logic
-- `src/game/BoardConfig.ts` - Verify test board configuration
+## Historical Performance Data
 
-### For Journey Map Tests
-- `e2e/journey-map.spec.ts` - The failing tests
-- `src/scenes/JourneyMapScene.ts` - Check level node positions and click handlers
-- Check if scene transition logic works correctly
+Use this to calibrate future estimates:
 
-## Important Context
+| Issue | Type | Estimate | Actual | Variance | Key Factor |
+|-------|------|----------|--------|----------|------------|
+| #5 | Simple copy/adapt | 4h | 0.83h | 0.21x | Clean source code |
+| #6 | Fix existing tests | 16-24h | 4h | 0.17-0.25x | Already set up |
 
-1. **Test Board Configuration**
-   - Using `?skipMenu=true&board=test` for 4x3 deterministic board
-   - Test board defined in LevelScene.ts lines 115-120
-   - Current configuration:
-     ```
-     Row 0: [red,    blue,  blue]
-     Row 1: [blue,   blue,  green]
-     Row 2: [purple, orange, red]
-     Row 3: [yellow, blue,   orange]
-     ```
+**Lessons learned:**
+1. "Setup from scratch" vs "fix existing" are very different (4-6x difference)
+2. Clean, well-documented source code can be ported 4-5x faster than estimated
+3. Always check what infrastructure already exists before estimating
+4. Simple localStorage operations are faster than anticipated
+5. E2E test scaffolding is quick when patterns exist
 
-2. **Status Messages Working**
-   - LevelScene.ts lines 406, 413 write descriptive messages
-   - Tests can now verify user feedback via DOM
+## Estimation Multipliers to Apply
 
-3. **Objectives Enabled**
-   - Level objectives track gem goals and moves
-   - Progress bar updates in `updateObjectivesDisplay()`
-   - Need to verify objectives work with test board
+Based on Issue #5 and #6 experience:
 
-## Test Run Command
+- **Copy clean code:** 0.25x - 0.5x (faster than estimated)
+- **Fix existing broken code:** 0.2x - 0.4x (much faster than setup)
+- **E2E test creation:** 0.5x - 0.8x (when patterns exist)
+- **First-time Azure deployment:** 2-3x (high uncertainty)
+- **Backend integration:** 1.5-2x (CORS, connections, etc.)
+- **Core refactoring:** 1.5-2x (edge cases)
 
-```bash
-# Run all E2E tests
-npm run test:e2e
+## Important Files
 
-# Run specific test file
-npx playwright test e2e/rewards.spec.ts
+### Documentation
+- `docs/integration-plan.md` - Full 3-week roadmap
+- `docs/integration-summary.md` - Quick reference
+- `docs/estimation-tracking.md` - Historical data & process
+- `docs/Claude.md` - AI assistant guidelines
 
-# Run specific test
-npx playwright test e2e/rewards.spec.ts -g "should display current coins"
+### Test Infrastructure
+- `e2e/` - 41 E2E tests (all passing)
+- `src/**/__tests__/` - 169 unit tests (all passing)
+- `playwright.config.ts` - E2E test configuration
 
-# Run with headed browser (see what's happening)
-npx playwright test --headed
+### Key Source Files
+- `src/scenes/LevelScene.ts` - Main game scene
+- `src/game/Board.ts` - Core game logic
+- `src/services/LocalScores.ts` - Local storage
+- `src/game/MetaProgressionManager.ts` - Lives, coins, progress
 
-# Run with debug mode
-npx playwright test --debug
-```
+## Questions to Answer Before Starting Next Issue
 
-## Screenshots Location
+1. **Which issue provides most user value right now?**
+   - Leaderboards (#7) for competition?
+   - Board shapes (#9) for variety?
+   - Shop system (#10) for monetization?
 
-Screenshots are saved to `screenshots/` directory during test runs. Check these to see what's actually happening in failing tests.
+2. **Do we have Azure account access for Issue #7?**
+   - If yes → Issue #7 is viable
+   - If no → Choose #9, #10, or #11
 
-## Estimated Time Remaining
+3. **What's the user's priority?**
+   - Backend/social features?
+   - Game mechanics/variety?
+   - Monetization/F2P features?
 
-- **Quick fixes (rewards selectors):** 30-45 minutes
-- **Level completion (objectives):** 30-45 minutes
-- **Journey map (navigation):** 30-45 minutes
-- **Intermittent timeout:** 15 minutes
+4. **Time budget available?**
+   - Short session (4-8h) → Issue #11 (lives regen)
+   - Medium session (1-2 days) → Issue #9 or #10
+   - Long session (3-5 days) → Issue #7 (with Azure)
 
-**Total:** 2-3 hours to reach 100% pass rate
+## GitHub Issues Links
 
-## Notes for Tomorrow
+- [#7 - High Score System with Backend](https://github.com/ehalsey/phaser-match3/issues/7)
+- [#8 - Analytics Tracking System](https://github.com/ehalsey/phaser-match3/issues/8)
+- [#9 - Variable Board Shapes](https://github.com/ehalsey/phaser-match3/issues/9)
+- [#10 - Shop System for Lives & Power-ups](https://github.com/ehalsey/phaser-match3/issues/10)
+- [#11 - Lives Regeneration System](https://github.com/ehalsey/phaser-match3/issues/11)
 
-- All unit tests still passing (169/169) ✅
-- Dev server working perfectly ✅
-- Changes committed and pushed ✅
-- Documentation updated ✅
-- Issue #6 comment posted ✅
+## Success Criteria for Remaining Issues
 
-Just need to fix the 7 failing E2E tests to complete this issue!
+### Issue #7 (Leaderboards)
+- [ ] Azure Functions deployed and working
+- [ ] Leaderboard scene shows top 100 scores
+- [ ] Anti-cheat active (GameSession validation)
+- [ ] < 2 second leaderboard load time
+- [ ] Rate limiting working (10 req/min per IP)
 
-## GitHub Issue
+### Issue #9 (Board Shapes)
+- [ ] 3+ special shaped levels (L-shape, T-shape, etc.)
+- [ ] All power-ups work on non-rectangular boards
+- [ ] Match detection works with missing cells
+- [ ] Visual rendering centers/scales properly
 
-https://github.com/ehalsey/phaser-match3/issues/6
+### Issue #10 (Shop)
+- [ ] All purchase flows working (lives, power-ups)
+- [ ] Coin balance always accurate
+- [ ] Purchase confirmation dialogs
+- [ ] Shop accessible from journey map
 
-## Pull Request (Not Yet Created)
-
-After fixing remaining tests, create PR:
-```bash
-gh pr create --title "Fix Playwright E2E test suite and add comprehensive test coverage" --body "$(cat <<'EOF'
-Fixes #6
-
-## Changes
-- Fixed all 12 broken E2E tests
-- Added 27 new test cases across 5 files
-- 41/41 tests passing (100%)
-
-## Test Coverage
-- Game interactions (10 tests)
-- Main menu (3 tests)
-- Journey map (4 tests)
-- Level completion (6 tests)
-- Rewards system (5 tests)
-- Power-ups (6 placeholder tests)
-- Buy turns (6 placeholder tests)
-
-## Key Fixes
-- Added status messages to LevelScene
-- Board=test parameter for deterministic testing
-- Fixed wait conditions using data-scene-ready attribute
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-EOF
-)"
-```
+### Issue #11 (Lives Regen)
+- [ ] Lives regenerate every 30 minutes
+- [ ] Timer displays countdown in journey map
+- [ ] Works correctly across sessions (localStorage)
+- [ ] Handles edge cases (offline, clock changes)
 
 ---
 
-**Ready to resume!** Start with the rewards.spec.ts selector fixes as they should be the quickest wins. 🚀
+**Ready to start!** Pick the next issue based on priorities and available time. 🚀
