@@ -1399,7 +1399,7 @@ describe('Board', () => {
         expect(result.bombExplosions).toBeDefined();
         expect(result.bombExplosions!.length).toBe(1);
         // Rocket moved to (2, 0) after swap
-        expect(result.bombExplosions![0]).toEqual({ row: 2, col: 0 });
+        expect(result.bombExplosions![0].position).toEqual({ row: 2, col: 0 });
       });
 
       it('should trigger horizontal rocket explosion when swapped', () => {
@@ -1425,7 +1425,7 @@ describe('Board', () => {
         expect(result.bombExplosions).toBeDefined();
         expect(result.bombExplosions!.length).toBe(1);
         // Rocket moved to (2, 2) after swap
-        expect(result.bombExplosions![0]).toEqual({ row: 2, col: 2 });
+        expect(result.bombExplosions![0].position).toEqual({ row: 2, col: 2 });
       });
 
       it('should trigger bomb explosion when swapped', () => {
@@ -1451,7 +1451,7 @@ describe('Board', () => {
         expect(result.bombExplosions).toBeDefined();
         expect(result.bombExplosions!.length).toBe(1);
         // Bomb moved to (2, 0) after swap
-        expect(result.bombExplosions![0]).toEqual({ row: 2, col: 0 });
+        expect(result.bombExplosions![0].position).toEqual({ row: 2, col: 0 });
       });
     });
 
@@ -1627,6 +1627,458 @@ describe('Board', () => {
           t.position.row === 2 && t.position.col === 2
         );
         expect(selfTriggered).toBeUndefined();
+      });
+    });
+
+    describe('Test 21: Color-Clear Power-Up Creation', () => {
+      it('should create color-clear power-up from 5-gem horizontal match', () => {
+        const board = new Board(4, 6);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'yellow', 'red', 'red', 'red', 'red'],
+          ['blue', 'green', 'yellow', 'purple', 'orange', 'blue'],
+          ['orange', 'blue', 'green', 'blue', 'yellow', 'green'],
+          ['yellow', 'purple', 'orange', 'blue', 'green', 'yellow']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Swap to create a horizontal match of 5 reds (cols 1,2,3,4,5 after swap)
+        const result = board.swap({ row: 0, col: 0 }, { row: 0, col: 1 });
+
+        expect(result.valid).toBe(true);
+        expect(result.bombsToCreate).toBeDefined();
+        expect(result.bombsToCreate!.length).toBe(1);
+        expect(result.bombsToCreate![0].specialType).toBe('color-clear');
+        expect(result.bombsToCreate![0].color).toBe('red');
+      });
+
+      it('should create color-clear power-up from 5-gem vertical match', () => {
+        const board = new Board(6, 4);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green', 'yellow'],
+          ['yellow', 'purple', 'orange', 'blue'],
+          ['red', 'orange', 'blue', 'green'],
+          ['red', 'green', 'purple', 'orange'],
+          ['red', 'blue', 'orange', 'purple'],
+          ['red', 'red', 'green', 'yellow']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Swap to create a vertical match of 5 reds (rows 1,2,3,4,5 after swap)
+        const result = board.swap({ row: 0, col: 0 }, { row: 1, col: 0 });
+
+        expect(result.valid).toBe(true);
+        expect(result.bombsToCreate).toBeDefined();
+        expect(result.bombsToCreate!.length).toBe(1);
+        expect(result.bombsToCreate![0].specialType).toBe('color-clear');
+        expect(result.bombsToCreate![0].color).toBe('red');
+      });
+
+      it('should place color-clear at center of 5-gem match', () => {
+        const board = new Board(4, 6);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'yellow', 'red', 'red', 'red', 'red'],
+          ['blue', 'green', 'yellow', 'purple', 'orange', 'blue'],
+          ['orange', 'blue', 'green', 'blue', 'yellow', 'green'],
+          ['yellow', 'purple', 'orange', 'blue', 'green', 'yellow']
+        ];
+
+        board.initializeWithConfig(testConfig);
+        const result = board.swap({ row: 0, col: 0 }, { row: 0, col: 1 });
+
+        // For 5-gem match at cols 1,2,3,4,5, center should be at col 3
+        const powerUpPos = result.bombsToCreate![0].position;
+        expect(powerUpPos.row).toBe(0);
+        expect(powerUpPos.col).toBe(3);
+      });
+
+      it('should create color-clear for 6+ gem matches', () => {
+        const board = new Board(4, 7);
+        const testConfig: (GemType | null)[][] = [
+          ['blue', 'red', 'red', 'red', 'red', 'red', 'red'],  // 6 reds after swap
+          ['blue', 'green', 'yellow', 'purple', 'orange', 'blue', 'green'],
+          ['orange', 'blue', 'green', 'blue', 'yellow', 'green', 'red'],
+          ['yellow', 'purple', 'orange', 'blue', 'green', 'yellow', 'purple']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        const result = board.swap({ row: 0, col: 0 }, { row: 0, col: 1 });
+
+        expect(result.valid).toBe(true);
+        expect(result.bombsToCreate).toBeDefined();
+        expect(result.bombsToCreate!.length).toBe(1);
+        expect(result.bombsToCreate![0].specialType).toBe('color-clear');
+      });
+    });
+
+    describe('Test 22: Color-Clear Explosion', () => {
+      it('should clear all gems of target color from entire board', () => {
+        const board = new Board(5, 5);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green', 'red', 'purple'],
+          ['blue', 'red', 'yellow', 'orange', 'yellow'],
+          ['yellow', 'purple', 'orange', 'blue', 'green'],
+          ['purple', 'orange', 'red', 'red', 'blue'],
+          ['green', 'red', 'blue', 'purple', 'orange']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Count red gems before explosion
+        let redCount = 0;
+        for (let row = 0; row < 5; row++) {
+          for (let col = 0; col < 5; col++) {
+            if (getColor(board.getGemAt(row, col)) === 'red') redCount++;
+          }
+        }
+        expect(redCount).toBe(6); // Verify there are 6 red gems
+
+        // Manually place a color-clear power-up
+        board.setGemAt(2, 2, { color: 'yellow', special: 'color-clear' });
+
+        // Explode the color-clear targeting red gems
+        const result = board.explodeColorClear({ row: 2, col: 2 }, 'red');
+
+        // Should clear all 6 red gems
+        expect(result.cleared.length).toBe(6);
+
+        // Verify no red gems remain on board
+        for (let row = 0; row < 5; row++) {
+          for (let col = 0; col < 5; col++) {
+            expect(getColor(board.getGemAt(row, col))).not.toBe('red');
+          }
+        }
+      });
+
+      it('should not affect gems of other colors', () => {
+        const board = new Board(5, 5);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green', 'red', 'purple'],
+          ['blue', 'red', 'yellow', 'orange', 'yellow'],
+          ['yellow', 'purple', 'orange', 'blue', 'green'],
+          ['purple', 'orange', 'red', 'red', 'blue'],
+          ['green', 'red', 'blue', 'purple', 'orange']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Count non-red gems
+        let blueCount = 0, greenCount = 0;
+        for (let row = 0; row < 5; row++) {
+          for (let col = 0; col < 5; col++) {
+            if (getColor(board.getGemAt(row, col)) === 'blue') blueCount++;
+            if (getColor(board.getGemAt(row, col)) === 'green') greenCount++;
+          }
+        }
+
+        board.setGemAt(2, 2, { color: 'yellow', special: 'color-clear' });
+        board.explodeColorClear({ row: 2, col: 2 }, 'red');
+
+        // Verify blue and green counts remain unchanged
+        let newBlueCount = 0, newGreenCount = 0;
+        for (let row = 0; row < 5; row++) {
+          for (let col = 0; col < 5; col++) {
+            if (getColor(board.getGemAt(row, col)) === 'blue') newBlueCount++;
+            if (getColor(board.getGemAt(row, col)) === 'green') newGreenCount++;
+          }
+        }
+        expect(newBlueCount).toBe(blueCount);
+        expect(newGreenCount).toBe(greenCount);
+      });
+
+      it('should trigger special gems of target color', () => {
+        const board = new Board(5, 5);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green', 'yellow', 'purple'],
+          ['blue', 'green', 'yellow', 'orange', 'yellow'],
+          ['yellow', 'purple', 'orange', 'blue', 'green'],
+          ['purple', 'orange', 'yellow', 'red', 'blue'],
+          ['green', 'red', 'blue', 'purple', 'orange']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Place a color-clear and a red vertical rocket
+        board.setGemAt(2, 2, { color: 'yellow', special: 'color-clear' });
+        board.setGemAt(0, 0, { color: 'red', special: 'vertical-rocket' });
+
+        // Explode color-clear targeting red gems
+        const result = board.explodeColorClear({ row: 2, col: 2 }, 'red');
+
+        // Should trigger the red vertical rocket
+        expect(result.triggered.length).toBe(1);
+        expect(result.triggered[0].position).toEqual({ row: 0, col: 0 });
+        expect(result.triggered[0].specialType).toBe('vertical-rocket');
+      });
+
+      it('should work with empty target color (no gems to clear)', () => {
+        const board = new Board(5, 5);
+        const testConfig: (GemType | null)[][] = [
+          ['blue', 'blue', 'green', 'yellow', 'purple'],
+          ['blue', 'green', 'yellow', 'orange', 'yellow'],
+          ['yellow', 'purple', 'orange', 'blue', 'green'],
+          ['purple', 'orange', 'yellow', 'blue', 'blue'],
+          ['green', 'blue', 'blue', 'purple', 'orange']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        board.setGemAt(2, 2, { color: 'yellow', special: 'color-clear' });
+
+        // Explode targeting red (no red gems on board)
+        const result = board.explodeColorClear({ row: 2, col: 2 }, 'red');
+
+        // Should clear nothing
+        expect(result.cleared.length).toBe(0);
+        expect(result.triggered.length).toBe(0);
+      });
+    });
+
+    describe('Test 23: Swapping Color-Clear Power-Up', () => {
+      it('should trigger color-clear and pass target color when swapped', () => {
+        const board = new Board(5, 5);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green', 'red', 'purple'],
+          ['blue', 'red', 'yellow', 'orange', 'yellow'],
+          ['yellow', 'purple', 'orange', 'blue', 'green'],
+          ['purple', 'orange', 'red', 'red', 'blue'],
+          ['green', 'red', 'blue', 'purple', 'orange']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Place color-clear power-up and a regular blue gem next to it
+        board.setGemAt(2, 2, { color: 'yellow', special: 'color-clear' });
+
+        // Swap color-clear with blue gem
+        const result = board.swap({ row: 2, col: 2 }, { row: 2, col: 3 });
+
+        // Should be valid and trigger explosion
+        expect(result.valid).toBe(true);
+        expect(result.bombExplosions).toBeDefined();
+        expect(result.bombExplosions!.length).toBe(1);
+
+        // Color-clear moved to (2, 3) and should target blue (what it was swapped with)
+        expect(result.bombExplosions![0].position).toEqual({ row: 2, col: 3 });
+        expect(result.bombExplosions![0].targetColor).toBe('blue');
+      });
+
+      it('should pass correct target color when swapping with different colors', () => {
+        const board = new Board(5, 5);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green', 'yellow', 'purple'],
+          ['blue', 'green', 'yellow', 'orange', 'yellow'],
+          ['yellow', 'purple', 'orange', 'blue', 'green'],
+          ['purple', 'orange', 'yellow', 'red', 'blue'],
+          ['green', 'red', 'blue', 'purple', 'orange']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Place color-clear and swap with purple gem
+        board.setGemAt(2, 2, { color: 'yellow', special: 'color-clear' });
+
+        const result = board.swap({ row: 2, col: 2 }, { row: 1, col: 2 });
+
+        // Should target yellow (what it was swapped with)
+        expect(result.bombExplosions![0].targetColor).toBe('yellow');
+      });
+    });
+
+    describe('Test 24: Power-Up Creation from Cascade/Autofill Matches', () => {
+      it('should create vertical rocket from 4-gem vertical cascade match', () => {
+        const board = new Board(5, 3);
+        // After clearing and gravity, this should create a 4-gem vertical match
+        const testConfig: (GemType | null)[][] = [
+          [null, 'blue', 'green'],
+          ['red', 'yellow', 'orange'],
+          ['red', 'purple', 'blue'],
+          ['red', 'orange', 'yellow'],
+          ['red', 'blue', 'purple']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Find the existing vertical match
+        const matches = board.findMatches();
+        expect(matches.length).toBe(1);
+        expect(matches[0].positions.length).toBe(4);
+        expect(matches[0].direction).toBe('vertical');
+
+        // Determine power-ups that should be created
+        const bombsToCreate = board.determineBombCreations(matches);
+
+        expect(bombsToCreate.length).toBe(1);
+        expect(bombsToCreate[0].specialType).toBe('vertical-rocket');
+        expect(bombsToCreate[0].color).toBe('red');
+      });
+
+      it('should create horizontal rocket from 4-gem horizontal cascade match', () => {
+        const board = new Board(5, 5);
+        const testConfig: (GemType | null)[][] = [
+          ['blue', 'blue', 'blue', 'blue', 'purple'],
+          ['red', 'yellow', 'orange', 'green', 'yellow'],
+          ['green', 'purple', 'red', 'orange', 'blue'],
+          ['yellow', 'orange', 'yellow', 'red', 'purple'],
+          ['purple', 'red', 'green', 'blue', 'orange']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        const matches = board.findMatches();
+        expect(matches.length).toBe(1);
+        expect(matches[0].positions.length).toBe(4);
+        expect(matches[0].direction).toBe('horizontal');
+
+        const bombsToCreate = board.determineBombCreations(matches);
+
+        expect(bombsToCreate.length).toBe(1);
+        expect(bombsToCreate[0].specialType).toBe('horizontal-rocket');
+        expect(bombsToCreate[0].color).toBe('blue');
+      });
+
+      it('should create color-clear from 5-gem horizontal cascade match', () => {
+        const board = new Board(5, 6);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'red', 'red', 'red', 'red', 'purple'],
+          ['blue', 'yellow', 'orange', 'green', 'yellow', 'blue'],
+          ['green', 'purple', 'red', 'orange', 'blue', 'green'],
+          ['yellow', 'orange', 'yellow', 'red', 'purple', 'yellow'],
+          ['purple', 'red', 'green', 'blue', 'orange', 'purple']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        const matches = board.findMatches();
+        expect(matches.length).toBe(1);
+        expect(matches[0].positions.length).toBe(5);
+
+        const bombsToCreate = board.determineBombCreations(matches);
+
+        expect(bombsToCreate.length).toBe(1);
+        expect(bombsToCreate[0].specialType).toBe('color-clear');
+        expect(bombsToCreate[0].color).toBe('red');
+      });
+
+      it('should create color-clear from 5-gem vertical cascade match', () => {
+        const board = new Board(6, 4);
+        const testConfig: (GemType | null)[][] = [
+          ['blue', 'red', 'green', 'yellow'],
+          ['blue', 'yellow', 'orange', 'purple'],
+          ['blue', 'purple', 'red', 'orange'],
+          ['blue', 'orange', 'yellow', 'green'],
+          ['blue', 'green', 'purple', 'red'],
+          ['red', 'blue', 'orange', 'yellow']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        const matches = board.findMatches();
+        expect(matches.length).toBe(1);
+        expect(matches[0].positions.length).toBe(5);
+        expect(matches[0].direction).toBe('vertical');
+
+        const bombsToCreate = board.determineBombCreations(matches);
+
+        expect(bombsToCreate.length).toBe(1);
+        expect(bombsToCreate[0].specialType).toBe('color-clear');
+        expect(bombsToCreate[0].color).toBe('blue');
+      });
+
+      it('should create color-clear from 6+ gem cascade match', () => {
+        const board = new Board(5, 7);
+        const testConfig: (GemType | null)[][] = [
+          ['green', 'green', 'green', 'green', 'green', 'green', 'purple'],
+          ['blue', 'yellow', 'orange', 'red', 'yellow', 'blue', 'yellow'],
+          ['red', 'purple', 'red', 'orange', 'blue', 'green', 'orange'],
+          ['yellow', 'orange', 'yellow', 'red', 'purple', 'yellow', 'red'],
+          ['purple', 'red', 'blue', 'blue', 'orange', 'purple', 'blue']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        const matches = board.findMatches();
+        expect(matches.length).toBe(1);
+        expect(matches[0].positions.length).toBe(6);
+
+        const bombsToCreate = board.determineBombCreations(matches);
+
+        expect(bombsToCreate.length).toBe(1);
+        expect(bombsToCreate[0].specialType).toBe('color-clear');
+        expect(bombsToCreate[0].color).toBe('green');
+      });
+
+      it('should create bomb from L-shaped cascade match', () => {
+        const board = new Board(5, 5);
+        const testConfig: (GemType | null)[][] = [
+          ['blue', 'red', 'green', 'yellow', 'purple'],
+          ['yellow', 'red', 'red', 'red', 'orange'],
+          ['orange', 'red', 'blue', 'green', 'purple'],
+          ['purple', 'green', 'orange', 'yellow', 'blue'],
+          ['green', 'orange', 'yellow', 'blue', 'purple']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        const matches = board.findMatches();
+        // Should have both horizontal and vertical match-3s intersecting at (1, 1)
+        expect(matches.length).toBe(2);
+
+        const bombsToCreate = board.determineBombCreations(matches);
+
+        // Should create bomb at intersection (1, 1)
+        expect(bombsToCreate.length).toBe(1);
+        expect(bombsToCreate[0].specialType).toBe('bomb');
+        expect(bombsToCreate[0].position.row).toBe(1);
+        expect(bombsToCreate[0].position.col).toBe(1);
+      });
+
+      it('should not create power-ups from match-3 cascade matches', () => {
+        const board = new Board(5, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'red', 'red'],
+          ['blue', 'yellow', 'orange'],
+          ['green', 'purple', 'blue'],
+          ['yellow', 'orange', 'green'],
+          ['purple', 'blue', 'yellow']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        const matches = board.findMatches();
+        expect(matches.length).toBe(1);
+        expect(matches[0].positions.length).toBe(3);
+
+        const bombsToCreate = board.determineBombCreations(matches);
+
+        // Match-3 should not create any power-ups
+        expect(bombsToCreate.length).toBe(0);
+      });
+
+      it('should create multiple power-ups from multiple cascade matches', () => {
+        const board = new Board(6, 6);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'red', 'red', 'red', 'purple', 'orange'],
+          ['blue', 'yellow', 'orange', 'green', 'yellow', 'blue'],
+          ['green', 'green', 'green', 'green', 'blue', 'green'],
+          ['yellow', 'orange', 'yellow', 'red', 'purple', 'yellow'],
+          ['purple', 'red', 'blue', 'blue', 'orange', 'purple'],
+          ['orange', 'blue', 'yellow', 'green', 'red', 'orange']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        const matches = board.findMatches();
+        expect(matches.length).toBe(2); // Two horizontal match-4s
+
+        const bombsToCreate = board.determineBombCreations(matches);
+
+        // Should create 2 horizontal rockets
+        expect(bombsToCreate.length).toBe(2);
+        expect(bombsToCreate[0].specialType).toBe('horizontal-rocket');
+        expect(bombsToCreate[1].specialType).toBe('horizontal-rocket');
       });
     });
   });

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { Board, BombCreation, Gem, GemType, Position, TriggeredGem, SpecialGemType } from '../game/Board';
+import { Board, BombCreation, Gem, GemType, Position, TriggeredGem, SpecialGemType, SpecialGemExplosion } from '../game/Board';
 import { BoardConfig } from '../game/BoardConfig';
 import { LevelObjectives, LevelStatus } from '../game/LevelObjectives';
 import { LevelSettings } from '../game/LevelConfig';
@@ -117,6 +117,23 @@ export class LevelScene extends Phaser.Scene {
         ['blue', 'blue', 'green'],    // Row 1: cells 3, 4, 5
         ['purple', 'orange', 'red'],  // Row 2: cells 6, 7, 8
         ['yellow', 'blue', 'orange']  // Row 3: cells 9, 10, 11
+      ];
+
+      this.board.initializeWithConfig(testConfig);
+    } else if (config.rows === 5 && config.cols === 6) {
+      // Test configuration for MATCH-5 and COLOR-CLEAR power-up
+      //
+      // SCENARIO - MATCH-5 HORIZONTAL:
+      //   Swap (0,0) red ↔ (0,1) yellow
+      //   Result: 5 reds horizontally in row 0 → creates COLOR-CLEAR power-up 🎨
+      //   Then swap the color-clear with any gem to clear all of that color
+      //
+      const testConfig: (GemType | null)[][] = [
+        ['red', 'yellow', 'red', 'red', 'red', 'red'],      // Row 0: Match-5 ready
+        ['blue', 'green', 'yellow', 'purple', 'orange', 'blue'],
+        ['green', 'purple', 'orange', 'blue', 'yellow', 'green'],
+        ['yellow', 'orange', 'blue', 'green', 'purple', 'yellow'],
+        ['purple', 'blue', 'green', 'orange', 'red', 'purple']
       ];
 
       this.board.initializeWithConfig(testConfig);
@@ -390,6 +407,12 @@ export class LevelScene extends Phaser.Scene {
         color: '#ffffff'
       }).setOrigin(0.5);
       bombIndicator.setDepth(1);
+    } else if (gem.special === 'color-clear') {
+      bombIndicator = this.add.text(x, y, '🎨', {
+        fontSize: '32px',
+        color: '#ffffff'
+      }).setOrigin(0.5);
+      bombIndicator.setDepth(1);
     }
 
     return { circle: gemCircle, text, bombIndicator, row, col };
@@ -455,7 +478,7 @@ export class LevelScene extends Phaser.Scene {
     this.clearSelection();
   }
 
-  private handleBombExplosions(bombPositions: Position[]): void {
+  private handleBombExplosions(bombExplosions: SpecialGemExplosion[]): void {
     const spritesToClear: GemSprite[] = [];
     const gemCounts = new Map<GemType, number>();
     const processedPositions = new Set<string>();
@@ -464,14 +487,16 @@ export class LevelScene extends Phaser.Scene {
     interface SpecialGemInfo {
       position: Position;
       specialType: SpecialGemType;
+      targetColor?: GemType;
     }
 
     // Get initial special gem info
-    const toProcess: SpecialGemInfo[] = bombPositions.map(pos => {
-      const gem = this.board.getGemAt(pos.row, pos.col);
+    const toProcess: SpecialGemInfo[] = bombExplosions.map(explosion => {
+      const gem = this.board.getGemAt(explosion.position.row, explosion.position.col);
       return {
-        position: pos,
-        specialType: gem?.special || 'none'
+        position: explosion.position,
+        specialType: gem?.special || 'none',
+        targetColor: explosion.targetColor
       };
     }).filter(info => info.specialType !== 'none');
 
@@ -495,6 +520,9 @@ export class LevelScene extends Phaser.Scene {
       } else if (gemInfo.specialType === 'horizontal-rocket') {
         result = this.board.explodeHorizontalRocket(bombPos);
         this.updateStatus('🚀 HORIZONTAL ROCKET!');
+      } else if (gemInfo.specialType === 'color-clear' && gemInfo.targetColor) {
+        result = this.board.explodeColorClear(bombPos, gemInfo.targetColor);
+        this.updateStatus('🎨 COLOR CLEAR!');
       }
 
       // Add bonus points for special gem explosion
@@ -693,15 +721,18 @@ export class LevelScene extends Phaser.Scene {
   private refillAndCheckCascade(cascadeLevel: number): void {
     this.board.refillBoard();
     this.refreshBoard();
-    
+
     const newMatches = this.board.findMatches();
-    
+
     if (newMatches.length > 0 && cascadeLevel < 10) {
       const nextLevel = cascadeLevel + 1;
       this.updateStatus('CASCADE x' + nextLevel + '! ' + newMatches[0].type + ' match!');
-      
+
+      // Determine if any power-ups should be created from cascade matches
+      const bombsToCreate = this.board.determineBombCreations(newMatches);
+
       this.time.delayedCall(500, () => {
-        this.animateGemClearing(newMatches, nextLevel);
+        this.animateGemClearing(newMatches, nextLevel, bombsToCreate);
       });
     } else {
       if (cascadeLevel > 0) {

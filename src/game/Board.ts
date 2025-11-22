@@ -1,5 +1,5 @@
 export type GemType = 'red' | 'blue' | 'green' | 'yellow' | 'purple' | 'orange';
-export type SpecialGemType = 'bomb' | 'vertical-rocket' | 'horizontal-rocket' | 'none';
+export type SpecialGemType = 'bomb' | 'vertical-rocket' | 'horizontal-rocket' | 'color-clear' | 'none';
 
 export interface TriggeredGem {
   position: Position;
@@ -28,11 +28,16 @@ export interface BombCreation {
   specialType: SpecialGemType; // Type of power-up to create
 }
 
+export interface SpecialGemExplosion {
+  position: Position;
+  targetColor?: GemType; // For color-clear gems - the color to clear
+}
+
 export interface SwapResult {
   valid: boolean;
   matches: Match[];
   bombsToCreate?: BombCreation[];
-  bombExplosions?: Position[]; // Positions of bombs that were triggered by swap
+  bombExplosions?: SpecialGemExplosion[]; // Special gems that were triggered by swap
 }
 
 export interface GemMove {
@@ -102,7 +107,7 @@ export class Board {
   }
 
   // Determine where power-ups should be created based on matches
-  private determineBombCreations(matches: Match[]): BombCreation[] {
+  determineBombCreations(matches: Match[]): BombCreation[] {
     const bombsToCreate: BombCreation[] = [];
 
     // First check for L-shaped matches (higher priority)
@@ -135,12 +140,12 @@ export class Board {
           specialType: specialType
         });
       }
-      // Match-5+: Create bomb
+      // Match-5+: Create color-clear power-up
       else if (matchLength >= 5) {
         bombsToCreate.push({
           position: powerUpPosition,
           color: match.type,
-          specialType: 'bomb'
+          specialType: 'color-clear'
         });
       }
     }
@@ -298,12 +303,20 @@ export class Board {
 
     // If a special gem was swapped, it's always valid and triggers explosion
     if (hasSpecialGem) {
-      const bombExplosions: Position[] = [];
+      const bombExplosions: SpecialGemExplosion[] = [];
       if (gem1 && gem1.special !== 'none') {
-        bombExplosions.push(pos2); // Special gem moved to pos2
+        // Special gem at pos1 moved to pos2, was swapped with gem2
+        bombExplosions.push({
+          position: pos2,
+          targetColor: gem2?.color // The color it was swapped with
+        });
       }
       if (gem2 && gem2.special !== 'none') {
-        bombExplosions.push(pos1); // Special gem moved to pos1
+        // Special gem at pos2 moved to pos1, was swapped with gem1
+        bombExplosions.push({
+          position: pos1,
+          targetColor: gem1?.color // The color it was swapped with
+        });
       }
 
       return {
@@ -415,6 +428,28 @@ export class Board {
         }
         this.grid[position.row][col] = null;
         clearedPositions.push({ row: position.row, col });
+      }
+    }
+
+    return { cleared: clearedPositions, triggered: triggeredSpecialGems };
+  }
+
+  explodeColorClear(position: Position, targetColor: GemType): { cleared: Position[], triggered: TriggeredGem[] } {
+    const clearedPositions: Position[] = [];
+    const triggeredSpecialGems: TriggeredGem[] = [];
+
+    // Clear all gems of the target color from the entire board
+    for (let row = 0; row < this.rows; row++) {
+      for (let col = 0; col < this.cols; col++) {
+        const gem = this.grid[row][col];
+        if (gem !== null && gem.color === targetColor) {
+          // Check if this gem is a special gem that should be triggered
+          if (gem.special !== 'none' && !(row === position.row && col === position.col)) {
+            triggeredSpecialGems.push({ position: { row, col }, specialType: gem.special });
+          }
+          this.grid[row][col] = null;
+          clearedPositions.push({ row, col });
+        }
       }
     }
 
