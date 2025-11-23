@@ -218,19 +218,21 @@ export class LevelScene extends Phaser.Scene {
     menuText.setScrollFactor(0);
     menuText.setDepth(1001);
 
-    // Hammer button (bottom right of board)
-    const hammerButtonX = this.BOARD_OFFSET_X + this.board.getCols() * this.CELL_SIZE + 50;
-    const hammerButtonY = this.BOARD_OFFSET_Y + 100;
+    // Hammer button (top-right corner of canvas)
+    const hammerButtonX = width - 60;
+    const hammerButtonY = 30;
 
     this.hammerButton = this.add.circle(hammerButtonX, hammerButtonY, 30, 0xe67e22);
     this.hammerButton.setStrokeStyle(3, 0xd35400);
     this.hammerButton.setInteractive({ useHandCursor: true });
+    this.hammerButton.setScrollFactor(0);
     this.hammerButton.setDepth(1000);
 
     this.hammerButtonText = this.add.text(hammerButtonX, hammerButtonY, '🔨', {
       fontSize: '32px',
       color: '#ffffff'
     }).setOrigin(0.5);
+    this.hammerButtonText.setScrollFactor(0);
     this.hammerButtonText.setDepth(1001);
 
     // Hammer count display
@@ -241,6 +243,7 @@ export class LevelScene extends Phaser.Scene {
       color: '#ffffff',
       fontStyle: 'bold'
     }).setOrigin(0.5);
+    this.hammerCountText.setScrollFactor(0);
     this.hammerCountText.setDepth(1001);
 
     // Hover effects for Map button
