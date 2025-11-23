@@ -1,5 +1,5 @@
 export type GemType = 'red' | 'blue' | 'green' | 'yellow' | 'purple' | 'orange';
-export type SpecialGemType = 'bomb' | 'vertical-rocket' | 'horizontal-rocket' | 'color-clear' | 'none';
+export type SpecialGemType = 'bomb' | 'vertical-rocket' | 'horizontal-rocket' | 'color-clear' | 'disco-ball' | 'none';
 
 export interface TriggeredGem {
   position: Position;
@@ -19,7 +19,7 @@ export interface Position {
 export interface Match {
   positions: Position[];
   type: GemType;
-  direction: 'horizontal' | 'vertical';
+  direction: 'horizontal' | 'vertical' | 'square';
 }
 
 export interface BombCreation {
@@ -73,6 +73,58 @@ export class Board {
     this.grid[row][col] = gem;
   }
 
+  // Detect 2x2 square matches
+  // Returns matches that should be cleared (excludes positions reserved by higher-priority matches)
+  private detect2x2Squares(reservedPositions: Set<string> = new Set()): Match[] {
+    const squareMatches: Match[] = [];
+    const usedPositions = new Set<string>();
+
+    // Check each possible 2x2 square position (top-left corner)
+    for (let row = 0; row < this.rows - 1; row++) {
+      for (let col = 0; col < this.cols - 1; col++) {
+        const topLeft = this.grid[row][col];
+        const topRight = this.grid[row][col + 1];
+        const bottomLeft = this.grid[row + 1][col];
+        const bottomRight = this.grid[row + 1][col + 1];
+
+        // Check if all 4 gems exist and have the same color
+        if (topLeft && topRight && bottomLeft && bottomRight &&
+            topLeft.color === topRight.color &&
+            topLeft.color === bottomLeft.color &&
+            topLeft.color === bottomRight.color) {
+
+          // Check if any of these positions are already used in another 2x2 or reserved by higher-priority match
+          const positions = [
+            `${row},${col}`,
+            `${row},${col + 1}`,
+            `${row + 1},${col}`,
+            `${row + 1},${col + 1}`
+          ];
+
+          const alreadyUsed = positions.some(pos => usedPositions.has(pos) || reservedPositions.has(pos));
+          if (!alreadyUsed) {
+            // Mark all positions as used
+            positions.forEach(pos => usedPositions.add(pos));
+
+            // Create match for the 2x2 square
+            squareMatches.push({
+              positions: [
+                { row, col },
+                { row, col: col + 1 },
+                { row: row + 1, col },
+                { row: row + 1, col: col + 1 }
+              ],
+              type: topLeft.color,
+              direction: 'square'
+            });
+          }
+        }
+      }
+    }
+
+    return squareMatches;
+  }
+
   // Detect L-shaped matches (where horizontal and vertical match-3s intersect)
   private detectLShapedMatches(matches: Match[]): BombCreation[] {
     const lShapedBombs: BombCreation[] = [];
@@ -107,41 +159,25 @@ export class Board {
   }
 
   // Determine where power-ups should be created based on matches
-  determineBombCreations(matches: Match[]): BombCreation[] {
+  // Priority: 5+ match > 2x2 square > L-shape > 4-match > 3-match
+  // Returns both power-ups to create AND updated matches (including 2x2 squares to be cleared)
+  determineBombCreations(matches: Match[]): { bombsToCreate: BombCreation[], allMatches: Match[] } {
     const bombsToCreate: BombCreation[] = [];
+    const allMatches: Match[] = [...matches]; // Copy linear matches
+    const reservedPositions = new Set<string>();
 
-    // First check for L-shaped matches (higher priority)
-    const lShapedBombs = this.detectLShapedMatches(matches);
-    bombsToCreate.push(...lShapedBombs);
-
-    // Track positions where L-shaped bombs will be created to avoid duplicates
-    const lShapedPositions = new Set(
-      lShapedBombs.map(b => `${b.position.row},${b.position.col}`)
-    );
-
+    // PRIORITY 1: Identify 5+ matches first (color-clear power-ups)
     for (const match of matches) {
       const matchLength = match.positions.length;
-      const centerIndex = Math.floor(matchLength / 2);
-      const powerUpPosition = match.positions[centerIndex];
-      const posKey = `${powerUpPosition.row},${powerUpPosition.col}`;
+      if (matchLength >= 5) {
+        // Mark ALL positions in 5+ matches as reserved (highest priority)
+        for (const pos of match.positions) {
+          reservedPositions.add(`${pos.row},${pos.col}`);
+        }
 
-      // Skip if this position already has an L-shaped bomb
-      if (lShapedPositions.has(posKey)) continue;
+        const centerIndex = Math.floor(matchLength / 2);
+        const powerUpPosition = match.positions[centerIndex];
 
-      // Match-4: Create rockets based on orientation
-      if (matchLength === 4) {
-        // Vertical match → vertical rocket (clears column)
-        // Horizontal match → horizontal rocket (clears row)
-        const specialType = match.direction === 'vertical' ? 'vertical-rocket' : 'horizontal-rocket';
-
-        bombsToCreate.push({
-          position: powerUpPosition,
-          color: match.type,
-          specialType: specialType
-        });
-      }
-      // Match-5+: Create color-clear power-up
-      else if (matchLength >= 5) {
         bombsToCreate.push({
           position: powerUpPosition,
           color: match.type,
@@ -150,7 +186,61 @@ export class Board {
       }
     }
 
-    return bombsToCreate;
+    // PRIORITY 2: Check for 2x2 squares (disco ball power-ups)
+    // Only detect 2x2 squares that don't overlap with 5+ match positions
+    const squareMatches = this.detect2x2Squares(reservedPositions);
+    allMatches.push(...squareMatches);
+
+    for (const squareMatch of squareMatches) {
+      // Mark all 4 positions of each 2x2 square as reserved
+      for (const pos of squareMatch.positions) {
+        reservedPositions.add(`${pos.row},${pos.col}`);
+      }
+
+      // Create disco ball at top-left corner of 2x2
+      bombsToCreate.push({
+        position: squareMatch.positions[0], // top-left
+        color: squareMatch.type,
+        specialType: 'disco-ball'
+      });
+    }
+
+    // PRIORITY 3: Check for L-shaped matches (bomb power-ups)
+    const lShapedBombs = this.detectLShapedMatches(matches);
+
+    for (const lBomb of lShapedBombs) {
+      const posKey = `${lBomb.position.row},${lBomb.position.col}`;
+      // Only create if position not reserved by higher-priority match
+      if (!reservedPositions.has(posKey)) {
+        bombsToCreate.push(lBomb);
+        reservedPositions.add(posKey);
+      }
+    }
+
+    // PRIORITY 4: Check for 4-matches (rocket power-ups)
+    for (const match of matches) {
+      const matchLength = match.positions.length;
+      if (matchLength === 4) {
+        const centerIndex = Math.floor(matchLength / 2);
+        const powerUpPosition = match.positions[centerIndex];
+        const posKey = `${powerUpPosition.row},${powerUpPosition.col}`;
+
+        // Only create if position not reserved by higher-priority match
+        if (!reservedPositions.has(posKey)) {
+          const specialType = match.direction === 'vertical' ? 'vertical-rocket' : 'horizontal-rocket';
+
+          bombsToCreate.push({
+            position: powerUpPosition,
+            color: match.type,
+            specialType: specialType
+          });
+        }
+      }
+    }
+
+    // 3-matches don't create power-ups (already in matches array, will just be cleared)
+
+    return { bombsToCreate, allMatches };
   }
 
   getRows(): number {
@@ -329,7 +419,10 @@ export class Board {
 
     const matches = this.findMatches();
 
-    if (matches.length === 0) {
+    // Determine power-ups and get all matches (including 2x2 squares) with proper priority
+    const result = this.determineBombCreations(matches);
+
+    if (result.allMatches.length === 0) {
       const temp = this.grid[pos1.row][pos1.col];
       this.grid[pos1.row][pos1.col] = this.grid[pos2.row][pos2.col];
       this.grid[pos2.row][pos2.col] = temp;
@@ -342,13 +435,10 @@ export class Board {
       };
     }
 
-    // Determine if any bombs should be created from 4+ matches
-    const bombsToCreate = this.determineBombCreations(matches);
-
     return {
       valid: true,
-      matches,
-      bombsToCreate,
+      matches: result.allMatches, // Includes linear matches AND 2x2 squares
+      bombsToCreate: result.bombsToCreate,
       bombExplosions: []
     };
   }
@@ -450,6 +540,44 @@ export class Board {
           this.grid[row][col] = null;
           clearedPositions.push({ row, col });
         }
+      }
+    }
+
+    return { cleared: clearedPositions, triggered: triggeredSpecialGems };
+  }
+
+  explodeDiscoBall(position: Position): { cleared: Position[], triggered: TriggeredGem[] } {
+    const clearedPositions: Position[] = [];
+    const triggeredSpecialGems: TriggeredGem[] = [];
+    const clearedPositionKeys = new Set<string>();
+
+    // Clear entire row
+    for (let col = 0; col < this.cols; col++) {
+      const gem = this.grid[position.row][col];
+      const posKey = `${position.row},${col}`;
+      if (gem !== null && !clearedPositionKeys.has(posKey)) {
+        // Check if this gem is a special gem that should be triggered
+        if (gem.special !== 'none' && !(position.row === position.row && col === position.col)) {
+          triggeredSpecialGems.push({ position: { row: position.row, col }, specialType: gem.special });
+        }
+        this.grid[position.row][col] = null;
+        clearedPositions.push({ row: position.row, col });
+        clearedPositionKeys.add(posKey);
+      }
+    }
+
+    // Clear entire column
+    for (let row = 0; row < this.rows; row++) {
+      const gem = this.grid[row][position.col];
+      const posKey = `${row},${position.col}`;
+      if (gem !== null && !clearedPositionKeys.has(posKey)) {
+        // Check if this gem is a special gem that should be triggered
+        if (gem.special !== 'none' && !(row === position.row && position.col === position.col)) {
+          triggeredSpecialGems.push({ position: { row, col: position.col }, specialType: gem.special });
+        }
+        this.grid[row][position.col] = null;
+        clearedPositions.push({ row, col: position.col });
+        clearedPositionKeys.add(posKey);
       }
     }
 

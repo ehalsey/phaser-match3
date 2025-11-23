@@ -1908,7 +1908,8 @@ describe('Board', () => {
         expect(matches[0].direction).toBe('vertical');
 
         // Determine power-ups that should be created
-        const bombsToCreate = board.determineBombCreations(matches);
+        const result = board.determineBombCreations(matches);
+        const bombsToCreate = result.bombsToCreate;
 
         expect(bombsToCreate.length).toBe(1);
         expect(bombsToCreate[0].specialType).toBe('vertical-rocket');
@@ -1932,7 +1933,8 @@ describe('Board', () => {
         expect(matches[0].positions.length).toBe(4);
         expect(matches[0].direction).toBe('horizontal');
 
-        const bombsToCreate = board.determineBombCreations(matches);
+        const result = board.determineBombCreations(matches);
+        const bombsToCreate = result.bombsToCreate;
 
         expect(bombsToCreate.length).toBe(1);
         expect(bombsToCreate[0].specialType).toBe('horizontal-rocket');
@@ -1955,7 +1957,8 @@ describe('Board', () => {
         expect(matches.length).toBe(1);
         expect(matches[0].positions.length).toBe(5);
 
-        const bombsToCreate = board.determineBombCreations(matches);
+        const result = board.determineBombCreations(matches);
+        const bombsToCreate = result.bombsToCreate;
 
         expect(bombsToCreate.length).toBe(1);
         expect(bombsToCreate[0].specialType).toBe('color-clear');
@@ -1980,7 +1983,8 @@ describe('Board', () => {
         expect(matches[0].positions.length).toBe(5);
         expect(matches[0].direction).toBe('vertical');
 
-        const bombsToCreate = board.determineBombCreations(matches);
+        const result = board.determineBombCreations(matches);
+        const bombsToCreate = result.bombsToCreate;
 
         expect(bombsToCreate.length).toBe(1);
         expect(bombsToCreate[0].specialType).toBe('color-clear');
@@ -2003,7 +2007,8 @@ describe('Board', () => {
         expect(matches.length).toBe(1);
         expect(matches[0].positions.length).toBe(6);
 
-        const bombsToCreate = board.determineBombCreations(matches);
+        const result = board.determineBombCreations(matches);
+        const bombsToCreate = result.bombsToCreate;
 
         expect(bombsToCreate.length).toBe(1);
         expect(bombsToCreate[0].specialType).toBe('color-clear');
@@ -2026,7 +2031,8 @@ describe('Board', () => {
         // Should have both horizontal and vertical match-3s intersecting at (1, 1)
         expect(matches.length).toBe(2);
 
-        const bombsToCreate = board.determineBombCreations(matches);
+        const result = board.determineBombCreations(matches);
+        const bombsToCreate = result.bombsToCreate;
 
         // Should create bomb at intersection (1, 1)
         expect(bombsToCreate.length).toBe(1);
@@ -2051,7 +2057,8 @@ describe('Board', () => {
         expect(matches.length).toBe(1);
         expect(matches[0].positions.length).toBe(3);
 
-        const bombsToCreate = board.determineBombCreations(matches);
+        const result = board.determineBombCreations(matches);
+        const bombsToCreate = result.bombsToCreate;
 
         // Match-3 should not create any power-ups
         expect(bombsToCreate.length).toBe(0);
@@ -2073,12 +2080,239 @@ describe('Board', () => {
         const matches = board.findMatches();
         expect(matches.length).toBe(2); // Two horizontal match-4s
 
-        const bombsToCreate = board.determineBombCreations(matches);
+        const result = board.determineBombCreations(matches);
+        const bombsToCreate = result.bombsToCreate;
 
         // Should create 2 horizontal rockets
         expect(bombsToCreate.length).toBe(2);
         expect(bombsToCreate[0].specialType).toBe('horizontal-rocket');
         expect(bombsToCreate[1].specialType).toBe('horizontal-rocket');
+      });
+    });
+
+    describe('Test 23: 2x2 Square Match Detection', () => {
+      it('should detect a 2x2 square of same-colored gems', () => {
+        const board = new Board(4, 4);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'red', 'blue', 'green'],    // 2x2 red square at top-left
+          ['red', 'red', 'yellow', 'purple'],
+          ['blue', 'green', 'orange', 'yellow'],
+          ['purple', 'orange', 'yellow', 'blue']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        const matches = board.findMatches();
+        const result = board.determineBombCreations(matches);
+
+        // Should create a disco ball from the 2x2 square
+        expect(result.bombsToCreate.length).toBe(1);
+        expect(result.bombsToCreate[0].specialType).toBe('disco-ball');
+        expect(result.bombsToCreate[0].position).toEqual({ row: 0, col: 0 });
+        expect(result.bombsToCreate[0].color).toBe('red');
+      });
+
+      it('should detect multiple non-overlapping 2x2 squares', () => {
+        const board = new Board(4, 4);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'red', 'blue', 'blue'],    // 2x2 red square + 2x2 blue square
+          ['red', 'red', 'blue', 'blue'],
+          ['green', 'green', 'yellow', 'purple'],  // 2x2 green square
+          ['green', 'green', 'orange', 'yellow']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        const matches = board.findMatches();
+        const result = board.determineBombCreations(matches);
+        const bombsToCreate = result.bombsToCreate;
+
+        // Should create 3 disco balls
+        expect(bombsToCreate.length).toBe(3);
+        expect(bombsToCreate.every(b => b.specialType === 'disco-ball')).toBe(true);
+      });
+
+      it('should not create disco ball from non-square patterns', () => {
+        const board = new Board(4, 4);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'red', 'red', 'blue'],    // Horizontal match-3, not a square
+          ['blue', 'green', 'yellow', 'purple'],
+          ['orange', 'purple', 'orange', 'yellow'],
+          ['purple', 'orange', 'yellow', 'blue']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        const matches = board.findMatches();
+        const result = board.determineBombCreations(matches);
+        const bombsToCreate = result.bombsToCreate;
+
+        // Match-3 should not create disco ball
+        const discoBalls = bombsToCreate.filter(b => b.specialType === 'disco-ball');
+        expect(discoBalls.length).toBe(0);
+      });
+
+      it('should create disco ball from swap that forms 2x2 square', () => {
+        const board = new Board(5, 5);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'red', 'green', 'yellow', 'purple'],
+          ['red', 'blue', 'red', 'orange', 'blue'],    // Has reds at (1,0) and (1,2)
+          ['blue', 'green', 'orange', 'yellow', 'green'],
+          ['purple', 'orange', 'yellow', 'blue', 'red'],
+          ['yellow', 'purple', 'green', 'red', 'orange']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Before swap: (1,1)=blue, (1,2)=red
+        // After swap creates 2x2 red square at positions (0,0), (0,1), (1,0), (1,1)
+        const result = board.swap({ row: 1, col: 1 }, { row: 1, col: 2 });
+
+        // This creates a 2x2 red square, which should be valid
+        expect(result.valid).toBe(true);
+        expect(result.bombsToCreate).toBeDefined();
+
+        const discoBall = result.bombsToCreate!.find(b => b.specialType === 'disco-ball');
+        expect(discoBall).toBeDefined();
+        expect(discoBall!.color).toBe('red');
+      });
+
+      it('should prioritize 2x2 disco ball over match-4 rocket', () => {
+        const board = new Board(5, 5);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'red', 'blue', 'green', 'purple'],
+          ['red', 'red', 'yellow', 'orange', 'blue'],  // 2x2 red square exists
+          ['blue', 'blue', 'blue', 'blue', 'green'],   // Also match-4 horizontal
+          ['purple', 'green', 'yellow', 'orange', 'blue'],
+          ['yellow', 'orange', 'purple', 'green', 'red']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        const matches = board.findMatches();
+        const result = board.determineBombCreations(matches);
+        const bombsToCreate = result.bombsToCreate;
+
+        // Should create both disco ball and rocket
+        const discoBalls = bombsToCreate.filter(b => b.specialType === 'disco-ball');
+        const rockets = bombsToCreate.filter(b => b.specialType === 'horizontal-rocket');
+
+        expect(discoBalls.length).toBe(1);
+        expect(rockets.length).toBe(1);
+      });
+    });
+
+    describe('Test 24: Disco Ball Explosion', () => {
+      it('should clear entire row and column when disco ball explodes', () => {
+        const board = new Board(5, 5);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green', 'yellow', 'purple'],
+          ['orange', 'red', 'blue', 'green', 'yellow'],
+          ['blue', 'green', 'red', 'purple', 'orange'],
+          ['yellow', 'purple', 'orange', 'blue', 'red'],
+          ['green', 'yellow', 'purple', 'orange', 'blue']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Place disco ball at center
+        board.setGemAt(2, 2, { color: 'red', special: 'disco-ball' });
+
+        // Explode the disco ball
+        const result = board.explodeDiscoBall({ row: 2, col: 2 });
+
+        // Should clear row 2 (5 gems) + column 2 (5 gems) - 1 overlap = 9 gems
+        expect(result.cleared.length).toBe(9);
+
+        // Verify all positions in row 2 are cleared
+        for (let col = 0; col < 5; col++) {
+          expect(board.getGemAt(2, col)).toBeNull();
+        }
+
+        // Verify all positions in column 2 are cleared
+        for (let row = 0; row < 5; row++) {
+          expect(board.getGemAt(row, 2)).toBeNull();
+        }
+      });
+
+      it('should not affect other cells', () => {
+        const board = new Board(5, 5);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green', 'yellow', 'purple'],
+          ['orange', 'red', 'blue', 'green', 'yellow'],
+          ['blue', 'green', 'red', 'purple', 'orange'],
+          ['yellow', 'purple', 'orange', 'blue', 'red'],
+          ['green', 'yellow', 'purple', 'orange', 'blue']
+        ];
+
+        board.initializeWithConfig(testConfig);
+        board.setGemAt(2, 2, { color: 'red', special: 'disco-ball' });
+
+        board.explodeDiscoBall({ row: 2, col: 2 });
+
+        // Cells not in row 2 or column 2 should remain unchanged
+        expect(getColor(board.getGemAt(0, 0))).toBe('red');
+        expect(getColor(board.getGemAt(0, 1))).toBe('blue');
+        expect(getColor(board.getGemAt(1, 0))).toBe('orange');
+        expect(getColor(board.getGemAt(3, 4))).toBe('red');
+        expect(getColor(board.getGemAt(4, 4))).toBe('blue');
+      });
+
+      it('should trigger special gems in explosion path', () => {
+        const board = new Board(5, 5);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green', 'yellow', 'purple'],
+          ['orange', 'red', 'blue', 'green', 'yellow'],
+          ['blue', 'green', 'red', 'purple', 'orange'],
+          ['yellow', 'purple', 'orange', 'blue', 'red'],
+          ['green', 'yellow', 'purple', 'orange', 'blue']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Place disco ball at center
+        board.setGemAt(2, 2, { color: 'red', special: 'disco-ball' });
+        // Place bomb in the explosion path
+        board.setGemAt(2, 4, { color: 'blue', special: 'bomb' });
+
+        const result = board.explodeDiscoBall({ row: 2, col: 2 });
+
+        // Should trigger the bomb at (2, 4)
+        expect(result.triggered.length).toBe(1);
+        expect(result.triggered[0].position).toEqual({ row: 2, col: 4 });
+        expect(result.triggered[0].specialType).toBe('bomb');
+      });
+
+      it('should clear gems at corners of cross pattern', () => {
+        const board = new Board(3, 3);
+        const testConfig: (GemType | null)[][] = [
+          ['red', 'blue', 'green'],
+          ['orange', 'red', 'yellow'],
+          ['purple', 'orange', 'blue']
+        ];
+
+        board.initializeWithConfig(testConfig);
+
+        // Place disco ball at center
+        board.setGemAt(1, 1, { color: 'red', special: 'disco-ball' });
+
+        const result = board.explodeDiscoBall({ row: 1, col: 1 });
+
+        // Should clear center row (3) + center column (3) - 1 overlap = 5 gems
+        expect(result.cleared.length).toBe(5);
+
+        // Corners should remain
+        expect(getColor(board.getGemAt(0, 0))).toBe('red');
+        expect(getColor(board.getGemAt(0, 2))).toBe('green');
+        expect(getColor(board.getGemAt(2, 0))).toBe('purple');
+        expect(getColor(board.getGemAt(2, 2))).toBe('blue');
+
+        // Cross should be cleared
+        expect(board.getGemAt(1, 1)).toBeNull();
+        expect(board.getGemAt(0, 1)).toBeNull();
+        expect(board.getGemAt(2, 1)).toBeNull();
+        expect(board.getGemAt(1, 0)).toBeNull();
+        expect(board.getGemAt(1, 2)).toBeNull();
       });
     });
   });

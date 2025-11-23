@@ -520,6 +520,9 @@ export class LevelScene extends Phaser.Scene {
       } else if (gemInfo.specialType === 'horizontal-rocket') {
         result = this.board.explodeHorizontalRocket(bombPos);
         this.updateStatus('🚀 HORIZONTAL ROCKET!');
+      } else if (gemInfo.specialType === 'disco-ball') {
+        result = this.board.explodeDiscoBall(bombPos);
+        this.updateStatus('🪩 DISCO BALL!');
       } else if (gemInfo.specialType === 'color-clear' && gemInfo.targetColor) {
         result = this.board.explodeColorClear(bombPos, gemInfo.targetColor);
         this.updateStatus('🎨 COLOR CLEAR!');
@@ -620,11 +623,33 @@ export class LevelScene extends Phaser.Scene {
       }
     }
 
-    // If there are bombs in the matches, explode them
+    // If there are special gems in the matches, explode them
     if (bombPositions.length > 0) {
       for (const bombPos of bombPositions) {
-        const result = this.board.explodeBomb(bombPos);
-        // Add bonus points for bomb explosion
+        const gem = this.board.getGemAt(bombPos.row, bombPos.col);
+        if (!gem || gem.special === 'none') continue;
+
+        let result: { cleared: Position[], triggered: TriggeredGem[] } = { cleared: [], triggered: [] };
+        let statusMessage = '';
+
+        if (gem.special === 'bomb') {
+          result = this.board.explodeBomb(bombPos);
+          statusMessage = '💥 BOMB EXPLOSION!';
+        } else if (gem.special === 'vertical-rocket') {
+          result = this.board.explodeVerticalRocket(bombPos);
+          statusMessage = '🚀 VERTICAL ROCKET!';
+        } else if (gem.special === 'horizontal-rocket') {
+          result = this.board.explodeHorizontalRocket(bombPos);
+          statusMessage = '🚀 HORIZONTAL ROCKET!';
+        } else if (gem.special === 'disco-ball') {
+          result = this.board.explodeDiscoBall(bombPos);
+          statusMessage = '🪩 DISCO BALL!';
+        } else if (gem.special === 'color-clear') {
+          result = this.board.explodeColorClear(bombPos, gem.color);
+          statusMessage = '🎨 COLOR CLEAR!';
+        }
+
+        // Add bonus points for special gem explosion
         this.score += result.cleared.length * 50;
         this.updateScore();
 
@@ -636,8 +661,11 @@ export class LevelScene extends Phaser.Scene {
             spritesToClear.push(sprite);
           }
         }
+
+        if (statusMessage) {
+          this.updateStatus(statusMessage + ' +' + (result.cleared.length * 50) + ' bonus!');
+        }
       }
-      this.updateStatus('💥 BOMB EXPLOSION! +' + (bombPositions.length * 50) + ' bonus!');
     }
 
     spritesToClear.forEach(sprite => {
@@ -728,11 +756,11 @@ export class LevelScene extends Phaser.Scene {
       const nextLevel = cascadeLevel + 1;
       this.updateStatus('CASCADE x' + nextLevel + '! ' + newMatches[0].type + ' match!');
 
-      // Determine if any power-ups should be created from cascade matches
-      const bombsToCreate = this.board.determineBombCreations(newMatches);
+      // Determine if any power-ups should be created from cascade matches (includes 2x2 squares)
+      const result = this.board.determineBombCreations(newMatches);
 
       this.time.delayedCall(500, () => {
-        this.animateGemClearing(newMatches, nextLevel, bombsToCreate);
+        this.animateGemClearing(result.allMatches, nextLevel, result.bombsToCreate);
       });
     } else {
       if (cascadeLevel > 0) {

@@ -127,17 +127,22 @@ Row 3: [yellow(9), blue(10),  orange(11)]
 
 ### 7. **ALWAYS Follow Estimation Process for Issues**
 
+**CRITICAL REQUIREMENT:** Every GitHub issue worked on MUST have an entry in `c:\source\phaser-match3\docs\estimation-tracking.md`
+
 Before starting ANY GitHub issue implementation:
 
-1. **Review `docs/estimation-tracking.md`** for the issue
-2. **Verify the initial estimate** is documented with:
+1. **Create entry in `docs/estimation-tracking.md`** for the issue if it doesn't exist
+2. **Estimate and document** how long you think it will take to implement/fix BEFORE starting work:
    - Detailed task breakdown
    - Explicit assumptions
    - Risk factors identified
    - Confidence level stated
 3. **Record start time** in issue comment
 4. **Track actual time** throughout implementation
-5. **Update actuals** in `estimation-tracking.md` when complete
+5. **Update entry in `estimation-tracking.md`** when confirmed via tests and ready to merge to master branch:
+   - Record actual time taken
+   - Document variance from estimate
+   - Note unexpected complexity encountered
 6. **Analyze variance** and document lessons learned
 
 **Critical Rule:** AI estimates are often off by **10-100x**. The estimation-tracking process helps:
@@ -155,12 +160,129 @@ Before starting ANY GitHub issue implementation:
 When you see these phrases, **multiply the estimate by 2-3x minimum**.
 
 **Process Checklist:**
-- [ ] Before starting: Review estimate in `estimation-tracking.md`
+- [ ] Before starting: Create/review entry in `estimation-tracking.md` for this GH issue
+- [ ] Document initial time estimate BEFORE starting work
 - [ ] Record start time in GitHub issue comment
 - [ ] Note unexpected complexity as you encounter it
 - [ ] Record completion time when done
-- [ ] Update actuals in `estimation-tracking.md`
-- [ ] Document variance causes
-- [ ] Update lessons learned section
+- [ ] Update actuals in `estimation-tracking.md` when ready to merge to master
+- [ ] Document variance causes and lessons learned
 
 See `docs/estimation-tracking.md` for complete process and historical tracking.
+
+## Development Workflow for GitHub Issues
+
+### 8. **ALWAYS Follow This Complete Workflow**
+
+When working on a GitHub issue, follow these steps in order:
+
+#### Step 1: Create New Branch from Master
+```bash
+git checkout master
+git pull origin master
+git checkout -b feature/issue-XX-short-description
+```
+
+**Branch Naming Convention:**
+- **Features:** `feature/issue-XX-description`
+- **Bug fixes:** `fix/issue-XX-bug-name`
+- **Enhancements:** `enhance/issue-XX-description`
+- **Refactoring:** `refactor/issue-XX-description`
+
+**Never work directly on master or reuse existing feature branches.**
+
+#### Step 2: Record Start Time
+Post a comment on the GitHub issue with the start time:
+```bash
+gh issue comment XX --body "**Start Time:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+
+Working on [brief description of work]"
+```
+
+#### Step 3: Implement the Feature/Fix
+- Write tests FIRST (TDD approach)
+- Implement the feature/fix
+- Ensure all changes have corresponding tests
+
+#### Step 4: Verify with Tests
+**CRITICAL:** Every GitHub issue implementation MUST include at least 1 test to verify the enhancement or bug fix.
+
+**Testing Requirements:**
+- [ ] Minimum 1 test that verifies the new behavior or bug fix
+- [ ] Tests must be automated (unit, integration, or E2E)
+- [ ] All tests must pass before proceeding
+- [ ] Test coverage should match the scope of changes
+
+**Test Types by Change:**
+- **Bug fixes:** Test that reproduces the bug and verifies the fix
+- **New features:** Tests covering main functionality paths
+- **Enhancements:** Tests verifying the enhanced behavior
+- **Refactoring:** Tests ensuring behavior unchanged
+
+Run full test suite:
+```bash
+npm test
+```
+
+**All tests must pass before creating a PR.**
+
+#### Step 5: Commit Changes
+After tests pass, commit with a descriptive message:
+```bash
+git add -A
+git commit -m "feat: description of changes (#XX)
+
+Detailed explanation of what was implemented.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+```
+
+#### Step 6: Push Branch
+```bash
+git push -u origin feature/issue-XX-short-description
+```
+
+#### Step 7: Create Pull Request
+**REQUIRED:** After tests pass successfully, create a PR:
+```bash
+gh pr create --title "feat: description (#XX)" --body "## Summary
+[Description of changes]
+
+## Test Coverage
+[List of tests added]
+
+## Test Results
+✅ All XXX tests passing
+
+Closes #XX
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)"
+```
+
+**PR Requirements:**
+- Clear title referencing the issue number
+- Summary of changes
+- Test coverage information
+- Test results showing all tests pass
+- Links to close the issue (use "Closes #XX")
+
+#### Step 8: Update Estimation Tracking
+Update `docs/estimation-tracking.md` with actual time and variance analysis.
+
+### Complete Workflow Checklist
+
+For every GitHub issue:
+- [ ] Create new branch from master
+- [ ] Record start time in issue comment
+- [ ] Write tests first (TDD)
+- [ ] Implement feature/fix
+- [ ] Run full test suite - all tests must pass
+- [ ] Commit changes
+- [ ] Push branch to remote
+- [ ] **Create pull request** (REQUIRED after tests pass)
+- [ ] Update estimation tracking
+- [ ] Document lessons learned
+
+**No Exceptions:** Manual testing alone is not acceptable. PR creation is mandatory after successful tests.
