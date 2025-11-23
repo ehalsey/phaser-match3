@@ -1908,7 +1908,8 @@ describe('Board', () => {
         expect(matches[0].direction).toBe('vertical');
 
         // Determine power-ups that should be created
-        const bombsToCreate = board.determineBombCreations(matches);
+        const result = board.determineBombCreations(matches);
+        const bombsToCreate = result.bombsToCreate;
 
         expect(bombsToCreate.length).toBe(1);
         expect(bombsToCreate[0].specialType).toBe('vertical-rocket');
@@ -1932,7 +1933,8 @@ describe('Board', () => {
         expect(matches[0].positions.length).toBe(4);
         expect(matches[0].direction).toBe('horizontal');
 
-        const bombsToCreate = board.determineBombCreations(matches);
+        const result = board.determineBombCreations(matches);
+        const bombsToCreate = result.bombsToCreate;
 
         expect(bombsToCreate.length).toBe(1);
         expect(bombsToCreate[0].specialType).toBe('horizontal-rocket');
@@ -1955,7 +1957,8 @@ describe('Board', () => {
         expect(matches.length).toBe(1);
         expect(matches[0].positions.length).toBe(5);
 
-        const bombsToCreate = board.determineBombCreations(matches);
+        const result = board.determineBombCreations(matches);
+        const bombsToCreate = result.bombsToCreate;
 
         expect(bombsToCreate.length).toBe(1);
         expect(bombsToCreate[0].specialType).toBe('color-clear');
@@ -1980,7 +1983,8 @@ describe('Board', () => {
         expect(matches[0].positions.length).toBe(5);
         expect(matches[0].direction).toBe('vertical');
 
-        const bombsToCreate = board.determineBombCreations(matches);
+        const result = board.determineBombCreations(matches);
+        const bombsToCreate = result.bombsToCreate;
 
         expect(bombsToCreate.length).toBe(1);
         expect(bombsToCreate[0].specialType).toBe('color-clear');
@@ -2003,7 +2007,8 @@ describe('Board', () => {
         expect(matches.length).toBe(1);
         expect(matches[0].positions.length).toBe(6);
 
-        const bombsToCreate = board.determineBombCreations(matches);
+        const result = board.determineBombCreations(matches);
+        const bombsToCreate = result.bombsToCreate;
 
         expect(bombsToCreate.length).toBe(1);
         expect(bombsToCreate[0].specialType).toBe('color-clear');
@@ -2026,7 +2031,8 @@ describe('Board', () => {
         // Should have both horizontal and vertical match-3s intersecting at (1, 1)
         expect(matches.length).toBe(2);
 
-        const bombsToCreate = board.determineBombCreations(matches);
+        const result = board.determineBombCreations(matches);
+        const bombsToCreate = result.bombsToCreate;
 
         // Should create bomb at intersection (1, 1)
         expect(bombsToCreate.length).toBe(1);
@@ -2051,7 +2057,8 @@ describe('Board', () => {
         expect(matches.length).toBe(1);
         expect(matches[0].positions.length).toBe(3);
 
-        const bombsToCreate = board.determineBombCreations(matches);
+        const result = board.determineBombCreations(matches);
+        const bombsToCreate = result.bombsToCreate;
 
         // Match-3 should not create any power-ups
         expect(bombsToCreate.length).toBe(0);
@@ -2073,7 +2080,8 @@ describe('Board', () => {
         const matches = board.findMatches();
         expect(matches.length).toBe(2); // Two horizontal match-4s
 
-        const bombsToCreate = board.determineBombCreations(matches);
+        const result = board.determineBombCreations(matches);
+        const bombsToCreate = result.bombsToCreate;
 
         // Should create 2 horizontal rockets
         expect(bombsToCreate.length).toBe(2);
@@ -2095,13 +2103,13 @@ describe('Board', () => {
         board.initializeWithConfig(testConfig);
 
         const matches = board.findMatches();
-        const bombsToCreate = board.determineBombCreations(matches);
+        const result = board.determineBombCreations(matches);
 
         // Should create a disco ball from the 2x2 square
-        expect(bombsToCreate.length).toBe(1);
-        expect(bombsToCreate[0].specialType).toBe('disco-ball');
-        expect(bombsToCreate[0].position).toEqual({ row: 0, col: 0 });
-        expect(bombsToCreate[0].color).toBe('red');
+        expect(result.bombsToCreate.length).toBe(1);
+        expect(result.bombsToCreate[0].specialType).toBe('disco-ball');
+        expect(result.bombsToCreate[0].position).toEqual({ row: 0, col: 0 });
+        expect(result.bombsToCreate[0].color).toBe('red');
       });
 
       it('should detect multiple non-overlapping 2x2 squares', () => {
@@ -2116,7 +2124,8 @@ describe('Board', () => {
         board.initializeWithConfig(testConfig);
 
         const matches = board.findMatches();
-        const bombsToCreate = board.determineBombCreations(matches);
+        const result = board.determineBombCreations(matches);
+        const bombsToCreate = result.bombsToCreate;
 
         // Should create 3 disco balls
         expect(bombsToCreate.length).toBe(3);
@@ -2135,7 +2144,8 @@ describe('Board', () => {
         board.initializeWithConfig(testConfig);
 
         const matches = board.findMatches();
-        const bombsToCreate = board.determineBombCreations(matches);
+        const result = board.determineBombCreations(matches);
+        const bombsToCreate = result.bombsToCreate;
 
         // Match-3 should not create disco ball
         const discoBalls = bombsToCreate.filter(b => b.specialType === 'disco-ball');
@@ -2180,7 +2190,8 @@ describe('Board', () => {
         board.initializeWithConfig(testConfig);
 
         const matches = board.findMatches();
-        const bombsToCreate = board.determineBombCreations(matches);
+        const result = board.determineBombCreations(matches);
+        const bombsToCreate = result.bombsToCreate;
 
         // Should create both disco ball and rocket
         const discoBalls = bombsToCreate.filter(b => b.specialType === 'disco-ball');

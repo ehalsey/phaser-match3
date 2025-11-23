@@ -756,11 +756,11 @@ export class LevelScene extends Phaser.Scene {
       const nextLevel = cascadeLevel + 1;
       this.updateStatus('CASCADE x' + nextLevel + '! ' + newMatches[0].type + ' match!');
 
-      // Determine if any power-ups should be created from cascade matches
-      const bombsToCreate = this.board.determineBombCreations(newMatches);
+      // Determine if any power-ups should be created from cascade matches (includes 2x2 squares)
+      const result = this.board.determineBombCreations(newMatches);
 
       this.time.delayedCall(500, () => {
-        this.animateGemClearing(newMatches, nextLevel, bombsToCreate);
+        this.animateGemClearing(result.allMatches, nextLevel, result.bombsToCreate);
       });
     } else {
       if (cascadeLevel > 0) {
