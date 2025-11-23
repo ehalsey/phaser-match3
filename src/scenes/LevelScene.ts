@@ -353,10 +353,24 @@ export class LevelScene extends Phaser.Scene {
   }
 
   private createGemSprite(x: number, y: number, gem: Gem, row: number, col: number, cellId: number): GemSprite {
-    // Create clickable gem circle - special gems get neutral gray color
-    const gemColor = gem.special !== 'none' ? 0x808080 : this.GEM_COLORS[gem.color];
+    // Create clickable gem circle - special gems get distinctive colors
+    let gemColor: number;
+    if (gem.special === 'disco-ball') {
+      gemColor = 0xE0E0E0; // Shimmery silver for disco ball
+    } else if (gem.special !== 'none') {
+      gemColor = 0x808080; // Neutral gray for other special gems
+    } else {
+      gemColor = this.GEM_COLORS[gem.color];
+    }
+
     const gemCircle = this.add.circle(x, y, 30, gemColor);
-    gemCircle.setStrokeStyle(3, 0xffffff, 0.5);
+
+    // Add extra sparkle to disco ball with a glowing stroke
+    if (gem.special === 'disco-ball') {
+      gemCircle.setStrokeStyle(4, 0xFFFFFF, 0.9);
+    } else {
+      gemCircle.setStrokeStyle(3, 0xffffff, 0.5);
+    }
     gemCircle.setInteractive({ useHandCursor: true });
     gemCircle.setData('row', row);
     gemCircle.setData('col', col);
@@ -410,6 +424,12 @@ export class LevelScene extends Phaser.Scene {
     } else if (gem.special === 'color-clear') {
       bombIndicator = this.add.text(x, y, '🎨', {
         fontSize: '32px',
+        color: '#ffffff'
+      }).setOrigin(0.5);
+      bombIndicator.setDepth(1);
+    } else if (gem.special === 'disco-ball') {
+      bombIndicator = this.add.text(x, y, '🪩', {
+        fontSize: '36px',
         color: '#ffffff'
       }).setOrigin(0.5);
       bombIndicator.setDepth(1);
