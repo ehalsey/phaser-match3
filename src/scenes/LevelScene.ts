@@ -24,6 +24,10 @@ export class LevelScene extends Phaser.Scene {
   private levelNumber: number = 1;
   private levelSettings!: LevelSettings;
   public continuationAttempts: number = 0;
+  private hammerMode: boolean = false;
+  private hammerButton: any | null = null; // Phaser.GameObjects.Circle type not exported correctly
+  private hammerButtonText: Phaser.GameObjects.Text | null = null;
+  private hammerCountText: Phaser.GameObjects.Text | null = null;
 
   private readonly CELL_SIZE = 80;
   private readonly BOARD_OFFSET_X = 50;  // Match main.ts
@@ -214,6 +218,31 @@ export class LevelScene extends Phaser.Scene {
     menuText.setScrollFactor(0);
     menuText.setDepth(1001);
 
+    // Hammer button (bottom right of board)
+    const hammerButtonX = this.BOARD_OFFSET_X + this.board.getCols() * this.CELL_SIZE + 50;
+    const hammerButtonY = this.BOARD_OFFSET_Y + 100;
+
+    this.hammerButton = this.add.circle(hammerButtonX, hammerButtonY, 30, 0xe67e22);
+    this.hammerButton.setStrokeStyle(3, 0xd35400);
+    this.hammerButton.setInteractive({ useHandCursor: true });
+    this.hammerButton.setDepth(1000);
+
+    this.hammerButtonText = this.add.text(hammerButtonX, hammerButtonY, '🔨', {
+      fontSize: '32px',
+      color: '#ffffff'
+    }).setOrigin(0.5);
+    this.hammerButtonText.setDepth(1001);
+
+    // Hammer count display
+    const metaManager = MetaProgressionManager.getInstance();
+    const hammerCount = metaManager.getHammers();
+    this.hammerCountText = this.add.text(hammerButtonX, hammerButtonY + 45, `${hammerCount}`, {
+      fontSize: '20px',
+      color: '#ffffff',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    this.hammerCountText.setDepth(1001);
+
     // Hover effects for Map button
     mapButton.on('pointerover', () => {
       mapButton.setFillStyle(0x2980b9);
@@ -258,6 +287,25 @@ export class LevelScene extends Phaser.Scene {
       if (progressDiv) progressDiv.style.display = 'none';
 
       this.scene.start('MainMenuScene');
+    });
+
+    // Hammer button event handlers
+    this.hammerButton.on('pointerover', () => {
+      if (!this.hammerMode) {
+        this.hammerButton?.setScale(1.1);
+        this.hammerButtonText?.setScale(1.1);
+      }
+    });
+
+    this.hammerButton.on('pointerout', () => {
+      if (!this.hammerMode) {
+        this.hammerButton?.setScale(1.0);
+        this.hammerButtonText?.setScale(1.0);
+      }
+    });
+
+    this.hammerButton.on('pointerdown', () => {
+      this.activateHammer();
     });
   }
 
@@ -440,6 +488,12 @@ export class LevelScene extends Phaser.Scene {
 
   private onGemClick(row: number, col: number): void {
     const clickedPos = { row, col };
+
+    // If in hammer mode, use hammer on this gem
+    if (this.hammerMode) {
+      this.useHammerOnGem(row, col);
+      return;
+    }
 
     // If no gem selected, select this one
     if (this.selectedGem === null) {
@@ -1022,5 +1076,140 @@ export class LevelScene extends Phaser.Scene {
         onComplete();
       }
     });
+  }
+
+  private activateHammer(): void {
+    const metaManager = MetaProgressionManager.getInstance();
+    const hammerCount = metaManager.getHammers();
+
+    if (hammerCount <= 0) {
+      this.updateStatus('No hammers available! Buy some in the shop.');
+      return;
+    }
+
+    // Enter hammer mode
+    this.hammerMode = true;
+
+    // Visual feedback - change button appearance
+    if (this.hammerButton) {
+      this.hammerButton.setFillStyle(0xf39c12); // Bright orange when active
+      this.hammerButton.setScale(1.2);
+    }
+    if (this.hammerButtonText) {
+      this.hammerButtonText.setScale(1.2);
+    }
+
+    // Clear any existing selection
+    this.clearSelection();
+
+    this.updateStatus('🔨 HAMMER MODE! Click a gem to smash it!');
+  }
+
+  private deactivateHammer(): void {
+    this.hammerMode = false;
+
+    // Reset button appearance
+    if (this.hammerButton) {
+      this.hammerButton.setFillStyle(0xe67e22); // Normal orange
+      this.hammerButton.setScale(1.0);
+    }
+    if (this.hammerButtonText) {
+      this.hammerButtonText.setScale(1.0);
+    }
+  }
+
+  private useHammerOnGem(row: number, col: number): void {
+    const metaManager = MetaProgressionManager.getInstance();
+
+    // Attempt to use a hammer
+    if (!metaManager.useHammer()) {
+      this.updateStatus('No hammers available!');
+      this.deactivateHammer();
+      return;
+    }
+
+    // Update hammer count display
+    this.updateHammerDisplay();
+
+    // Deactivate hammer mode
+    this.deactivateHammer();
+
+    // Get the gem at this position
+    const gem = this.board.getGemAt(row, col);
+    if (!gem) {
+      this.updateStatus('No gem at this position!');
+      return;
+    }
+
+    const gemCounts = new Map<GemType, number>();
+
+    // Track the gem color for objectives before clearing
+    if (this.objectivesEnabled) {
+      gemCounts.set(gem.color, 1);
+    }
+
+    // Get sprite for animation
+    const key = `${row},${col}`;
+    const sprite = this.gemSprites.get(key);
+
+    // Animate the gem being smashed
+    if (sprite) {
+      this.tweens.add({
+        targets: [sprite.circle, sprite.text, sprite.bombIndicator].filter(Boolean),
+        alpha: 0,
+        scale: 0.2,
+        duration: 300,
+        ease: 'Power2'
+      });
+    }
+
+    // Add score bonus for hammer use
+    this.score += 100;
+    this.updateScore();
+    this.updateStatus('🔨 SMASHED! +100 points');
+
+    // Clear the gem from the board after animation
+    this.time.delayedCall(350, () => {
+      // Clear the gem from board
+      this.board.setGemAt(row, col, null);
+
+      // Update objectives with cleared gem
+      if (this.objectivesEnabled && gemCounts.size > 0) {
+        for (const [color, count] of gemCounts.entries()) {
+          this.objectives.addGemsCleared(color, count);
+        }
+        this.updateObjectivesDisplay();
+
+        // Check if goals are met
+        this.checkLevelCompletion();
+      }
+
+      // Apply gravity and refill
+      const moves = this.board.applyGravity();
+
+      if (moves.length > 0) {
+        this.animateGravity(moves, 0);
+      } else {
+        this.refillAndCheckCascade(0);
+      }
+    });
+  }
+
+  private updateHammerDisplay(): void {
+    const metaManager = MetaProgressionManager.getInstance();
+    const hammerCount = metaManager.getHammers();
+
+    if (this.hammerCountText) {
+      this.hammerCountText.setText(`${hammerCount}`);
+
+      // Change color based on availability
+      if (hammerCount === 0) {
+        this.hammerCountText.setColor('#e74c3c'); // Red when empty
+      } else if (hammerCount <= 3) {
+        this.hammerCountText.setColor('#f39c12'); // Orange when low
+      } else {
+        this.hammerCountText.setColor('#ffffff'); // White when plenty
+      }
+    }
   }
 }
