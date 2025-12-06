@@ -2,23 +2,17 @@ import { IconHelper } from '../IconHelper';
 
 // Mock Phaser.GameObjects.Graphics
 class MockGraphics {
-  private fillColor: number = 0;
-  private lineWidth: number = 0;
-  private lineColor: number = 0;
-  private depth: number = 0;
-  private scrollFactorX: number = 1;
-  private scrollFactorY: number = 1;
+  public depth: number = 0;
+  public scrollFactorX: number = 1;
+  public scrollFactorY: number = 1;
   public drawCalls: string[] = [];
 
   fillStyle(color: number, _alpha?: number) {
-    this.fillColor = color;
     this.drawCalls.push(`fillStyle:${color.toString(16)}`);
     return this;
   }
 
   lineStyle(width: number, color: number, _alpha?: number) {
-    this.lineWidth = width;
-    this.lineColor = color;
     this.drawCalls.push(`lineStyle:${width}:${color.toString(16)}`);
     return this;
   }
@@ -33,7 +27,7 @@ class MockGraphics {
     return this;
   }
 
-  fillTriangle(x1: number, y1: number, x2: number, y2: number, x3: number, y3: number) {
+  fillTriangle(_x1: number, _y1: number, _x2: number, _y2: number, _x3: number, _y3: number) {
     this.drawCalls.push(`fillTriangle`);
     return this;
   }
@@ -43,12 +37,12 @@ class MockGraphics {
     return this;
   }
 
-  fillPoints(points: number[], close?: boolean) {
+  fillPoints(points: number[], _close?: boolean) {
     this.drawCalls.push(`fillPoints:${points.length / 2}points`);
     return this;
   }
 
-  strokePoints(points: number[], close?: boolean) {
+  strokePoints(points: number[], _close?: boolean) {
     this.drawCalls.push(`strokePoints:${points.length / 2}points`);
     return this;
   }
@@ -82,10 +76,6 @@ class MockGraphics {
     this.scrollFactorX = x;
     this.scrollFactorY = y ?? x;
     return this;
-  }
-
-  getDepth() {
-    return this.depth;
   }
 }
 
@@ -305,7 +295,7 @@ describe('IconHelper', () => {
       const result = IconHelper.createStar(scene as any, 100, 100, 20);
 
       result.setDepth(5);
-      expect(result.getDepth()).toBe(5);
+      expect(result.depth).toBe(5);
     });
 
     it('should return a graphics object that supports setScrollFactor', () => {
