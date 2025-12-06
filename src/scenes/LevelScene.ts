@@ -4,6 +4,7 @@ import { BoardConfig } from '../game/BoardConfig';
 import { LevelObjectives, LevelStatus } from '../game/LevelObjectives';
 import { LevelSettings } from '../game/LevelConfig';
 import { MetaProgressionManager } from '../game/MetaProgressionManager';
+import { EasterEggManager } from '../game/EasterEggManager';
 
 interface GemSprite {
   circle: any; // Phaser.GameObjects.Circle type not exported correctly
@@ -178,6 +179,15 @@ export class LevelScene extends Phaser.Scene {
     // Log helpful info
     console.log(`[Game] Board initialized: ${config.rows}x${config.cols}`);
     console.log('[Game] Try: gameConfig.listPresets() to see available boards');
+
+    // Update easter egg manager with current board layout for corner click detection
+    EasterEggManager.getInstance().setBoardLayout({
+      offsetX: this.BOARD_OFFSET_X,
+      offsetY: this.BOARD_OFFSET_Y,
+      cellSize: this.CELL_SIZE,
+      rows: config.rows,
+      cols: config.cols
+    });
 
     // Signal that scene is ready for E2E tests
     const domStatus = document.getElementById('game-status');
@@ -654,6 +664,9 @@ export class LevelScene extends Phaser.Scene {
 
   private onGemClick(row: number, col: number): void {
     const clickedPos = { row, col };
+
+    // Notify easter egg manager of gem click (for corner sequence detection)
+    EasterEggManager.getInstance().onGemClicked(row, col);
 
     // If in hammer mode, use hammer on this gem
     if (this.hammerMode) {

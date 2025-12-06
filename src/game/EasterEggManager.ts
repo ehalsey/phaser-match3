@@ -124,11 +124,82 @@ export class EasterEggManager {
   }
 
   /**
+   * Called when a gem is clicked/selected in the game
+   * This is the preferred way to detect corner clicks - uses actual gem selection
+   */
+  public onGemClicked(row: number, col: number): void {
+    if (!this.boardLayout) {
+      return;
+    }
+
+    const { rows, cols } = this.boardLayout;
+    const corner = this.getCornerFromCell(row, col, rows, cols);
+
+    if (corner) {
+      console.log(`[EasterEgg] Gem clicked at (${row}, ${col}) -> corner: ${corner}`);
+      this.processCornerClick(corner);
+    }
+  }
+
+  /**
+   * Determine if a cell is a corner based on row/col
+   */
+  private getCornerFromCell(row: number, col: number, rows: number, cols: number): string | null {
+    const isTopRow = row === 0;
+    const isBottomRow = row === rows - 1;
+    const isLeftCol = col === 0;
+    const isRightCol = col === cols - 1;
+
+    if (isTopRow && isLeftCol) return 'TL';
+    if (isTopRow && isRightCol) return 'TR';
+    if (isBottomRow && isRightCol) return 'BR';
+    if (isBottomRow && isLeftCol) return 'BL';
+
+    return null;
+  }
+
+  /**
+   * Process a corner click for the secret sequence
+   */
+  private processCornerClick(corner: string): void {
+    // Reset timeout on any corner click
+    if (this.clickTimeout) {
+      window.clearTimeout(this.clickTimeout);
+    }
+
+    console.log(`[EasterEgg] Corner sequence: got ${corner}, index ${this.clickSequenceIndex}, expected ${this.SECRET_CLICK_SEQUENCE[this.clickSequenceIndex]}`);
+
+    // Check if the corner matches the expected corner in sequence
+    if (corner === this.SECRET_CLICK_SEQUENCE[this.clickSequenceIndex]) {
+      this.clickSequenceIndex++;
+
+      // Check if sequence complete
+      if (this.clickSequenceIndex === this.SECRET_CLICK_SEQUENCE.length) {
+        this.activateSecretClick();
+        this.clickSequenceIndex = 0;
+      } else {
+        // Set timeout to reset sequence after 3 seconds of inactivity
+        this.clickTimeout = window.setTimeout(() => {
+          console.log('[EasterEgg] Corner sequence timed out, resetting');
+          this.clickSequenceIndex = 0;
+        }, 3000);
+      }
+    } else {
+      // Wrong corner, reset sequence
+      console.log(`[EasterEgg] Wrong corner, resetting sequence`);
+      this.clickSequenceIndex = 0;
+    }
+  }
+
+  /**
    * Cleanup event listeners
    */
   public cleanup(): void {
     document.removeEventListener('keydown', this.handleKeyDown);
-    document.removeEventListener('click', this.handleClick);
+    const canvas = document.querySelector('canvas');
+    if (canvas) {
+      canvas.removeEventListener('click', this.handleCanvasClick);
+    }
     if (this.konamiTimeout) {
       window.clearTimeout(this.konamiTimeout);
     }
@@ -259,88 +330,49 @@ export class EasterEggManager {
 
   /**
    * Setup click listener for secret corner sequence
+   * Uses canvas click detection to determine which cell was clicked
    */
   private setupSecretClickListener(): void {
-    this.handleClick = this.handleClick.bind(this);
-    document.addEventListener('click', this.handleClick);
+    // Wait for canvas to be created, then attach listener
+    this.setupCanvasClickListener();
   }
 
-  private handleClick = (event: MouseEvent): void => {
-    // Reset timeout on any click
-    if (this.clickTimeout) {
-      window.clearTimeout(this.clickTimeout);
-    }
-
-    const corner = this.getCorner(event.clientX, event.clientY);
-    if (!corner) {
-      // Click not in a corner, reset sequence
-      this.clickSequenceIndex = 0;
-      return;
-    }
-
-    // Check if the corner matches the expected corner in sequence
-    if (corner === this.SECRET_CLICK_SEQUENCE[this.clickSequenceIndex]) {
-      this.clickSequenceIndex++;
-
-      // Check if sequence complete
-      if (this.clickSequenceIndex === this.SECRET_CLICK_SEQUENCE.length) {
-        this.activateSecretClick();
-        this.clickSequenceIndex = 0;
-      } else {
-        // Set timeout to reset sequence after 3 seconds of inactivity
-        this.clickTimeout = window.setTimeout(() => {
-          this.clickSequenceIndex = 0;
-        }, 3000);
-      }
-    } else {
-      // Wrong corner, reset sequence
-      this.clickSequenceIndex = 0;
-    }
-  };
-
   /**
-   * Determine which corner cell of the board was clicked
-   * Returns null if board layout not set or click is not on a corner cell
+   * Setup click listener on canvas element (may not exist immediately)
    */
-  private getCorner(x: number, y: number): string | null {
+  private setupCanvasClickListener(): void {
+    const canvas = document.querySelector('canvas');
+    if (canvas) {
+      canvas.addEventListener('click', this.handleCanvasClick);
+      console.log('[EasterEgg] Canvas click listener attached');
+    } else {
+      // Canvas doesn't exist yet, try again after a short delay
+      setTimeout(() => this.setupCanvasClickListener(), 100);
+    }
+  }
+
+  private handleCanvasClick = (event: MouseEvent): void => {
     if (!this.boardLayout) {
-      return null;
+      return;
     }
 
     const { offsetX, offsetY, cellSize, rows, cols } = this.boardLayout;
 
-    // Get the canvas element to calculate offset from page
-    const canvas = document.querySelector('canvas');
-    if (!canvas) {
-      return null;
-    }
+    const canvas = event.target as HTMLCanvasElement;
+    const rect = canvas.getBoundingClientRect();
+    const canvasX = event.clientX - rect.left;
+    const canvasY = event.clientY - rect.top;
 
-    const canvasRect = canvas.getBoundingClientRect();
-    const canvasX = x - canvasRect.left;
-    const canvasY = y - canvasRect.top;
-
-    // Calculate which cell was clicked (if any)
+    // Calculate which cell was clicked
     const col = Math.floor((canvasX - offsetX) / cellSize);
     const row = Math.floor((canvasY - offsetY) / cellSize);
 
-    // Check if click is within the board bounds
-    if (col < 0 || col >= cols || row < 0 || row >= rows) {
-      return null;
+    // Check if click is within board bounds
+    if (col >= 0 && col < cols && row >= 0 && row < rows) {
+      // Use onGemClicked to process the corner detection
+      this.onGemClicked(row, col);
     }
-
-    // Check if click is on a corner cell
-    const isTopRow = row === 0;
-    const isBottomRow = row === rows - 1;
-    const isLeftCol = col === 0;
-    const isRightCol = col === cols - 1;
-
-    if (isTopRow && isLeftCol) return 'TL';
-    if (isTopRow && isRightCol) return 'TR';
-    if (isBottomRow && isRightCol) return 'BR';
-    if (isBottomRow && isLeftCol) return 'BL';
-
-    return null;
-  }
+  };
 
   /**
    * Activate secret click sequence bonus
@@ -467,9 +499,127 @@ export class EasterEggManager {
    * Notify activation callback if set
    */
   private notifyActivation(eggName: string, message: string): void {
+    // Show visual celebration
+    this.showCelebration(eggName, message);
+
     if (this.onEasterEggActivated) {
       this.onEasterEggActivated(eggName, message);
     }
+  }
+
+  /**
+   * Show a celebratory popup when an easter egg is found
+   */
+  private showCelebration(eggName: string, message: string): void {
+    // Create overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'easter-egg-celebration';
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+      animation: fadeIn 0.3s ease-out;
+    `;
+
+    // Create popup container
+    const popup = document.createElement('div');
+    popup.style.cssText = `
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 20px;
+      padding: 40px 60px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      animation: popIn 0.4s ease-out;
+      max-width: 90%;
+    `;
+
+    // Get emoji and title based on egg type
+    let emoji = '🎉';
+    let title = 'Easter Egg Found!';
+    if (eggName === 'wolf') {
+      emoji = '🐺';
+      title = 'WOLF MODE!';
+    } else if (eggName === 'konami') {
+      emoji = '🎮';
+      title = 'KONAMI CODE!';
+    } else if (eggName === 'secretClick') {
+      emoji = '🔮';
+      title = 'SECRET DISCOVERED!';
+    } else if (eggName === 'date') {
+      emoji = message.split(' ')[0]; // Get emoji from message
+      title = 'HOLIDAY BONUS!';
+    }
+
+    popup.innerHTML = `
+      <div style="font-size: 80px; margin-bottom: 20px; animation: bounce 0.6s ease infinite;">${emoji}</div>
+      <h1 style="color: #fff; font-size: 32px; margin: 0 0 15px 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">${title}</h1>
+      <p style="color: #e0e0e0; font-size: 18px; margin: 0 0 25px 0;">${message}</p>
+      <button id="easter-egg-close" style="
+        background: #fff;
+        color: #764ba2;
+        border: none;
+        padding: 12px 40px;
+        font-size: 18px;
+        font-weight: bold;
+        border-radius: 25px;
+        cursor: pointer;
+        transition: transform 0.2s;
+      ">Awesome!</button>
+    `;
+
+    overlay.appendChild(popup);
+    document.body.appendChild(overlay);
+
+    // Add CSS animations
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes popIn {
+        from { transform: scale(0.5); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+      }
+      @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+      }
+      #easter-egg-close:hover {
+        transform: scale(1.05);
+      }
+    `;
+    document.head.appendChild(style);
+
+    // Close button handler
+    const closeBtn = document.getElementById('easter-egg-close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        overlay.style.animation = 'fadeIn 0.2s ease-out reverse';
+        setTimeout(() => {
+          overlay.remove();
+          style.remove();
+        }, 200);
+      });
+    }
+
+    // Also close on overlay click (outside popup)
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        overlay.style.animation = 'fadeIn 0.2s ease-out reverse';
+        setTimeout(() => {
+          overlay.remove();
+          style.remove();
+        }, 200);
+      }
+    });
   }
 
   /**
