@@ -1,5 +1,5 @@
 export type GemType = 'red' | 'blue' | 'green' | 'yellow' | 'purple' | 'orange';
-export type SpecialGemType = 'bomb' | 'vertical-rocket' | 'horizontal-rocket' | 'color-clear' | 'disco-ball' | 'none';
+export type SpecialGemType = 'bomb' | 'vertical-rocket' | 'horizontal-rocket' | 'color-clear' | 'disco-ball' | 'cross' | 'none';
 
 export interface TriggeredGem {
   position: Position;
@@ -26,6 +26,7 @@ export interface BombCreation {
   position: Position;
   color: GemType;
   specialType: SpecialGemType; // Type of power-up to create
+  clearPositions?: Position[]; // For 2x2: positions of gems to clear
 }
 
 export interface SpecialGemExplosion {
@@ -156,6 +157,58 @@ export class Board {
     }
 
     return lShapedBombs;
+  }
+
+  // Detect 2x2 block matches for Cross power-up
+  public detect2x2Matches(): BombCreation[] {
+    const crossGems: BombCreation[] = [];
+    const usedPositions = new Set<string>();
+
+    // Check each possible 2x2 block
+    for (let row = 0; row < this.rows - 1; row++) {
+      for (let col = 0; col < this.cols - 1; col++) {
+        const topLeft = this.grid[row][col];
+        const topRight = this.grid[row][col + 1];
+        const bottomLeft = this.grid[row + 1][col];
+        const bottomRight = this.grid[row + 1][col + 1];
+
+        // Check if all 4 gems exist, have the same color, and are NOT special gems
+        if (topLeft && topRight && bottomLeft && bottomRight &&
+            topLeft.special === 'none' && topRight.special === 'none' &&
+            bottomLeft.special === 'none' && bottomRight.special === 'none' &&
+            topLeft.color === topRight.color &&
+            topLeft.color === bottomLeft.color &&
+            topLeft.color === bottomRight.color) {
+
+          // All 4 positions that make up the 2x2
+          const clearPositions = [
+            { row, col },                     // top-left
+            { row, col: col + 1 },            // top-right
+            { row: row + 1, col },            // bottom-left
+            { row: row + 1, col: col + 1 }   // bottom-right
+          ];
+
+          // Check if any of these positions were already used in another 2x2
+          const posKeys = clearPositions.map(p => `${p.row},${p.col}`);
+          const alreadyUsed = posKeys.some(key => usedPositions.has(key));
+
+          if (!alreadyUsed) {
+            // Mark these positions as used
+            posKeys.forEach(key => usedPositions.add(key));
+
+            // Default to bottom-right, but swap() will update this based on direction
+            crossGems.push({
+              position: { row: row + 1, col: col + 1 },
+              color: topLeft.color,
+              specialType: 'cross',
+              clearPositions
+            });
+          }
+        }
+      }
+    }
+
+    return crossGems;
   }
 
   // Determine where power-ups should be created based on matches
@@ -391,6 +444,12 @@ export class Board {
     this.grid[pos1.row][pos1.col] = this.grid[pos2.row][pos2.col];
     this.grid[pos2.row][pos2.col] = temp;
 
+    // Check for matches FIRST (even if special gems are involved)
+    const matches = this.findMatches();
+
+    // Also check for 2x2 blocks (which don't create match-3s but do create cross gems)
+    const twoByTwoGems = this.detect2x2Matches();
+
     // If a special gem was swapped, it's always valid and triggers explosion
     if (hasSpecialGem) {
       const bombExplosions: SpecialGemExplosion[] = [];
@@ -409,20 +468,22 @@ export class Board {
         });
       }
 
+      // Determine if any power-ups should be created from matches
+      const result = matches.length > 0 ? this.determineBombCreations(matches) : { bombsToCreate: [], allMatches: [] };
+
       return {
         valid: true,
-        matches: [],
-        bombsToCreate: [],
+        matches,  // Include matches that would have been created
+        bombsToCreate: result.bombsToCreate,
         bombExplosions
       };
     }
 
-    const matches = this.findMatches();
-
     // Determine power-ups and get all matches (including 2x2 squares) with proper priority
     const result = this.determineBombCreations(matches);
 
-    if (result.allMatches.length === 0) {
+    // Valid swap if we have either matches OR 2x2 blocks
+    if (result.allMatches.length === 0 && twoByTwoGems.length === 0) {
       const temp = this.grid[pos1.row][pos1.col];
       this.grid[pos1.row][pos1.col] = this.grid[pos2.row][pos2.col];
       this.grid[pos2.row][pos2.col] = temp;
@@ -433,6 +494,25 @@ export class Board {
         bombsToCreate: [],
         bombExplosions: []
       };
+    }
+
+    // Add cross gems from 2x2 blocks to bombsToCreate
+    for (const twoByTwo of twoByTwoGems) {
+      if (twoByTwo.clearPositions) {
+        // Determine if swap was from left or right side
+        const swappedCol = pos2.col;
+        const leftCol = Math.min(...twoByTwo.clearPositions.map(p => p.col));
+        const rightCol = Math.max(...twoByTwo.clearPositions.map(p => p.col));
+        const bottomRow = Math.max(...twoByTwo.clearPositions.map(p => p.row));
+
+        // Place cross gem based on swap direction
+        if (swappedCol === leftCol) {
+          twoByTwo.position = { row: bottomRow, col: leftCol };
+        } else {
+          twoByTwo.position = { row: bottomRow, col: rightCol };
+        }
+      }
+      result.bombsToCreate.push(twoByTwo);
     }
 
     return {
@@ -557,7 +637,7 @@ export class Board {
       const posKey = `${position.row},${col}`;
       if (gem !== null && !clearedPositionKeys.has(posKey)) {
         // Check if this gem is a special gem that should be triggered
-        if (gem.special !== 'none' && !(position.row === position.row && col === position.col)) {
+        if (gem.special !== 'none' && col !== position.col) {
           triggeredSpecialGems.push({ position: { row: position.row, col }, specialType: gem.special });
         }
         this.grid[position.row][col] = null;
@@ -572,7 +652,45 @@ export class Board {
       const posKey = `${row},${position.col}`;
       if (gem !== null && !clearedPositionKeys.has(posKey)) {
         // Check if this gem is a special gem that should be triggered
-        if (gem.special !== 'none' && !(row === position.row && position.col === position.col)) {
+        if (gem.special !== 'none' && row !== position.row) {
+          triggeredSpecialGems.push({ position: { row, col: position.col }, specialType: gem.special });
+        }
+        this.grid[row][position.col] = null;
+        clearedPositions.push({ row, col: position.col });
+        clearedPositionKeys.add(posKey);
+      }
+    }
+
+    return { cleared: clearedPositions, triggered: triggeredSpecialGems };
+  }
+
+  explodeCross(position: Position): { cleared: Position[], triggered: TriggeredGem[] } {
+    const clearedPositions: Position[] = [];
+    const triggeredSpecialGems: TriggeredGem[] = [];
+    const clearedPositionKeys = new Set<string>();
+
+    // Clear entire row
+    for (let col = 0; col < this.cols; col++) {
+      const gem = this.grid[position.row][col];
+      const posKey = `${position.row},${col}`;
+      if (gem !== null && !clearedPositionKeys.has(posKey)) {
+        // Check if this gem is a special gem that should be triggered
+        if (gem.special !== 'none' && col !== position.col) {
+          triggeredSpecialGems.push({ position: { row: position.row, col }, specialType: gem.special });
+        }
+        this.grid[position.row][col] = null;
+        clearedPositions.push({ row: position.row, col });
+        clearedPositionKeys.add(posKey);
+      }
+    }
+
+    // Clear entire column
+    for (let row = 0; row < this.rows; row++) {
+      const gem = this.grid[row][position.col];
+      const posKey = `${row},${position.col}`;
+      if (gem !== null && !clearedPositionKeys.has(posKey)) {
+        // Check if this gem is a special gem that should be triggered
+        if (gem.special !== 'none' && row !== position.row) {
           triggeredSpecialGems.push({ position: { row, col: position.col }, specialType: gem.special });
         }
         this.grid[row][position.col] = null;
@@ -742,5 +860,18 @@ export class Board {
     if (pos.row < 0 || pos.row >= this.rows || pos.col < 0 || pos.col >= this.cols) {
       throw new Error(`Position (${pos.row}, ${pos.col}) is out of bounds`);
     }
+  }
+
+  /**
+   * Remove a single gem at the specified position (for power-ups like Hammer)
+   * Returns the affected gem for tracking/animation purposes
+   */
+  removeSingleGem(position: Position): { removed: Gem | null } {
+    this.validatePosition(position);
+
+    const gem = this.grid[position.row][position.col];
+    this.grid[position.row][position.col] = null;
+
+    return { removed: gem };
   }
 }

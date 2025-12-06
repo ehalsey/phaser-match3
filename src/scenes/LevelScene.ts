@@ -484,6 +484,12 @@ export class LevelScene extends Phaser.Scene {
         color: '#ffffff'
       }).setOrigin(0.5);
       bombIndicator.setDepth(1);
+    } else if (gem.special === 'cross') {
+      bombIndicator = this.add.text(x, y, '✚', {
+        fontSize: '40px',
+        color: '#ffffff'
+      }).setOrigin(0.5);
+      bombIndicator.setDepth(1);
     }
 
     return { circle: gemCircle, text, bombIndicator, row, col };
@@ -603,6 +609,9 @@ export class LevelScene extends Phaser.Scene {
       } else if (gemInfo.specialType === 'color-clear' && gemInfo.targetColor) {
         result = this.board.explodeColorClear(bombPos, gemInfo.targetColor);
         this.updateStatus('🎨 COLOR CLEAR!');
+      } else if (gemInfo.specialType === 'cross') {
+        result = this.board.explodeCross(bombPos);
+        this.updateStatus('✚ CROSS BLAST!');
       }
 
       // Add bonus points for special gem explosion
@@ -724,6 +733,9 @@ export class LevelScene extends Phaser.Scene {
         } else if (gem.special === 'color-clear') {
           result = this.board.explodeColorClear(bombPos, gem.color);
           statusMessage = '🎨 COLOR CLEAR!';
+        } else if (gem.special === 'cross') {
+          result = this.board.explodeCross(bombPos);
+          statusMessage = '✚ CROSS BLAST!';
         }
 
         // Add bonus points for special gem explosion

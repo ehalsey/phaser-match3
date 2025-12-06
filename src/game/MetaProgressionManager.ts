@@ -7,6 +7,8 @@
  * - localStorage persistence
  */
 
+import { PowerUpManager, PowerUpType } from './PowerUpManager';
+
 export interface MetaProgressionState {
   lives: number;
   coins: number;
@@ -358,6 +360,21 @@ export class MetaProgressionManager {
     // Calculate and store star rating
     const stars = this.getStarsFromCoins(coinsEarned);
     this.setLevelStars(levelNumber, stars);
+
+    // Get PowerUpManager for rewards
+    const powerUpManager = PowerUpManager.getInstance();
+
+    // Award hammer for 3-star completion
+    if (stars === 3) {
+      powerUpManager.add(PowerUpType.HAMMER, 1);
+      console.log('[MetaProgression] Awarded 1 hammer for 3-star completion!');
+    }
+
+    // Check for milestone bonuses (every 10 levels)
+    if (levelNumber % 10 === 0) {
+      powerUpManager.add(PowerUpType.HAMMER, 3);
+      console.log(`[MetaProgression] Milestone reward! Awarded 3 hammers for completing level ${levelNumber}!`);
+    }
 
     return coinsEarned;
   }
