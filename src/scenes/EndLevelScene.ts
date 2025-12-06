@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { MetaProgressionManager } from '../game/MetaProgressionManager';
 import { LevelStatus } from '../game/LevelObjectives';
 import { LocalScores } from '../services/LocalScores';
+import { IconHelper } from '../ui/IconHelper';
 
 export class EndLevelScene extends Phaser.Scene {
   private finalScore: number = 0;
@@ -99,20 +100,16 @@ export class EndLevelScene extends Phaser.Scene {
         color: '#ecf0f1'
       }).setOrigin(0.5);
 
-      this.add.circle(centerX - 40, centerY + 30, 12, 0xf1c40f);
-      this.add.text(centerX, centerY + 25, `+${this.coinsEarned}`, {
+      // Use graphics-based coin icon
+      IconHelper.createCoin(this, centerX - 50, centerY + 25, 24);
+      this.add.text(centerX + 10, centerY + 25, `+${this.coinsEarned}`, {
         fontSize: '40px',
         color: '#f1c40f',
         fontStyle: 'bold'
       }).setOrigin(0.5);
 
-      // Star rating display
-      const starText = '★'.repeat(this.starsEarned) + '☆'.repeat(3 - this.starsEarned);
-      this.add.text(centerX, centerY + 70, starText, {
-        fontSize: '48px',
-        color: '#f1c40f',
-        fontStyle: 'bold'
-      }).setOrigin(0.5);
+      // Star rating display using graphics
+      this.createStarRating(centerX, centerY + 75, this.starsEarned);
     } else {
       // Show failure message
       this.add.text(centerX, centerY + 10, 'Better luck next time!', {
@@ -210,8 +207,8 @@ export class EndLevelScene extends Phaser.Scene {
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
-    // Cost display
-    this.add.circle(x - 50, y + 12, 8, 0xf1c40f);
+    // Cost display with graphics-based coin icon
+    IconHelper.createCoin(this, x - 50, y + 12, 16);
     const costText = this.add.text(x - 20, y + 10, `-${turnsCost}`, {
       fontSize: '18px',
       color: '#f1c40f',
@@ -279,5 +276,49 @@ export class EndLevelScene extends Phaser.Scene {
         }
       });
     }
+  }
+
+  /**
+   * Create a star rating display using graphics
+   */
+  private createStarRating(x: number, y: number, filledStars: number): void {
+    const starSize = 32;
+    const spacing = 40;
+    const startX = x - spacing; // Center 3 stars
+
+    for (let i = 0; i < 3; i++) {
+      const starX = startX + (i * spacing);
+      const isFilled = i < filledStars;
+
+      if (isFilled) {
+        // Filled star (gold)
+        IconHelper.createStar(this, starX, y, starSize, 0xf1c40f);
+      } else {
+        // Empty star (gray outline)
+        this.createEmptyStar(starX, y, starSize);
+      }
+    }
+  }
+
+  /**
+   * Create an empty star outline
+   */
+  private createEmptyStar(x: number, y: number, size: number): Phaser.GameObjects.Graphics {
+    const graphics = this.add.graphics();
+    graphics.lineStyle(2, 0x7f8c8d, 1);
+
+    const points: number[] = [];
+    const outerRadius = size / 2;
+    const innerRadius = size / 4;
+
+    for (let i = 0; i < 10; i++) {
+      const radius = i % 2 === 0 ? outerRadius : innerRadius;
+      const angle = (i * Math.PI / 5) - Math.PI / 2;
+      points.push(x + radius * Math.cos(angle));
+      points.push(y + radius * Math.sin(angle));
+    }
+
+    graphics.strokePoints(points, true);
+    return graphics;
   }
 }
