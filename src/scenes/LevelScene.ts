@@ -29,6 +29,11 @@ export class LevelScene extends Phaser.Scene {
   private hammerButtonText: Phaser.GameObjects.Text | null = null;
   private hammerCountText: Phaser.GameObjects.Text | null = null;
 
+  // Drag and drop state
+  private draggedGem: GemSprite | null = null;
+  private dragStartPos: { x: number, y: number } | null = null;
+  private dragStartCell: Position | null = null;
+
   private readonly CELL_SIZE = 80;
   private readonly BOARD_OFFSET_X = 50;  // Match main.ts
   private readonly BOARD_OFFSET_Y = 150;
@@ -160,6 +165,9 @@ export class LevelScene extends Phaser.Scene {
 
     // Draw the board
     this.drawBoard();
+
+    // Set up drag and drop handlers
+    this.setupDragAndDrop();
 
     // Add navigation buttons
     this.createNavigationButtons();
@@ -312,6 +320,147 @@ export class LevelScene extends Phaser.Scene {
     });
   }
 
+  private setupDragAndDrop(): void {
+    // Enable drag input
+    this.input.on('dragstart', (_pointer: Phaser.Input.Pointer, gameObject: any) => {
+      // Don't allow drag during hammer mode
+      if (this.hammerMode) return;
+
+      const row = gameObject.getData('row');
+      const col = gameObject.getData('col');
+      const key = `${row},${col}`;
+      const sprite = this.gemSprites.get(key);
+
+      if (sprite) {
+        this.draggedGem = sprite;
+        this.dragStartCell = { row, col };
+        this.dragStartPos = { x: gameObject.x, y: gameObject.y };
+
+        // Bring dragged gem to front
+        gameObject.setDepth(100);
+        if (sprite.text) sprite.text.setDepth(101);
+        if (sprite.bombIndicator) sprite.bombIndicator.setDepth(101);
+
+        // Scale up slightly to indicate it's being dragged
+        gameObject.setScale(1.15);
+
+        // Clear any existing selection
+        this.clearSelection();
+      }
+    });
+
+    this.input.on('drag', (_pointer: Phaser.Input.Pointer, gameObject: any, dragX: number, dragY: number) => {
+      if (!this.draggedGem) return;
+
+      // Move the gem circle to follow the pointer
+      gameObject.x = dragX;
+      gameObject.y = dragY;
+
+      // Also move the text and bomb indicator
+      if (this.draggedGem.text) {
+        this.draggedGem.text.x = dragX;
+        this.draggedGem.text.y = dragY;
+      }
+      if (this.draggedGem.bombIndicator) {
+        this.draggedGem.bombIndicator.x = dragX;
+        this.draggedGem.bombIndicator.y = dragY;
+      }
+    });
+
+    this.input.on('dragend', (_pointer: Phaser.Input.Pointer, gameObject: any) => {
+      if (!this.draggedGem || !this.dragStartPos || !this.dragStartCell) {
+        this.resetDragState();
+        return;
+      }
+
+      // Calculate which cell the gem was dropped on
+      const dropCol = Math.round((gameObject.x - this.BOARD_OFFSET_X) / this.CELL_SIZE);
+      const dropRow = Math.round((gameObject.y - this.BOARD_OFFSET_Y) / this.CELL_SIZE);
+
+      const startRow = this.dragStartCell.row;
+      const startCol = this.dragStartCell.col;
+
+      // Check if it's a valid adjacent swap
+      const rowDiff = Math.abs(dropRow - startRow);
+      const colDiff = Math.abs(dropCol - startCol);
+      const isAdjacent = (rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1);
+      const isInBounds = dropRow >= 0 && dropRow < this.board.getRows() &&
+                         dropCol >= 0 && dropCol < this.board.getCols();
+
+      if (isAdjacent && isInBounds && (dropRow !== startRow || dropCol !== startCol)) {
+        // Valid drop - attempt swap
+        this.snapGemBack(); // First snap back visually
+        this.attemptSwap(this.dragStartCell, { row: dropRow, col: dropCol });
+      } else {
+        // Invalid drop - snap back to original position
+        this.snapGemBack();
+
+        // If it was just a tap (no significant drag), treat as click
+        const dragDistance = Math.sqrt(
+          Math.pow(gameObject.x - this.dragStartPos.x, 2) +
+          Math.pow(gameObject.y - this.dragStartPos.y, 2)
+        );
+        if (dragDistance < 10) {
+          this.onGemClick(startRow, startCol);
+        }
+      }
+
+      this.resetDragState();
+    });
+  }
+
+  private snapGemBack(): void {
+    if (!this.draggedGem || !this.dragStartPos) return;
+
+    const sprite = this.draggedGem;
+    const startPos = this.dragStartPos;
+
+    // Animate snap back
+    this.tweens.add({
+      targets: sprite.circle,
+      x: startPos.x,
+      y: startPos.y,
+      duration: 150,
+      ease: 'Back.easeOut'
+    });
+
+    if (sprite.text) {
+      this.tweens.add({
+        targets: sprite.text,
+        x: startPos.x,
+        y: startPos.y,
+        duration: 150,
+        ease: 'Back.easeOut'
+      });
+    }
+
+    if (sprite.bombIndicator) {
+      this.tweens.add({
+        targets: sprite.bombIndicator,
+        x: startPos.x,
+        y: startPos.y,
+        duration: 150,
+        ease: 'Back.easeOut'
+      });
+    }
+
+    // Reset depth and scale
+    sprite.circle.setDepth(0);
+    sprite.circle.setScale(1.0);
+    if (sprite.text) sprite.text.setDepth(0);
+    if (sprite.bombIndicator) sprite.bombIndicator.setDepth(1);
+  }
+
+  private resetDragState(): void {
+    if (this.draggedGem) {
+      this.draggedGem.circle.setScale(1.0);
+      this.draggedGem.circle.setDepth(0);
+    }
+    this.draggedGem = null;
+    this.dragStartPos = null;
+    this.dragStartCell = null;
+  }
+
   private generateRandomBoard(): void {
     const rows = this.board.getRows();
     const cols = this.board.getCols();
@@ -422,7 +571,7 @@ export class LevelScene extends Phaser.Scene {
     } else {
       gemCircle.setStrokeStyle(3, 0xffffff, 0.5);
     }
-    gemCircle.setInteractive({ useHandCursor: true });
+    gemCircle.setInteractive({ useHandCursor: true, draggable: true });
     gemCircle.setData('row', row);
     gemCircle.setData('col', col);
     gemCircle.setData('cellId', cellId);
@@ -440,16 +589,24 @@ export class LevelScene extends Phaser.Scene {
     }).setOrigin(0.5);
     text.setVisible(false); // Hide by default
 
-    // Click handler
-    gemCircle.on('pointerdown', () => this.onGemClick(row, col));
+    // Click handler (for tap/click-to-select mode)
+    gemCircle.on('pointerdown', (_pointer: Phaser.Input.Pointer) => {
+      // Store drag start info
+      this.dragStartPos = { x, y };
+      this.dragStartCell = { row, col };
+    });
 
-    // Hover effect
+    // Hover effect (only when not dragging)
     gemCircle.on('pointerover', () => {
-      gemCircle.setScale(1.1);
+      if (!this.draggedGem) {
+        gemCircle.setScale(1.1);
+      }
     });
 
     gemCircle.on('pointerout', () => {
-      gemCircle.setScale(1.0);
+      if (!this.draggedGem) {
+        gemCircle.setScale(1.0);
+      }
     });
 
     // Add special gem indicator based on type
