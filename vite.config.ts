@@ -17,6 +17,6 @@ export default defineConfig({
     }
   },
   server: {
-    port: 3000
+    port: 3035  // Unique port for easter-eggs feature branch (issue #35)
   }
 })
