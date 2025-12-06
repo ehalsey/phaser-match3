@@ -56,6 +56,9 @@ export class EasterEggManager {
   private readonly SECRET_CLICK_SEQUENCE = ['TL', 'TR', 'BR', 'BL', 'TL'];
   private clickSequenceIndex = 0;
   private clickTimeout: number | null = null;
+  private lastCornerClicked: string | null = null;
+  private lastCornerClickTime = 0;
+  private readonly DEBOUNCE_MS = 300; // Ignore duplicate clicks within 300ms
 
   // Board layout for corner cell detection
   private boardLayout: BoardLayout | null = null;
@@ -162,6 +165,15 @@ export class EasterEggManager {
    * Process a corner click for the secret sequence
    */
   private processCornerClick(corner: string): void {
+    // Debounce: ignore duplicate clicks on the same corner within DEBOUNCE_MS
+    const now = Date.now();
+    if (corner === this.lastCornerClicked && (now - this.lastCornerClickTime) < this.DEBOUNCE_MS) {
+      console.log(`[EasterEgg] Ignoring duplicate click on ${corner} (debounce)`);
+      return;
+    }
+    this.lastCornerClicked = corner;
+    this.lastCornerClickTime = now;
+
     // Reset timeout on any corner click
     if (this.clickTimeout) {
       window.clearTimeout(this.clickTimeout);
