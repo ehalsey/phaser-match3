@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { MetaProgressionManager } from '../game/MetaProgressionManager';
 import { ShopButton } from '../ui/ShopButton';
+import { IconHelper } from '../ui/IconHelper';
 
 export class ShopScene extends Phaser.Scene {
   private metaManager!: MetaProgressionManager;
@@ -70,28 +71,28 @@ export class ShopScene extends Phaser.Scene {
   }
 
   private createResourceDisplay(x: number, y: number): void {
-    const spacing = 120;
+    const spacing = 100;
 
-    // Lives
-    this.add.text(x - spacing, y - 20, '❤️', { fontSize: '24px' }).setOrigin(0.5);
-    this.livesText = this.add.text(x - spacing, y + 10, `${this.metaManager.getLives()}/${this.metaManager.getMaxLives()}`, {
-      fontSize: '20px',
+    // Lives - use graphics icon
+    IconHelper.createHeart(this, x - spacing, y - 15, 24);
+    this.livesText = this.add.text(x - spacing, y + 15, `${this.metaManager.getLives()}/${this.metaManager.getMaxLives()}`, {
+      fontSize: '18px',
       color: '#ffffff',
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
-    // Coins
-    this.add.text(x, y - 20, '💰', { fontSize: '24px' }).setOrigin(0.5);
-    this.coinsText = this.add.text(x, y + 10, `${this.metaManager.getCoins()}`, {
-      fontSize: '20px',
+    // Coins - use graphics icon
+    IconHelper.createCoin(this, x, y - 15, 24);
+    this.coinsText = this.add.text(x, y + 15, `${this.metaManager.getCoins()}`, {
+      fontSize: '18px',
       color: '#ffffff',
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
-    // Hammers
-    this.add.text(x + spacing, y - 20, '🔨', { fontSize: '24px' }).setOrigin(0.5);
-    this.hammersText = this.add.text(x + spacing, y + 10, `${this.metaManager.getHammers()}`, {
-      fontSize: '20px',
+    // Hammers - use graphics icon
+    IconHelper.createHammer(this, x + spacing, y - 15, 24);
+    this.hammersText = this.add.text(x + spacing, y + 15, `${this.metaManager.getHammers()}`, {
+      fontSize: '18px',
       color: '#ffffff',
       fontStyle: 'bold'
     }).setOrigin(0.5);
@@ -118,7 +119,7 @@ export class ShopScene extends Phaser.Scene {
       title: 'Single Life',
       description: '+1 Life',
       price: this.metaManager.getShopSingleLifeCost(),
-      icon: '❤️',
+      iconType: 'heart',
       onPurchase: () => this.purchaseSingleLife()
     });
     this.shopButtons.push(singleLifeButton);
@@ -133,7 +134,7 @@ export class ShopScene extends Phaser.Scene {
       title: 'Refill Lives',
       description: 'Fill to max (5)',
       price: this.metaManager.getShopRefillLivesCost(),
-      icon: '💖',
+      iconType: 'double-heart',
       onPurchase: () => this.purchaseRefillLives()
     });
     this.shopButtons.push(refillLivesButton);
@@ -148,7 +149,7 @@ export class ShopScene extends Phaser.Scene {
       title: 'Hammer',
       description: '+1 Hammer',
       price: this.metaManager.getShopSingleHammerCost(),
-      icon: '🔨',
+      iconType: 'hammer',
       onPurchase: () => this.purchaseSingleHammer()
     });
     this.shopButtons.push(singleHammerButton);
@@ -163,7 +164,7 @@ export class ShopScene extends Phaser.Scene {
       title: 'Hammer Pack',
       description: `+${this.metaManager.getShopHammerPackSize()} Hammers (save 10!)`,
       price: this.metaManager.getShopHammerPackCost(),
-      icon: '🔨🔨🔨',
+      iconType: 'hammer-pack',
       onPurchase: () => this.purchaseHammerPack()
     });
     this.shopButtons.push(hammerPackButton);
@@ -173,7 +174,7 @@ export class ShopScene extends Phaser.Scene {
     const success = this.metaManager.buySingleLife();
 
     if (success) {
-      this.showStatus('Life purchased! ❤️', '#4CAF50');
+      this.showStatus('Life purchased!', '#4CAF50');
       this.updateDisplays();
       return true;
     } else {
@@ -190,7 +191,7 @@ export class ShopScene extends Phaser.Scene {
     const success = this.metaManager.buyAllLives();
 
     if (success) {
-      this.showStatus('Lives refilled! 💖', '#4CAF50');
+      this.showStatus('Lives refilled!', '#4CAF50');
       this.updateDisplays();
       return true;
     } else {
@@ -207,7 +208,7 @@ export class ShopScene extends Phaser.Scene {
     const success = this.metaManager.buySingleHammer();
 
     if (success) {
-      this.showStatus('Hammer purchased! 🔨', '#4CAF50');
+      this.showStatus('Hammer purchased!', '#4CAF50');
       this.updateDisplays();
       return true;
     } else {
@@ -220,7 +221,7 @@ export class ShopScene extends Phaser.Scene {
     const success = this.metaManager.buyHammerPack();
 
     if (success) {
-      this.showStatus('Hammer pack purchased! 🔨🔨🔨', '#4CAF50');
+      this.showStatus('Hammer pack purchased!', '#4CAF50');
       this.updateDisplays();
       return true;
     } else {

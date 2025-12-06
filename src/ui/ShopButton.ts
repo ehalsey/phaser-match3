@@ -1,4 +1,7 @@
 import Phaser from 'phaser';
+import { IconHelper } from './IconHelper';
+
+export type IconType = 'heart' | 'double-heart' | 'coin' | 'hammer' | 'hammer-pack';
 
 export interface ShopButtonConfig {
   scene: Phaser.Scene;
@@ -10,6 +13,7 @@ export interface ShopButtonConfig {
   description: string;
   price: number;
   icon?: string;
+  iconType?: IconType; // Use graphics icon instead of emoji
   onPurchase: () => boolean; // Returns true if purchase successful
 }
 
@@ -40,8 +44,36 @@ export class ShopButton {
       .setStrokeStyle(2, 0x444444);
     this.container.add(this.background);
 
-    // Icon (if provided)
-    if (config.icon) {
+    // Icon (if provided) - prefer iconType for graphics-based icons
+    if (config.iconType) {
+      const iconX = config.x - config.width / 2 + 35;
+      const iconY = config.y - config.height / 2 + 50;
+
+      switch (config.iconType) {
+        case 'heart':
+          IconHelper.createHeart(this.scene, iconX, iconY, 32);
+          break;
+        case 'double-heart':
+          IconHelper.createDoubleHeart(this.scene, iconX, iconY, 32);
+          break;
+        case 'coin':
+          IconHelper.createCoin(this.scene, iconX, iconY, 32);
+          break;
+        case 'hammer':
+          IconHelper.createHammer(this.scene, iconX, iconY, 32);
+          break;
+        case 'hammer-pack':
+          // Draw 3 hammers
+          IconHelper.createHammer(this.scene, iconX - 15, iconY, 24);
+          IconHelper.createHammer(this.scene, iconX, iconY - 8, 24);
+          IconHelper.createHammer(this.scene, iconX + 15, iconY, 24);
+          break;
+        default:
+          IconHelper.createCoin(this.scene, iconX, iconY, 32);
+      }
+      // Note: Graphics are added to scene directly at absolute positions
+    } else if (config.icon) {
+      // Fallback to emoji text (less reliable)
       this.iconText = this.scene.add.text(-config.width / 2 + 20, -config.height / 2 + 30, config.icon, {
         fontSize: '40px',
       }).setOrigin(0, 0);

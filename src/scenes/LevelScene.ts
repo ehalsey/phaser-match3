@@ -4,11 +4,12 @@ import { BoardConfig } from '../game/BoardConfig';
 import { LevelObjectives, LevelStatus } from '../game/LevelObjectives';
 import { LevelSettings } from '../game/LevelConfig';
 import { MetaProgressionManager } from '../game/MetaProgressionManager';
+import { IconHelper } from '../ui/IconHelper';
 
 interface GemSprite {
   circle: any; // Phaser.GameObjects.Circle type not exported correctly
   text: Phaser.GameObjects.Text;
-  bombIndicator?: Phaser.GameObjects.Text; // Star indicator for bomb gems
+  bombIndicator?: Phaser.GameObjects.Text | Phaser.GameObjects.Graphics; // Icon for special gems
   row: number;
   col: number;
 }
@@ -236,9 +237,14 @@ export class LevelScene extends Phaser.Scene {
     this.hammerButton.setScrollFactor(0);
     this.hammerButton.setDepth(1000);
 
-    this.hammerButtonText = this.add.text(hammerButtonX, hammerButtonY, '🔨', {
-      fontSize: '32px',
-      color: '#ffffff'
+    // Use graphics-based hammer icon instead of emoji
+    const hammerIcon = IconHelper.createHammer(this, hammerButtonX, hammerButtonY, 28);
+    hammerIcon.setScrollFactor(0);
+    hammerIcon.setDepth(1001);
+
+    // Keep text reference for compatibility but make it invisible
+    this.hammerButtonText = this.add.text(hammerButtonX, hammerButtonY, '', {
+      fontSize: '1px'
     }).setOrigin(0.5);
     this.hammerButtonText.setScrollFactor(0);
     this.hammerButtonText.setDepth(1001);
@@ -609,43 +615,25 @@ export class LevelScene extends Phaser.Scene {
       }
     });
 
-    // Add special gem indicator based on type
-    let bombIndicator: Phaser.GameObjects.Text | undefined;
+    // Add special gem indicator based on type - use graphics for consistent rendering
+    let bombIndicator: Phaser.GameObjects.Text | Phaser.GameObjects.Graphics | undefined;
     if (gem.special === 'bomb') {
-      bombIndicator = this.add.text(x, y, '⭐', {
-        fontSize: '32px',
-        color: '#ffffff'
-      }).setOrigin(0.5);
-      bombIndicator.setDepth(1); // Ensure it's above the circle
+      bombIndicator = IconHelper.createStar(this, x, y, 28);
+      bombIndicator.setDepth(1);
     } else if (gem.special === 'vertical-rocket') {
-      bombIndicator = this.add.text(x, y, '↕', {
-        fontSize: '40px',
-        color: '#ffffff'
-      }).setOrigin(0.5);
+      bombIndicator = IconHelper.createVerticalArrow(this, x, y, 28);
       bombIndicator.setDepth(1);
     } else if (gem.special === 'horizontal-rocket') {
-      bombIndicator = this.add.text(x, y, '↔', {
-        fontSize: '40px',
-        color: '#ffffff'
-      }).setOrigin(0.5);
+      bombIndicator = IconHelper.createHorizontalArrow(this, x, y, 28);
       bombIndicator.setDepth(1);
     } else if (gem.special === 'color-clear') {
-      bombIndicator = this.add.text(x, y, '🎨', {
-        fontSize: '32px',
-        color: '#ffffff'
-      }).setOrigin(0.5);
+      bombIndicator = IconHelper.createPalette(this, x, y, 28);
       bombIndicator.setDepth(1);
     } else if (gem.special === 'disco-ball') {
-      bombIndicator = this.add.text(x, y, '🪩', {
-        fontSize: '36px',
-        color: '#ffffff'
-      }).setOrigin(0.5);
+      bombIndicator = IconHelper.createDiscoBall(this, x, y, 28);
       bombIndicator.setDepth(1);
     } else if (gem.special === 'cross') {
-      bombIndicator = this.add.text(x, y, '✚', {
-        fontSize: '40px',
-        color: '#ffffff'
-      }).setOrigin(0.5);
+      bombIndicator = IconHelper.createCross(this, x, y, 28);
       bombIndicator.setDepth(1);
     }
 
@@ -694,7 +682,7 @@ export class LevelScene extends Phaser.Scene {
 
         // Check if this was a bomb swap (no matches, just explosion)
         if (result.bombExplosions && result.bombExplosions.length > 0) {
-          this.updateStatus('💥 BOMB ACTIVATED!');
+          this.updateStatus('BOMB ACTIVATED!');
 
           // Animate the swap, then trigger bomb explosions
           this.animateSwap(pos1, pos2, () => {
@@ -753,22 +741,22 @@ export class LevelScene extends Phaser.Scene {
 
       if (gemInfo.specialType === 'bomb') {
         result = this.board.explodeBomb(bombPos);
-        this.updateStatus('💥 BOMB EXPLOSION!');
+        this.updateStatus('BOMB EXPLOSION!');
       } else if (gemInfo.specialType === 'vertical-rocket') {
         result = this.board.explodeVerticalRocket(bombPos);
-        this.updateStatus('🚀 VERTICAL ROCKET!');
+        this.updateStatus('VERTICAL ROCKET!');
       } else if (gemInfo.specialType === 'horizontal-rocket') {
         result = this.board.explodeHorizontalRocket(bombPos);
-        this.updateStatus('🚀 HORIZONTAL ROCKET!');
+        this.updateStatus('HORIZONTAL ROCKET!');
       } else if (gemInfo.specialType === 'disco-ball') {
         result = this.board.explodeDiscoBall(bombPos);
-        this.updateStatus('🪩 DISCO BALL!');
+        this.updateStatus('DISCO BALL!');
       } else if (gemInfo.specialType === 'color-clear' && gemInfo.targetColor) {
         result = this.board.explodeColorClear(bombPos, gemInfo.targetColor);
-        this.updateStatus('🎨 COLOR CLEAR!');
+        this.updateStatus('COLOR CLEAR!');
       } else if (gemInfo.specialType === 'cross') {
         result = this.board.explodeCross(bombPos);
-        this.updateStatus('✚ CROSS BLAST!');
+        this.updateStatus('CROSS BLAST!');
       }
 
       // Add bonus points for special gem explosion
@@ -877,22 +865,22 @@ export class LevelScene extends Phaser.Scene {
 
         if (gem.special === 'bomb') {
           result = this.board.explodeBomb(bombPos);
-          statusMessage = '💥 BOMB EXPLOSION!';
+          statusMessage = 'BOMB EXPLOSION!';
         } else if (gem.special === 'vertical-rocket') {
           result = this.board.explodeVerticalRocket(bombPos);
-          statusMessage = '🚀 VERTICAL ROCKET!';
+          statusMessage = 'VERTICAL ROCKET!';
         } else if (gem.special === 'horizontal-rocket') {
           result = this.board.explodeHorizontalRocket(bombPos);
-          statusMessage = '🚀 HORIZONTAL ROCKET!';
+          statusMessage = 'HORIZONTAL ROCKET!';
         } else if (gem.special === 'disco-ball') {
           result = this.board.explodeDiscoBall(bombPos);
-          statusMessage = '🪩 DISCO BALL!';
+          statusMessage = 'DISCO BALL!';
         } else if (gem.special === 'color-clear') {
           result = this.board.explodeColorClear(bombPos, gem.color);
-          statusMessage = '🎨 COLOR CLEAR!';
+          statusMessage = 'COLOR CLEAR!';
         } else if (gem.special === 'cross') {
           result = this.board.explodeCross(bombPos);
-          statusMessage = '✚ CROSS BLAST!';
+          statusMessage = 'CROSS BLAST!';
         }
 
         // Add bonus points for special gem explosion
@@ -1274,7 +1262,7 @@ export class LevelScene extends Phaser.Scene {
     // Clear any existing selection
     this.clearSelection();
 
-    this.updateStatus('🔨 HAMMER MODE! Click a gem to smash it!');
+    this.updateStatus('HAMMER MODE! Click a gem to smash it!');
   }
 
   private deactivateHammer(): void {
@@ -1338,7 +1326,7 @@ export class LevelScene extends Phaser.Scene {
     // Add score bonus for hammer use
     this.score += 100;
     this.updateScore();
-    this.updateStatus('🔨 SMASHED! +100 points');
+    this.updateStatus('SMASHED! +100 points');
 
     // Clear the gem from the board after animation
     this.time.delayedCall(350, () => {
