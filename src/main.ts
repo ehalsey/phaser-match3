@@ -6,6 +6,7 @@ import { LevelScene } from './scenes/LevelScene';
 import { EndLevelScene } from './scenes/EndLevelScene';
 import { ShopScene } from './scenes/ShopScene';
 import { BoardConfig } from './game/BoardConfig';
+import { EasterEggManager } from './game/EasterEggManager';
 
 // Calculate required canvas size based on board dimensions
 const boardConfig = BoardConfig.fromURL();
@@ -34,5 +35,15 @@ const config: Phaser.Types.Core.GameConfig = {
 };
 
 console.log(`[Game] Canvas size: ${canvasWidth}×${canvasHeight} for ${boardConfig.rows}×${boardConfig.cols} board`);
+
+// Initialize easter egg system (URL params, Konami code, click sequences, date bonuses)
+const easterEggManager = EasterEggManager.getInstance();
+easterEggManager.initialize({
+  offsetX: BOARD_OFFSET_X,
+  offsetY: BOARD_OFFSET_Y,
+  cellSize: CELL_SIZE,
+  rows: boardConfig.rows,
+  cols: boardConfig.cols
+});
 
 new Phaser.Game(config);
